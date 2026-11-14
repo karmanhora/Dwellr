@@ -68,7 +68,7 @@ export function SignUpForm() {
         type="password"
         required
         autoComplete="new-password"
-        hint={`${PASSWORD_MIN_LENGTH}+ characters`}
+        hint={`${PASSWORD_MIN_LENGTH}+ chars · letters & numbers`}
         minLength={PASSWORD_MIN_LENGTH}
         error={errors.password}
       />

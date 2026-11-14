@@ -45,6 +45,15 @@ describe("signUpSchema", () => {
     },
   );
 
+  it("requires at least 8 characters", () => {
+    // 7 characters, otherwise satisfying every class rule.
+    expect(signUpSchema.safeParse({ ...validSignUp, password: "Dwellr2" }).success).toBe(false);
+
+    // 8 characters is the boundary and must be accepted.
+    const boundary = signUpSchema.safeParse({ ...validSignUp, password: "Dwellr26" });
+    expect(boundary.success).toBe(true);
+  });
+
   it.each([
     ["too short", "dw3llr"],
     ["no number", "dwellrhouse"],
