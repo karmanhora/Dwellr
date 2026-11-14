@@ -33,8 +33,8 @@ Link the Supabase CLI to the dev project and apply migrations (dry run first):
 ```bash
 pnpm supabase login
 pnpm supabase link --project-ref <project-ref>
-pnpm supabase db push --dry-run
-pnpm supabase db push
+pnpm supabase db push --dry-run --remote
+pnpm supabase db push --remote
 ```
 
 ## Commands
