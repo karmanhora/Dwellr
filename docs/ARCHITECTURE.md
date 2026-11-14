@@ -22,12 +22,19 @@ dwellr/
 ├── apps/
 │   └── web/                  Next.js 16 App Router app (the product surface)
 │       ├── public/brand/     Logo mark, wordmark, lockup, PNG exports
+│       ├── e2e/              Playwright smoke test + fixture image
 │       └── src/
 │           ├── app/          Routes, layouts, Server Actions
 │           │   ├── (auth)/   sign-up / sign-in route group
-│           │   └── me/       protected profile page
-│           ├── components/   Brand, auth and UI components
-│           ├── lib/          Supabase clients, env, auth helpers
+│           │   ├── explore/  discovery feed
+│           │   ├── create/   new property post
+│           │   ├── p/[id]/   detail, edit, delete
+│           │   ├── u/[username]/ public profile
+│           │   ├── settings/ profile settings
+│           │   └── me/       protected account page
+│           ├── components/   Brand, auth, property and UI components
+│           │   └── ui/       Design-system primitives
+│           ├── lib/          Supabase clients, env, auth, property queries
 │           └── proxy.ts      Next 16 request boundary (session refresh)
 ├── packages/
 │   └── core/                 Shared domain layer (no React, no Next, no DOM)
@@ -122,8 +129,9 @@ and intentional. Animations respect `prefers-reduced-motion`.
 
 Vitest covers `packages/core` — the validation contracts and pure services,
 where a regression is silent and expensive. The suite runs without a browser,
-network or database. UI behaviour is exercised manually for now; component and
-end-to-end tests are a later milestone decision.
+network or database. Milestone 1 adds a Playwright smoke test for the
+cross-system flows (auth, Storage, RLS, Server Actions); see the Milestone 1
+section for what it covers and why the dependency is justified.
 
 ## Auth flow (Milestone 0)
 
@@ -161,8 +169,193 @@ import { signUpSchema, getFieldErrors, toProfile } from "@dwellr/core";
   lives in the mobile app.
 - **Not shared**: any React/Next component or Tailwind class.
 
-## Milestone 1 direction
+## Milestone 1: property posts
 
-Design system and property card: provenance-safe property types and Zod
-contracts in core, property/collection tables with RLS, and a card component
-whose verified/user-submitted tags are structural rather than decorative.
+Milestone 1 adds the design system, the property data model, and the full
+create → discover → detail → edit/delete loop.
+
+### Schema
+
+`supabase/migrations/20261114190000_create_properties.sql` creates:
+
+- **`properties`** — `created_by → profiles(id) on delete cascade`, title,
+  description, `listing_status` enum (`for_sale`, `off_market`, `sold`,
+  `unknown`), `price_cents bigint` + `currency`, bedrooms, bathrooms,
+  `square_feet`, `property_type` enum, neighborhood, city, state, postal code,
+  optional `latitude`/`longitude`, timestamps. Database `check` constraints
+  mirror the Zod ranges: title 3–120, description ≤ 4000, price 0–100,000,000,000
+  cents, beds/baths 0–50, square feet 1–100,000, state 2–80, postal code 2–12,
+  currency `^[A-Z]{3}$`.
+- **`property_photos`** — `property_id → properties on delete cascade`,
+  `storage_path unique`, `position`, `alt_text`, `width`, `height`. A trigger
+  rejects the ninth photo and `unique (property_id, position)` keeps ordering
+  deterministic. Width and height must be provided together.
+- **`property_field_provenance`** — one row per property field, PK
+  `(property_id, field)`, `field` allowlist check, `provenance` enum and a check
+  that `verified_at` is present exactly when provenance is `verified`.
+
+Indexes serve the discovery feed and profile pages: `(created_at desc, id desc)`,
+`(listing_status, created_at desc)`, `lower(city)`, `lower(neighborhood)`,
+`(created_by, created_at desc)`, `property_type`, and
+`(property_id, position)`.
+
+**Money is stored in cents.** A `bigint` of minor units is exact, survives
+JSON, and compares safely in SQL; `numeric` would arrive in JS as a string and
+float would round. The display currency is a separate ISO code.
+
+**Coordinates are privacy-rounded.** `numeric(6,2)` plus a check that the value
+equals `round(value, 2)` means the database itself refuses a precise pin
+(~1.1 km granularity), not just the form.
+
+### Provenance, enforced by the database
+
+The separate table is the core security decision. Clients receive **SELECT
+only** — no insert/update/delete policy and no write grant — so nothing a
+browser sends can create a `verified` row. The column-level grant excludes
+`source_ref`, which will name the verifying integration.
+
+A `security definer` trigger (`sync_property_provenance`) writes the rows:
+
+- on insert, every non-null tracked field becomes `user_submitted`;
+- on update, a field whose value changed is reset to `user_submitted` with
+  `verified_at` and `source_ref` cleared; a new non-null field is added;
+- a field cleared to null loses its provenance row.
+
+`verified` is therefore only reachable by a service-role integration running
+server-side. The UI derives the post-level badge with
+`getPropertyVerification`: a post is **Verified** only when every recorded fact
+is verified, otherwise **Community**. The card badge, the detail row labels and
+the legend all read from that map, so the distinction cannot drift from the
+data.
+
+Tradeoff: this costs one join and a trigger, but it makes provenance
+impossible to forge from the client and lets individual facts be verified later
+without touching the property row. The alternative — `*_verified` columns or a
+`jsonb` map on `properties` — is either wider on every read or impossible to
+constrain per field.
+
+### Generalized location, and the plan for exact addresses
+
+No street address column exists in this milestone. Location is neighborhood,
+city, optional state/postal code, and optional lat/lng rounded to two decimals.
+The create form says so explicitly, and the detail page labels a pin as
+approximate.
+
+Later, exact addresses should arrive as a separate
+`property_addresses` table keyed by property, with:
+
+1. a `precision` enum (`street`, `exact`, `parcel`) and an explicit owner opt-in
+   per property;
+2. server-only writes (service role) after an integration or a human verifies
+   the address, never a client insert;
+3. deduplication into a persistent building/property entity using provider ids
+   (county parcel, geocoder place id) so the same home is one profile rather
+   than many posts;
+4. an audit trail of who changed an address and why, and a rule that the exact
+   address is never exposed publicly until the owner opts in.
+
+### RLS and storage policies
+
+| Table | SELECT | INSERT | UPDATE | DELETE |
+| --- | --- | --- | --- | --- |
+| `properties` | public (`using true`) | authenticated, `created_by = auth.uid()` | owner, `using` + `with check` | owner |
+| `property_photos` | public | authenticated, property owner via `exists` | property owner, `using` + `with check` | property owner |
+| `property_field_provenance` | public, column-limited | none | none | none |
+
+| Bucket | Public read | Size / types | Write policy |
+| --- | --- | --- | --- |
+| `property-photos` | yes | 5 MiB; `image/jpeg`, `image/png`, `image/webp` | insert/update/delete only when `(storage.foldername(name))[1] = auth.uid()` |
+| `avatars` | yes | 2 MiB; same types | same owner-prefix rule |
+
+Object keys are generated as `<user-id>/<uuid>.webp`. The client never supplies
+a filename, and the server action re-checks that every referenced photo path
+starts with the caller's id, so a post cannot point at another account's
+objects. Uploads are downscaled to a 2000 px long edge, re-encoded as WebP and
+stripped of EXIF in the browser before they reach the bucket; the bucket's MIME
+allowlist is the second line of defence.
+
+### Writes and validation
+
+Server Actions own every mutation. They re-validate with the same Zod schemas
+the client uses (`createPropertySchema`, `updatePropertySchema`,
+`updateProfileSchema`), re-check the user with `getUser()`, and filter updates
+by `created_by` so a write that affects no row is reported as a failure rather
+than a success. Photo references arrive as JSON in a hidden field and are parsed
+defensively. The database repeats the limits in `check` constraints.
+
+`$`-prefixed price input is converted from dollars to integer cents before
+validation; blank means "Price not listed", which is rendered as such — never
+as `$0`.
+
+### Discovery and pagination
+
+`/explore` uses keyset pagination over `(created_at desc, id desc)`. The cursor
+is the last row's timestamp and id; `decodeCursor` rejects anything that is not
+a UUID pair, and the feed query uses a compound `or` filter so rows sharing a
+timestamp are neither skipped nor repeated. "Load more" is a normal link: it is
+shareable, works without JavaScript, preserves the back button, and needs no
+client-side cache. The tradeoff is one full navigation per page instead of
+seamless infinite scroll.
+
+Search terms are stripped of PostgREST expression characters before being used
+in an `or(ilike…)` filter. There is no full-text index yet, which is acceptable
+at this size and is recorded as a known gap.
+
+### Images in the UI
+
+`next/image` renders every stored photo through the optimizer, with
+`remotePatterns` limited to `**.supabase.co/storage/v1/object/public/**`. Cards
+reserve a 4:3 frame, lazy-load below the fold and use `PropertyCardSkeleton`
+while the feed loads. The gallery is a client component with arrow-key, Home/End
+and touch-swipe navigation; the container is focusable so keyboard users can
+change photos without tabbing through every thumbnail.
+
+### Security review notes
+
+Covered:
+
+- RLS on all three tables, with owner-scoped writes and no client write path to
+  provenance.
+- Public buckets are read-only for the public; every write is prefix-scoped to
+  the uploader.
+- Validation in the browser, in the Server Action and in Postgres.
+- No service-role key or database password in the app; only the anon key is
+  shipped, and RLS is what protects data.
+- Server identity always comes from `getUser()`. The proxy gates `/me`,
+  `/create`, `/settings/*` as a fast first pass, and every page/action re-checks.
+- Server Actions inherit Next's origin checks and `SameSite` cookies.
+- `source_ref` is not readable by clients.
+
+Known gaps (deliberately out of scope for this milestone):
+
+- **Moderation and reporting** — no flag/report flow, no moderation queue, no
+  way to remove someone else's abusive post.
+- **Rate limiting** — nothing stops a signed-in account from creating posts or
+  uploading images in a loop beyond Supabase's own limits.
+- **Image content scanning** — no NSFW, malware or reverse-image checks; the
+  bucket validates type and size only.
+- **Orphaned uploads** — if a post fails after its photos upload, the objects
+  remain until cleaned up; a scheduled sweep is needed.
+- **No edit history** — provenance resets on edit, but the previous value is not
+  retained (no audit trail yet).
+- **No soft delete** — deleting a post is immediate and unrecoverable.
+- **Search cost** — `ilike` scans; a trigram or full-text index is the next step.
+- **Email confirmation is disabled in the dev project**; hosted auth settings
+  still need the 8-character letters-and-digits policy applied in the dashboard.
+
+### Testing
+
+- Vitest covers `packages/core`: property schemas (ranges, defaults, photo
+  limits, path format, paired coordinates/dimensions), provenance aggregation,
+  price formatting and parsing, cursor encoding, storage URLs and profile rules
+  — 153 tests, no browser or network.
+- Playwright (Chromium) adds one smoke test for the cross-system flow that unit
+  tests cannot see: sign-up → photo upload to Storage under RLS → post insert →
+  card on `/explore` → detail page → owner edit → account menu sign-out →
+  sign-in → owner delete. The dependency is justified by that coverage; it is
+  Chromium-only and runs against a dev server on port 3100.
+
+```powershell
+pnpm test          # Vitest
+pnpm --filter @dwellr/web test:e2e   # Playwright (needs .env.local + a live dev project)
+```
