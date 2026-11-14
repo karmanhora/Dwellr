@@ -82,7 +82,9 @@ immediate feedback; the server remains authoritative.
   interactive features).
 - `lib/supabase/server.ts` — per-request server client; reads/writes cookies
   through `next/headers`.
-- `lib/supabase/proxy.ts` — refreshes the session and gates `/me`.
+- `lib/supabase/proxy.ts` — refreshes the session on every page route
+  (static assets excluded by the matcher in `src/proxy.ts`) and gates `/me`,
+  the only route that redirects unauthenticated visitors.
 - `lib/auth.ts` — `getCurrentUser()` wrapped in React `cache()` so the layout
   and page share one `auth.getUser()` call.
 
