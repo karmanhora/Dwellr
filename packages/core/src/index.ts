@@ -25,4 +25,5 @@ export type { UpdateProfileInput } from "./schemas/profile";
 export type { Profile, ProfileField, ProfileRow } from "./types/profile";
 
 export { formatMemberSince, getDisplayName, getInitials, toProfile } from "./services/profile";
+export { safeRedirectPath } from "./services/redirect";
 export { getFieldErrors } from "./services/validation";

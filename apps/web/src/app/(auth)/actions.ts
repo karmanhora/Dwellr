@@ -1,10 +1,10 @@
 "use server";
 
-import { getFieldErrors, signInSchema, signUpSchema } from "@dwellr/core";
+import { getFieldErrors, safeRedirectPath, signInSchema, signUpSchema } from "@dwellr/core";
 import type { AuthError } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 
-import { safeRedirectPath, type AuthFormState } from "@/lib/auth-form";
+import type { AuthFormState } from "@/lib/auth-form";
 import { createClient } from "@/lib/supabase/server";
 
 function readText(formData: FormData, key: string): string {
