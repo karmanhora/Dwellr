@@ -3,6 +3,7 @@ import {
   formatMemberSince,
   formatPrice,
   getDisplayName,
+  getListingFreshness,
   getPropertyVerification,
   LISTING_STATUS_LABELS,
   PROPERTY_TYPE_LABELS,
@@ -14,11 +15,12 @@ import { notFound } from "next/navigation";
 
 import { CollectionPicker } from "@/components/collections/collection-picker";
 import { SaveButton } from "@/components/collections/save-button";
+import { reconfirmPropertyAction } from "@/app/p/[id]/actions";
 import { DeletePropertyButton } from "@/components/property/delete-property-button";
 import { PropertyGallery } from "@/components/property/property-gallery";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge, ListingStatusBadge, ProvenanceBadge } from "@/components/ui/badge";
-import { ButtonLink } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { ErrorState } from "@/components/ui/error-state";
 import { ArrowLeftIcon, MapPinIcon, PencilIcon } from "@/components/ui/icons";
@@ -83,13 +85,16 @@ export default async function PropertyPage({ params, searchParams }: PropertyPag
     );
   }
 
-  const { property, creator } = result;
+  const { property, creator, priceCut, lastConfirmedAt } = result;
+  const freshness = getListingFreshness(property.createdAt, lastConfirmedAt);
   const user = await getCurrentUser();
   const isOwner = Boolean(user && user.id === property.createdBy);
   const isSaved = user ? await isPropertySaved(property.id, user.id) : false;
   const collections = user ? await getUserCollections(user.id) : [];
   const paramsValue = await searchParams;
   const updated = (Array.isArray(paramsValue.updated) ? paramsValue.updated[0] : paramsValue.updated) === "1";
+  const confirmed =
+    (Array.isArray(paramsValue.confirmed) ? paramsValue.confirmed[0] : paramsValue.confirmed) === "1";
 
   const overallProvenance = getPropertyVerification(property.provenance);
   const location = [
@@ -143,6 +148,36 @@ export default async function PropertyPage({ params, searchParams }: PropertyPag
         </p>
       ) : null}
 
+      {confirmed ? (
+        <p role="status" className="mt-5 rounded-card bg-moss-soft px-4 py-3 text-body-sm text-moss">
+          Listing freshness updated. Thanks for keeping it current.
+        </p>
+      ) : null}
+
+      {isOwner ? (
+        <section
+          aria-label="Listing freshness"
+          className={`mt-5 rounded-card border p-4 ${
+            freshness.stale ? "border-ink/25 bg-sand" : "border-line bg-mist/60"
+          }`}
+        >
+          <p className="text-body-sm font-medium text-ink">
+            {freshness.stale ? "Is this listing still accurate?" : "Keep this listing current"}
+          </p>
+          <p className="mt-1 text-caption leading-relaxed text-stone">
+            {freshness.stale
+              ? `${freshness.label}. Reconfirm it so buyers know the home is still available and the details still hold.`
+              : `${freshness.label}. You can reconfirm at any time.`}
+          </p>
+          <form action={reconfirmPropertyAction} className="mt-3">
+            <input type="hidden" name="propertyId" value={property.id} />
+            <Button type="submit" size="sm" variant={freshness.stale ? "primary" : "secondary"}>
+              Confirm listing is accurate
+            </Button>
+          </form>
+        </section>
+      ) : null}
+
       {/** Mobile source order is gallery → summary → description so readers see
           the price before the long copy. `contents` lets those three items sit
           in one column on mobile while the gallery and description share a
@@ -191,9 +226,27 @@ export default async function PropertyPage({ params, searchParams }: PropertyPag
             {property.location.postalCode ? ` ${property.location.postalCode}` : ""}
           </p>
 
+          <p className="mt-2 text-caption text-stone">
+            {freshness.label}
+            {freshness.stale ? " · not recently confirmed" : ""}
+          </p>
+
           <p className="mt-5 text-display font-medium tracking-[-0.03em]">
             {formatPrice(property.priceCents, property.currency)}
           </p>
+
+          {priceCut ? (
+            <p className="mt-2 text-body-sm font-medium text-moss">
+              Price reduced {formatPrice(priceCut.amountCents, property.currency)}
+              <span className="font-normal text-stone">
+                {" "}
+                · observed{" "}
+                {new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(
+                  new Date(priceCut.recordedAt),
+                )}
+              </span>
+            </p>
+          ) : null}
 
           <dl className="mt-6 divide-y divide-line border-y border-line">
             {facts.map((fact) => (

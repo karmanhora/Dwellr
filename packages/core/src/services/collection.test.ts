@@ -39,6 +39,7 @@ const summary: PropertySummary = {
   coverPhoto: null,
   photoCount: 0,
   verification: "user_submitted",
+  priceCut: null,
 };
 
 describe("toCollection", () => {

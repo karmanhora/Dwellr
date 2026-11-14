@@ -68,6 +68,18 @@ test("sign up, post, save into a public collection, share it, then clean up", as
   await expect(page).toHaveURL(/\?updated=1$/);
   await expect(page.getByText("$510,000")).toBeVisible();
 
+  // 6b. The observed price drop produces a badge, and the poster can reconfirm.
+  await expect(page.getByText("Price reduced $15,000")).toBeVisible();
+  await page.getByRole("button", { name: "Confirm listing is accurate" }).click();
+  await expect(page).toHaveURL(/\?confirmed=1$/);
+  await expect(page.getByText("Listing freshness updated")).toBeVisible();
+
+  await page.goto("/explore");
+  await expect(page.getByText("Price cut").first()).toBeVisible();
+  await expect(page.getByRole("link", { name: new RegExp(title) }).first()).toBeVisible();
+  await page.getByRole("link", { name: new RegExp(title) }).first().click();
+  await expect(page.getByRole("heading", { name: title })).toBeVisible();
+
   // 7. Save the home privately, then add it to a new public collection.
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByRole("button", { name: "Saved", exact: true })).toBeVisible();

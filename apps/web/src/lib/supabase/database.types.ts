@@ -164,6 +164,94 @@ export type Database = {
           },
         ];
       };
+      property_price_history: {
+        Row: {
+          id: number;
+          property_id: string;
+          price_cents: number;
+          previous_price_cents: number | null;
+          currency: string;
+          recorded_at: string;
+        };
+        Insert: {
+          property_id: string;
+          price_cents: number;
+          previous_price_cents?: number | null;
+          currency: string;
+          recorded_at?: string;
+        };
+        Update: {
+          price_cents?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "property_price_history_property_id_fkey";
+            columns: ["property_id"];
+            isOneRelation: true;
+            referencedRelation: "properties";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      property_status_history: {
+        Row: {
+          id: number;
+          property_id: string;
+          status: "for_sale" | "off_market" | "sold" | "unknown";
+          previous_status: "for_sale" | "off_market" | "sold" | "unknown" | null;
+          recorded_at: string;
+        };
+        Insert: {
+          property_id: string;
+          status: "for_sale" | "off_market" | "sold" | "unknown";
+          previous_status?: "for_sale" | "off_market" | "sold" | "unknown" | null;
+          recorded_at?: string;
+        };
+        Update: {
+          status?: "for_sale" | "off_market" | "sold" | "unknown";
+        };
+        Relationships: [
+          {
+            foreignKeyName: "property_status_history_property_id_fkey";
+            columns: ["property_id"];
+            isOneRelation: true;
+            referencedRelation: "properties";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      property_confirmations: {
+        Row: {
+          id: number;
+          property_id: string;
+          confirmed_by: string;
+          confirmed_at: string;
+        };
+        Insert: {
+          property_id: string;
+          confirmed_by: string;
+          confirmed_at?: string;
+        };
+        Update: {
+          confirmed_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "property_confirmations_property_id_fkey";
+            columns: ["property_id"];
+            isOneRelation: true;
+            referencedRelation: "properties";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "property_confirmations_confirmed_by_fkey";
+            columns: ["confirmed_by"];
+            isOneRelation: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       collections: {
         Row: {
           id: string;

@@ -141,6 +141,7 @@ try {
       city: "Portland",
       listing_status: "unknown",
       property_type: "house",
+      price_cents: 50_000_000,
     })
     .select("id")
     .single();
@@ -230,6 +231,121 @@ try {
     .delete()
     .eq("property_id", propertyId);
   check("clients cannot delete provenance", Boolean(provenanceDelete.error));
+
+  // --- observed price and status history -----------------------------------
+  const initialPriceHistory = await anon
+    .from("property_price_history")
+    .select("price_cents, previous_price_cents")
+    .eq("property_id", propertyId);
+  check(
+    "the initial price is recorded as observed",
+    initialPriceHistory.data?.length === 1 && initialPriceHistory.data[0].previous_price_cents === null,
+  );
+
+  const historyInsert = await owner.from("property_price_history").insert({
+    property_id: propertyId,
+    price_cents: 1,
+    currency: "USD",
+  });
+  check("clients cannot write price history", Boolean(historyInsert.error));
+
+  const priceUpdate = await owner
+    .from("properties")
+    .update({ price_cents: 48_000_000 })
+    .eq("id", propertyId)
+    .select("id")
+    .single();
+  check("the owner changes the asking price", !priceUpdate.error, priceUpdate.error?.message);
+
+  const priceHistory = await owner
+    .from("property_price_history")
+    .select("price_cents, previous_price_cents")
+    .eq("property_id", propertyId)
+    .order("recorded_at", { ascending: false })
+    .order("id", { ascending: false });
+  check(
+    "the price change is captured with its previous value",
+    priceHistory.data?.length === 2 &&
+      priceHistory.data[0].price_cents === 48_000_000 &&
+      priceHistory.data[0].previous_price_cents === 50_000_000,
+    JSON.stringify(priceHistory.data?.[0] ?? null),
+  );
+
+  const statusUpdate = await owner
+    .from("properties")
+    .update({ listing_status: "sold" })
+    .eq("id", propertyId)
+    .select("id")
+    .single();
+  check("the owner changes the listing status", !statusUpdate.error, statusUpdate.error?.message);
+
+  const statusHistory = await owner
+    .from("property_status_history")
+    .select("status, previous_status")
+    .eq("property_id", propertyId)
+    .order("recorded_at", { ascending: false })
+    .order("id", { ascending: false });
+  check(
+    "the status change is captured with its previous value",
+    statusHistory.data?.length === 2 &&
+      statusHistory.data[0].status === "sold" &&
+      statusHistory.data[0].previous_status === "unknown",
+    JSON.stringify(statusHistory.data?.[0] ?? null),
+  );
+
+  const statusHistoryInsert = await owner.from("property_status_history").insert({
+    property_id: propertyId,
+    status: "for_sale",
+  });
+  check("clients cannot write status history", Boolean(statusHistoryInsert.error));
+
+  const provenanceAfterEdit = await owner
+    .from("property_field_provenance")
+    .select("field, provenance")
+    .eq("property_id", propertyId)
+    .in("field", ["price", "listing_status"]);
+  check(
+    "editing facts leaves provenance user_submitted",
+    (provenanceAfterEdit.data?.length ?? 0) === 2 &&
+      provenanceAfterEdit.data.every((row) => row.provenance === "user_submitted"),
+  );
+
+  // --- confirmations -------------------------------------------------------
+  const anonConfirmation = await anon.from("property_confirmations").insert({
+    property_id: propertyId,
+    confirmed_by: accounts.owner.id,
+  });
+  check("anon cannot confirm a listing", Boolean(anonConfirmation.error));
+
+  const strangerConfirmation = await stranger.from("property_confirmations").insert({
+    property_id: propertyId,
+    confirmed_by: accounts.stranger.id,
+  });
+  check("a non-owner cannot confirm a listing", Boolean(strangerConfirmation.error));
+
+  const ownerConfirmation = await owner.from("property_confirmations").insert({
+    property_id: propertyId,
+    confirmed_by: accounts.owner.id,
+  });
+  check("the poster confirms their listing", !ownerConfirmation.error, ownerConfirmation.error?.message);
+
+  const publicConfirmation = await anon
+    .from("property_confirmations")
+    .select("confirmed_at")
+    .eq("property_id", propertyId);
+  check("confirmations are publicly readable", publicConfirmation.data?.length === 1);
+
+  const confirmationUpdate = await owner
+    .from("property_confirmations")
+    .update({ confirmed_at: new Date().toISOString() })
+    .eq("property_id", propertyId);
+  check("clients cannot edit confirmations", Boolean(confirmationUpdate.error));
+
+  const confirmationDelete = await owner
+    .from("property_confirmations")
+    .delete()
+    .eq("property_id", propertyId);
+  check("clients cannot delete confirmations", Boolean(confirmationDelete.error));
 
   // --- property photos and storage ----------------------------------------
   photoPath = `${accounts.owner.id}/${uuid()}.png`;
@@ -471,13 +587,25 @@ try {
     .eq("id", propertyId)
     .select("id");
   check("an owner deletes their own property", deleteProperty.data?.length === 1);
-  propertyId = null;
 
   const photosAfterDelete = await anon
     .from("property_photos")
     .select("id")
     .eq("property_id", property.data.id);
   check("photo rows cascade with the property", photosAfterDelete.data?.length === 0);
+
+  const historyAfterDelete = await anon
+    .from("property_price_history")
+    .select("id")
+    .eq("property_id", property.data.id);
+  check("price history cascades with the property", historyAfterDelete.data?.length === 0);
+
+  const confirmationsAfterDelete = await anon
+    .from("property_confirmations")
+    .select("id")
+    .eq("property_id", property.data.id);
+  check("confirmations cascade with the property", confirmationsAfterDelete.data?.length === 0);
+  propertyId = null;
 
   const deleteCollection = await owner
     .from("collections")

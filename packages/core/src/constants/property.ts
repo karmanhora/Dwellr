@@ -58,6 +58,12 @@ export const PROPERTY_TYPE_LABELS: Record<(typeof PROPERTY_TYPES)[number], strin
 export const PROPERTY_BUCKET = "property-photos";
 export const AVATAR_BUCKET = "avatars";
 
+/** A listing is prompted for reconfirmation after this many days. */
+export const LISTING_STALE_AFTER_DAYS = 30;
+
+/** Price-cut badges only describe changes observed within this window. */
+export const PRICE_CUT_BADGE_MAX_AGE_DAYS = 90;
+
 /** Every property fact that carries provenance. */
 export const PROPERTY_PROVENANCE_FIELDS = [
   "title",

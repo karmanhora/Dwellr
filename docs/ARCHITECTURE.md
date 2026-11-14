@@ -392,10 +392,11 @@ only the public anon key — no service-role bypass. It signs up an owner and a
 stranger, then checks anonymous, owner and stranger behaviour for every table
 and Storage bucket: public profile reads and owner-only writes; property reads,
 writes and deletes; provenance remaining read-only and `source_ref`
-unreadable; photo rows and owner-prefixed objects, including the cross-owner
-path trigger and public reads; private versus published collections and their
-items; save privacy and the absence of anonymous access; and cascade behaviour
-on delete. Test rows and Storage objects are removed in a `finally` block; the
+unreadable; observed price/status history being trigger-written and read-only;
+owners confirming their own listings; photo rows and owner-prefixed objects,
+including the cross-owner path trigger and public reads; private versus
+published collections and their items; save privacy and the absence of
+anonymous access; and cascade behaviour on delete. Test rows and Storage objects are removed in a `finally` block; the
 local database is disposable, so accounts need no cleanup.
 
 The suite runs against a local stack only (`pnpm supabase start`, then
@@ -495,3 +496,53 @@ UI labels and badge rules for provenance are unchanged.
 - **Rate limiting / moderation** — unchanged from Milestone 1; collections add
   another write surface that needs the same abuse controls before public
   launch.
+
+## Listing freshness
+
+Listings decay: a home goes under contract, a price drops, or a poster simply
+stops paying attention. Freshness is modelled as **observed history plus a
+self-reported confirmation**, never as verification.
+
+### Observed price and status history
+
+`supabase/migrations/20261114220000_add_listing_freshness.sql` adds
+`property_price_history`, `property_status_history` and
+`property_confirmations`.
+
+- A `security definer` trigger, `record_property_history`, runs after insert or
+  after price/status updates on `properties`. It records the initial price and
+  status, then every distinct change with the previous value. Clients cannot
+  write either history table: only `select` is granted, and there is no insert,
+  update or delete policy.
+- A price-cut badge is derived only from the **latest observed change** when the
+  new price is lower, the previous price exists, and the change is at most
+  `PRICE_CUT_BADGE_MAX_AGE_DAYS` old (90). A later increase suppresses an older
+  cut, and a property posted at a low price never claims a cut.
+- History is public because it describes public listing facts. It is shown as
+  "Price reduced … · observed <date>", never as a verified or estimated value.
+- Deleting a property cascades its history.
+
+### Reconfirmation
+
+`property_confirmations` holds append-only, self-reported confirmations from
+the poster. RLS allows any signed-in user to read them (freshness is public)
+and only the property's creator to insert one for their own listing; there are
+no update or delete policies or grants. `getListingFreshness` in
+`packages/core` compares the latest confirmation with the post date and marks a
+listing stale after `LISTING_STALE_AFTER_DAYS` (30).
+
+The owner sees a prompt on their listing: a quiet "keep this listing current"
+block while fresh, and a stronger "Is this listing still accurate?" prompt once
+stale, with a one-click confirmation that appends a row and redirects back with
+a notice. Public pages show "Poster confirmed 3 days ago" or "Posted 45 days
+ago · not recently confirmed" — explicitly attributed to the poster, not to
+dwellr.
+
+### Provenance stays intact
+
+The freshness trigger does **not** write `property_field_provenance`, and
+confirmations are not verification. Editing a price or status still resets
+that field's provenance to `user_submitted` through the existing trigger, so
+the overall badge can only become **Verified** through a server-side
+integration. Confirmation counts and freshness labels are never used as a
+substitute for the Verified badge.

@@ -69,6 +69,46 @@ export interface PropertyProvenanceRow {
   source_ref?: string | null;
 }
 
+export interface PropertyPriceChangeRow {
+  id: number;
+  property_id: string;
+  price_cents: number;
+  previous_price_cents: number | null;
+  currency: string;
+  recorded_at: string;
+}
+
+export interface PropertyStatusChangeRow {
+  id: number;
+  property_id: string;
+  status: ListingStatus;
+  previous_status: ListingStatus | null;
+  recorded_at: string;
+}
+
+export interface PropertyConfirmationRow {
+  id: number;
+  property_id: string;
+  confirmed_by: string;
+  confirmed_at: string;
+}
+
+/** A price cut derived from two observed prices, never from a single value. */
+export interface PriceCut {
+  amountCents: number;
+  previousPriceCents: number;
+  recordedAt: string;
+}
+
+export interface PropertyFreshness {
+  stale: boolean;
+  confirmedByPoster: boolean;
+  daysSincePosted: number;
+  daysSinceConfirmation: number | null;
+  /** Public, non-verification phrasing: "Poster confirmed 3 days ago". */
+  label: string;
+}
+
 export interface PropertyPhoto {
   id: string;
   storagePath: string;
@@ -123,4 +163,6 @@ export interface PropertySummary {
   coverPhoto: PropertyPhoto | null;
   photoCount: number;
   verification: Provenance;
+  /** Null unless the latest observed price change was a cut within the window. */
+  priceCut: PriceCut | null;
 }

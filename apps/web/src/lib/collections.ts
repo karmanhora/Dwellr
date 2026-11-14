@@ -13,6 +13,7 @@ import {
   type PropertySummary,
 } from "@dwellr/core";
 
+import { getLatestPriceCuts } from "@/lib/price-history";
 import { createClient } from "@/lib/supabase/server";
 
 const PROPERTY_RELATIONS =
@@ -46,11 +47,12 @@ type CollectionDetailRow = CollectionRow & {
   collection_items: CollectionItemWithProperty[] | null;
 };
 
-function toSummary(row: PropertyRelations): PropertySummary {
+function toSummary(row: PropertyRelations, priceCut: PropertySummary["priceCut"] = null): PropertySummary {
   return toPropertySummary(
     row,
     row.property_photos ?? [],
     row.property_field_provenance ?? [],
+    priceCut,
   );
 }
 
@@ -69,7 +71,9 @@ export async function getSavedProperties(userId: string): Promise<PropertySummar
   }
 
   const rows = (data ?? []) as { properties: PropertyRelations | null }[];
-  return rows.flatMap((row) => (row.properties ? [toSummary(row.properties)] : []));
+  const properties = rows.flatMap((row) => (row.properties ? [row.properties] : []));
+  const priceCuts = await getLatestPriceCuts(properties.map((property) => property.id));
+  return properties.map((property) => toSummary(property, priceCuts.get(property.id) ?? null));
 }
 
 export async function isPropertySaved(propertyId: string, userId: string): Promise<boolean> {
@@ -127,11 +131,17 @@ export async function getCollectionBySlug(slug: string): Promise<CollectionDetai
   if (!data) return { status: "missing" };
 
   const row = data as CollectionDetailRow;
-  const items = (row.collection_items ?? [])
-    .flatMap((item) =>
-      item.properties
-        ? [toCollectionItem({ property_id: item.property_id, note: item.note, created_at: item.created_at }, toSummary(item.properties))]
-        : [],
+  const pricedItems = (row.collection_items ?? []).filter(
+    (item): item is CollectionItemWithProperty & { properties: PropertyRelations } =>
+      Boolean(item.properties),
+  );
+  const priceCuts = await getLatestPriceCuts(pricedItems.map((item) => item.properties.id));
+  const items = pricedItems
+    .map((item) =>
+      toCollectionItem(
+        { property_id: item.property_id, note: item.note, created_at: item.created_at },
+        toSummary(item.properties, priceCuts.get(item.properties.id) ?? null),
+      ),
     )
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 

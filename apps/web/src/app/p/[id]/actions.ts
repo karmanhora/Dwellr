@@ -93,6 +93,37 @@ export async function updatePropertyAction(
   redirect(`/p/${id}?updated=1`);
 }
 
+export async function reconfirmPropertyAction(formData: FormData): Promise<void> {
+  const user = await getCurrentUser();
+  const id = readText(formData, "propertyId");
+
+  if (!user || !isUuid(id)) redirect(`/p/${id}`);
+
+  const supabase = await createClient();
+  const { data: property } = await supabase
+    .from("properties")
+    .select("id")
+    .eq("id", id)
+    .eq("created_by", user.id)
+    .maybeSingle();
+
+  if (!property) redirect(`/p/${id}`);
+
+  const { error } = await supabase.from("property_confirmations").insert({
+    property_id: id,
+    confirmed_by: user.id,
+  });
+
+  if (error) {
+    console.error("[properties] confirmation failed:", error.message);
+    redirect(`/p/${id}`);
+  }
+
+  revalidatePath(`/p/${id}`);
+  revalidatePath("/explore");
+  redirect(`/p/${id}?confirmed=1`);
+}
+
 export async function deletePropertyAction(formData: FormData): Promise<void> {
   const user = await getCurrentUser();
   const id = readText(formData, "propertyId");

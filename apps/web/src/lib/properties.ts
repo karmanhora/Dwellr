@@ -2,10 +2,12 @@ import {
   decodeCursor,
   encodeCursor,
   isUuid,
+  toPriceCut,
   toProfile,
   toProperty,
   toPropertySummary,
   type ListingStatus,
+  type PriceCut,
   type Profile,
   type Property,
   type PropertyPhotoRow,
@@ -14,6 +16,7 @@ import {
   type PropertySummary,
 } from "@dwellr/core";
 
+import { getLatestPriceCuts } from "@/lib/price-history";
 import { createClient } from "@/lib/supabase/server";
 
 const RELATIONS =
@@ -93,10 +96,16 @@ export async function getPropertyFeed({
   const rows = (data ?? []) as FeedRow[];
   const page = rows.slice(0, limit);
   const last = page[page.length - 1];
+  const priceCuts = await getLatestPriceCuts(page.map((row) => row.id));
 
   return {
     items: page.map((row) =>
-      toPropertySummary(row, row.property_photos ?? [], row.property_field_provenance ?? []),
+      toPropertySummary(
+        row,
+        row.property_photos ?? [],
+        row.property_field_provenance ?? [],
+        priceCuts.get(row.id) ?? null,
+      ),
     ),
     nextCursor:
       rows.length > limit && last
@@ -107,7 +116,13 @@ export async function getPropertyFeed({
 }
 
 export type PropertyDetailResult =
-  | { status: "ok"; property: Property; creator: Profile | null }
+  | {
+      status: "ok";
+      property: Property;
+      creator: Profile | null;
+      priceCut: PriceCut | null;
+      lastConfirmedAt: string | null;
+    }
   | { status: "missing" }
   | { status: "error" };
 
@@ -129,10 +144,38 @@ export async function getPropertyDetail(id: string): Promise<PropertyDetailResul
 
   const row = data as DetailRow;
 
+  const [priceChange, confirmation] = await Promise.all([
+    supabase
+      .from("property_price_history")
+      .select("price_cents, previous_price_cents, recorded_at")
+      .eq("property_id", id)
+      .order("recorded_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("property_confirmations")
+      .select("confirmed_at")
+      .eq("property_id", id)
+      .order("confirmed_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  if (priceChange.error) {
+    console.error("[properties] price history lookup failed:", priceChange.error.message);
+  }
+  if (confirmation.error) {
+    console.error("[properties] confirmation lookup failed:", confirmation.error.message);
+  }
+
   return {
     status: "ok",
     property: toProperty(row, row.property_photos ?? [], row.property_field_provenance ?? []),
     creator: row.profiles ? toProfile(row.profiles) : null,
+    priceCut: toPriceCut(priceChange.data),
+    lastConfirmedAt: confirmation.data?.confirmed_at ?? null,
   };
 }
 
@@ -154,8 +197,14 @@ export async function getPropertiesByCreator(
   }
 
   const rows = (data ?? []) as FeedRow[];
+  const priceCuts = await getLatestPriceCuts(rows.map((row) => row.id));
   return rows.map((row) =>
-    toPropertySummary(row, row.property_photos ?? [], row.property_field_provenance ?? []),
+    toPropertySummary(
+      row,
+      row.property_photos ?? [],
+      row.property_field_provenance ?? [],
+      priceCuts.get(row.id) ?? null,
+    ),
   );
 }
 

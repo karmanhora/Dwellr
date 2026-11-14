@@ -51,13 +51,14 @@ export function PropertyCard({
             </div>
           )}
 
-          <div className="absolute top-3 left-3">
+          <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
             <Badge
               tone={property.listingStatus === "for_sale" ? "positive" : "neutral"}
               className="backdrop-blur-none"
             >
               {LISTING_STATUS_LABELS[property.listingStatus]}
             </Badge>
+            {property.priceCut ? <Badge tone="positive">Price cut</Badge> : null}
           </div>
 
           {property.photoCount > 1 ? (

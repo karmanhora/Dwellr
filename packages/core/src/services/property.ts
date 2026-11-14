@@ -1,5 +1,6 @@
 import { LISTING_STATUS_LABELS, PROPERTY_TYPE_LABELS } from "../constants/property";
 import type {
+  PriceCut,
   Property,
   PropertyField,
   PropertyPhoto,
@@ -166,6 +167,7 @@ export function toPropertySummary(
   row: PropertyRow,
   photoRows: readonly PropertyPhotoRow[],
   provenanceRows: readonly PropertyProvenanceRow[],
+  priceCut: PriceCut | null = null,
 ): PropertySummary {
   const photos = sortPhotos(photoRows);
 
@@ -186,5 +188,6 @@ export function toPropertySummary(
     coverPhoto: photos[0] ? toPropertyPhoto(photos[0]) : null,
     photoCount: photos.length,
     verification: getPropertyVerification(toProvenanceMap(provenanceRows)),
+    priceCut,
   };
 }
