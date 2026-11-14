@@ -75,15 +75,21 @@ export default async function HomePage() {
             >
               {user ? "Go to your profile" : "Create your account"}
             </Link>
+            <Link
+              href="/explore"
+              className="group inline-flex h-12 items-center justify-center gap-2 rounded-full px-6 text-sm font-medium text-ink transition hover:bg-mist"
+            >
+              Explore homes
+              <span aria-hidden="true" className="transition group-hover:translate-x-0.5">
+                →
+              </span>
+            </Link>
             {user ? null : (
               <Link
                 href="/sign-in"
-                className="group inline-flex h-12 items-center justify-center gap-2 rounded-full px-6 text-sm font-medium text-ink transition hover:bg-mist"
+                className="inline-flex h-12 items-center justify-center rounded-full px-6 text-sm font-medium text-stone transition hover:text-ink"
               >
                 Sign in
-                <span aria-hidden="true" className="transition group-hover:translate-x-0.5">
-                  →
-                </span>
               </Link>
             )}
           </div>
@@ -181,10 +187,16 @@ export default async function HomePage() {
             >
               {user ? "Your profile" : "Create your account"}
             </Link>
+            <Link
+              href="/explore"
+              className="inline-flex h-12 items-center justify-center rounded-full border border-paper/25 px-7 text-sm font-medium text-paper transition hover:border-paper/60"
+            >
+              Explore homes
+            </Link>
             {user ? null : (
               <Link
                 href="/sign-in"
-                className="inline-flex h-12 items-center justify-center rounded-full border border-paper/25 px-7 text-sm font-medium text-paper transition hover:border-paper/60"
+                className="inline-flex h-12 items-center justify-center rounded-full px-7 text-sm font-medium text-paper/70 transition hover:text-paper"
               >
                 Sign in
               </Link>
