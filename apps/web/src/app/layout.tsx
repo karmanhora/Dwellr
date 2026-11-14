@@ -36,7 +36,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const profile = user ? await getProfileById(user.id) : null;
 
   return (
-    <html lang="en" className={outfit.variable}>
+    <html lang="en" className={outfit.variable} data-scroll-behavior="smooth">
       <body className="flex min-h-dvh flex-col bg-paper text-ink">
         <ToastProvider>
           <SiteHeader />

@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   // @dwellr/core ships TypeScript source so web and (later) Expo share one implementation.
   transpilePackages: ["@dwellr/core"],
   poweredByHeader: false,
+  // Playwright and the preview panel load the dev server over 127.0.0.1 rather
+  // than localhost; without this, Next blocks its own HMR resources.
+  allowedDevOrigins: ["127.0.0.1"],
   images: {
     // Property photos and avatars are served from Supabase Storage's public
     // object endpoint. Uploads are content-checked and size-limited by the

@@ -7,7 +7,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PropertyCard } from "@/components/property/property-card";
-import { SearchForm } from "@/components/search-form";
+import { SearchInput } from "@/components/search-form";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -67,7 +67,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
         className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
         role="search"
       >
-        <SearchForm defaultValue={query ?? ""} className="flex-1" />
+        <SearchInput defaultValue={query ?? ""} size="md" className="flex-1" />
         <div className="flex gap-3">
           <label htmlFor="status-filter" className="sr-only">
             Listing status
@@ -142,9 +142,9 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
       ) : (
         <>
           <ul className="mt-10 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((property) => (
+            {items.map((property, index) => (
               <li key={property.id}>
-                <PropertyCard property={property} />
+                <PropertyCard property={property} priority={index < 3} />
               </li>
             ))}
           </ul>

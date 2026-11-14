@@ -86,9 +86,9 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
           </div>
         ) : (
           <ul className="mt-8 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-            {posts.map((property) => (
+            {posts.map((property, index) => (
               <li key={property.id}>
-                <PropertyCard property={property} />
+                <PropertyCard property={property} priority={index < 3} />
               </li>
             ))}
           </ul>

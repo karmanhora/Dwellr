@@ -17,7 +17,14 @@ import { propertyPhotoUrl } from "@/lib/storage";
  * facts people scan for (price, beds, baths, size, place) and the provenance
  * tag — which is always present, never decorative.
  */
-export function PropertyCard({ property }: { property: PropertySummary }) {
+export function PropertyCard({
+  property,
+  priority = false,
+}: {
+  property: PropertySummary;
+  /** First row of a grid: load eagerly so it can be the LCP image. */
+  priority?: boolean;
+}) {
   const cover = property.coverPhoto ? propertyPhotoUrl(property.coverPhoto.storagePath) : null;
   const alt = property.coverPhoto?.altText ?? `${property.title} in ${property.city}`;
 
@@ -34,6 +41,7 @@ export function PropertyCard({ property }: { property: PropertySummary }) {
               alt={alt}
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              loading={priority ? "eager" : "lazy"}
               className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
             />
           ) : (

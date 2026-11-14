@@ -51,7 +51,7 @@ export async function SiteHeader() {
 
           {user ? (
             <>
-              <ButtonLink href="/create" size="sm" className="hidden sm:inline-flex">
+              <ButtonLink href="/create" size="sm" className="max-sm:hidden">
                 <PlusIcon size={16} />
                 Post a home
               </ButtonLink>

@@ -138,11 +138,20 @@ export default async function PropertyPage({ params, searchParams }: PropertyPag
         </p>
       ) : null}
 
-      <div className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,0.85fr)] lg:gap-14">
-        <div>
-          <PropertyGallery photos={galleryPhotos} title={property.title} />
+      {/** Mobile source order is gallery → summary → description so readers see
+          the price before the long copy. `contents` lets those three items sit
+          in one column on mobile while the gallery and description share a
+          left column on desktop, where the summary sticks alongside. */}
+      <div className="mt-6 flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-14">
+        <div className="contents lg:flex lg:min-w-0 lg:flex-1 lg:flex-col lg:gap-10">
+          <div className="order-1 lg:order-none">
+            <PropertyGallery photos={galleryPhotos} title={property.title} />
+          </div>
 
-          <section aria-labelledby="about-heading" className="mt-10 border-t border-line pt-8">
+          <section
+            aria-labelledby="about-heading"
+            className="order-3 border-t border-line pt-8 lg:order-none lg:border-0 lg:pt-10"
+          >
             <h2 id="about-heading" className="text-title font-medium">
               About this home
             </h2>
@@ -158,7 +167,10 @@ export default async function PropertyPage({ params, searchParams }: PropertyPag
           </section>
         </div>
 
-        <aside aria-label="Home details" className="lg:sticky lg:top-28 lg:self-start">
+        <aside
+          aria-label="Home details"
+          className="order-2 lg:sticky lg:top-28 lg:w-[22rem] lg:shrink-0 lg:self-start xl:w-[24rem]"
+        >
           <div className="flex flex-wrap items-center gap-2">
             <ListingStatusBadge status={property.listingStatus} />
             <ProvenanceBadge provenance={overallProvenance} />

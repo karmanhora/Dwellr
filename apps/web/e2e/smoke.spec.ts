@@ -21,7 +21,13 @@ test("sign up, post a home, find it on explore, edit it, then sign out", async (
 
   // 2. Post a home: upload first, then facts. Uploading proves the storage
   // policy allows the owner's prefix and that compression produced a file.
+  // Wait for hydration (the account menu only opens with JS) before handing
+  // files to a controlled input, otherwise the change event is lost.
   await page.goto("/create");
+  await page.getByRole("button", { name: "Account menu" }).click();
+  await expect(page.getByRole("menuitem", { name: "Post a home" })).toBeVisible();
+  await page.keyboard.press("Escape");
+
   await page.locator("#photo-input").setInputFiles(fixture);
   await expect(page.getByText("1 of 1 uploaded")).toBeVisible({ timeout: 45_000 });
 
