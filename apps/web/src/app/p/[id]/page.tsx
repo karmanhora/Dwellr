@@ -7,6 +7,7 @@ import {
   getPropertyVerification,
   LISTING_STATUS_LABELS,
   PROPERTY_TYPE_LABELS,
+  type Comment,
   type PropertyField,
 } from "@dwellr/core";
 import type { Metadata } from "next";
@@ -16,6 +17,12 @@ import { notFound } from "next/navigation";
 import { CollectionPicker } from "@/components/collections/collection-picker";
 import { SaveButton } from "@/components/collections/save-button";
 import { reconfirmPropertyAction } from "@/app/p/[id]/actions";
+import {
+  createCommentAction,
+  deleteCommentAction,
+  toggleLikeAction,
+} from "@/app/social/actions";
+import { ReportButton } from "@/components/social/report-button";
 import { DeletePropertyButton } from "@/components/property/delete-property-button";
 import { PropertyGallery } from "@/components/property/property-gallery";
 import { Avatar } from "@/components/ui/avatar";
@@ -23,10 +30,12 @@ import { Badge, ListingStatusBadge, ProvenanceBadge } from "@/components/ui/badg
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { ErrorState } from "@/components/ui/error-state";
-import { ArrowLeftIcon, MapPinIcon, PencilIcon } from "@/components/ui/icons";
+import { ArrowLeftIcon, HeartIcon, MapPinIcon, PencilIcon } from "@/components/ui/icons";
+import { Textarea } from "@/components/ui/textarea";
 import { getCurrentUser } from "@/lib/auth";
-import { getUserCollections, isPropertySaved } from "@/lib/collections";
+import { getWritableCollections, isPropertySaved } from "@/lib/collections";
 import { getPropertyDetail } from "@/lib/properties";
+import { getComments, getLikeSummaries } from "@/lib/social";
 import { avatarPublicUrl, propertyPhotoUrl } from "@/lib/storage";
 
 type PropertyPageProps = {
@@ -89,9 +98,17 @@ export default async function PropertyPage({ params, searchParams }: PropertyPag
   const freshness = getListingFreshness(property.createdAt, lastConfirmedAt);
   const user = await getCurrentUser();
   const isOwner = Boolean(user && user.id === property.createdBy);
-  const isSaved = user ? await isPropertySaved(property.id, user.id) : false;
-  const collections = user ? await getUserCollections(user.id) : [];
+  const [isSaved, collections, likeSummaries, comments] = await Promise.all([
+    user ? isPropertySaved(property.id, user.id) : Promise.resolve(false),
+    user ? getWritableCollections(user.id) : Promise.resolve([]),
+    getLikeSummaries([property.id], user?.id ?? null),
+    getComments("property", property.id),
+  ]);
+  const likes = likeSummaries.get(property.id) ?? { count: 0, likedByMe: false };
   const paramsValue = await searchParams;
+  const commentError = (Array.isArray(paramsValue.commentError)
+    ? paramsValue.commentError[0]
+    : paramsValue.commentError) as string | undefined;
   const updated = (Array.isArray(paramsValue.updated) ? paramsValue.updated[0] : paramsValue.updated) === "1";
   const confirmed =
     (Array.isArray(paramsValue.confirmed) ? paramsValue.confirmed[0] : paramsValue.confirmed) === "1";
@@ -205,6 +222,85 @@ export default async function PropertyPage({ params, searchParams }: PropertyPag
               </p>
             )}
           </section>
+
+          <section
+            id="comments"
+            aria-labelledby="comments-heading"
+            className="order-4 border-t border-line pt-8 lg:order-none lg:border-0 lg:pt-10"
+          >
+            <div className="flex flex-wrap items-baseline justify-between gap-3">
+              <h2 id="comments-heading" className="text-title font-medium">
+                Conversation
+              </h2>
+              <span className="text-caption text-stone">
+                {comments.length} {comments.length === 1 ? "thread" : "threads"}
+              </span>
+            </div>
+            <p className="mt-2 max-w-prose text-body-sm leading-relaxed text-stone">
+              Comments are written by people. They are never property facts and never change a
+              Verified or Community label.
+            </p>
+
+            {commentError ? (
+              <p role="alert" className="mt-4 rounded-card bg-danger-soft px-3 py-2 text-body-sm text-danger">
+                {commentError === "rate"
+                  ? "You are commenting too quickly. Wait a minute and try again."
+                  : "That comment didn't send. Try again."}
+              </p>
+            ) : null}
+
+            {comments.length === 0 ? (
+              <p className="mt-5 rounded-card border border-dashed border-line-strong bg-mist/40 px-4 py-6 text-body-sm text-stone">
+                No comments yet. Ask the poster a question or leave what you noticed.
+              </p>
+            ) : (
+              <ol className="mt-6 space-y-5">
+                {comments.map((comment) => (
+                  <li key={comment.id}>
+                    <CommentItem
+                      comment={comment}
+                      propertyId={property.id}
+                      userId={user?.id ?? null}
+                      canModerate={isOwner}
+                    />
+                  </li>
+                ))}
+              </ol>
+            )}
+
+            {user ? (
+              <form action={createCommentAction} className="mt-6 rounded-card border border-line p-4">
+                <input type="hidden" name="targetType" value="property" />
+                <input type="hidden" name="targetId" value={property.id} />
+                <input type="hidden" name="next" value={`/p/${property.id}#comments`} />
+                <label htmlFor="comment-body" className="text-body-sm font-medium">
+                  Add a comment
+                </label>
+                <Textarea
+                  id="comment-body"
+                  name="body"
+                  required
+                  maxLength={1000}
+                  rows={3}
+                  className="mt-2"
+                  placeholder="What did you notice? Keep it useful and civil."
+                />
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <span className="text-caption text-stone">Up to 1000 characters.</span>
+                  <Button type="submit" size="sm">
+                    Post comment
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <p className="mt-5 text-body-sm text-stone">
+                <Link href={`/sign-in?next=/p/${property.id}`} className="text-ink underline underline-offset-4">
+                  Sign in
+                </Link>{" "}
+                to join the conversation.
+              </p>
+            )}
+          </section>
         </div>
 
         <aside
@@ -275,12 +371,36 @@ export default async function PropertyPage({ params, searchParams }: PropertyPag
             </p>
           ) : null}
 
-          {user ? (
-            <div className="mt-6 flex flex-wrap items-center gap-2">
-              <SaveButton propertyId={property.id} saved={isSaved} />
-              <CollectionPicker propertyId={property.id} collections={collections} />
-            </div>
-          ) : null}
+          <div className="mt-6 flex flex-wrap items-center gap-2">
+            {user ? (
+              <form action={toggleLikeAction}>
+                <input type="hidden" name="targetType" value="property" />
+                <input type="hidden" name="targetId" value={property.id} />
+                <input type="hidden" name="next" value={`/p/${property.id}#comments`} />
+                <Button
+                  type="submit"
+                  variant={likes.likedByMe ? "secondary" : "primary"}
+                  size="sm"
+                  aria-pressed={likes.likedByMe}
+                >
+                  <HeartIcon size={16} filled={likes.likedByMe} />
+                  {likes.likedByMe ? "Liked" : "Like"}
+                  {likes.count > 0 ? ` · ${likes.count}` : ""}
+                </Button>
+              </form>
+            ) : likes.count > 0 ? (
+              <span className="inline-flex h-9 items-center gap-2 rounded-full border border-line px-3.5 text-body-sm text-stone">
+                <HeartIcon size={16} /> {likes.count}
+              </span>
+            ) : null}
+
+            {user ? (
+              <>
+                <SaveButton propertyId={property.id} saved={isSaved} />
+                <CollectionPicker propertyId={property.id} collections={collections} />
+              </>
+            ) : null}
+          </div>
 
           {creator ? (
             <div className="mt-8 rounded-card border border-line p-4">
@@ -315,6 +435,10 @@ export default async function PropertyPage({ params, searchParams }: PropertyPag
               </ButtonLink>
               <DeletePropertyButton propertyId={property.id} />
             </div>
+          ) : user ? (
+            <div className="mt-4">
+              <ReportButton targetType="property" targetId={property.id} label="Report this home" />
+            </div>
           ) : null}
 
           <div className="mt-8 rounded-card bg-mist p-4">
@@ -330,5 +454,126 @@ export default async function PropertyPage({ params, searchParams }: PropertyPag
         </aside>
       </div>
     </Container>
+  );
+}
+
+function CommentItem({
+  comment,
+  propertyId,
+  userId,
+  canModerate,
+}: {
+  comment: Comment;
+  propertyId: string;
+  userId: string | null;
+  canModerate: boolean;
+}) {
+  const authorName = comment.author?.display_name ?? comment.author?.username ?? "Someone";
+  const canDelete = Boolean(
+    userId && (userId === comment.author?.id || canModerate),
+  );
+
+  return (
+    <article id={`comment-${comment.id}`} className="rounded-card border border-line p-4">
+      <div className="flex items-center gap-3">
+        <Avatar
+          name={authorName}
+          src={avatarPublicUrl(comment.author?.avatar_url ?? null)}
+          size="xs"
+        />
+        <div className="min-w-0">
+          {comment.author ? (
+            <Link
+              href={`/u/${comment.author.username}`}
+              className="text-body-sm font-medium hover:underline"
+            >
+              {authorName}
+            </Link>
+          ) : (
+            <span className="text-body-sm font-medium">Former member</span>
+          )}
+          <p className="text-caption text-stone">
+            {new Intl.DateTimeFormat("en-US", {
+              month: "short",
+              day: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+            }).format(new Date(comment.createdAt))}
+          </p>
+        </div>
+        <span className="ml-auto rounded-full bg-mist px-2 py-0.5 text-[10px] font-medium tracking-[0.12em] text-stone uppercase">
+          Comment
+        </span>
+      </div>
+
+      {comment.deleted ? (
+        <p className="mt-3 text-body-sm text-stone italic">This comment was deleted.</p>
+      ) : (
+        <p className="mt-3 text-body-sm leading-relaxed whitespace-pre-line text-ink/85">
+          {comment.body}
+        </p>
+      )}
+
+      <div className="mt-3 flex flex-wrap items-center gap-1">
+        {!comment.deleted && comment.parentId === null && userId ? (
+          <details className="w-full">
+            <summary className="cursor-pointer text-caption font-medium text-stone hover:text-ink">
+              Reply
+            </summary>
+            <form action={createCommentAction} className="mt-3">
+              <input type="hidden" name="targetType" value="property" />
+              <input type="hidden" name="targetId" value={propertyId} />
+              <input type="hidden" name="parentId" value={comment.id} />
+              <input type="hidden" name="next" value={`/p/${propertyId}#comments`} />
+              <label htmlFor={`reply-${comment.id}`} className="sr-only">
+                Reply to {authorName}
+              </label>
+              <Textarea
+                id={`reply-${comment.id}`}
+                name="body"
+                required
+                maxLength={1000}
+                rows={2}
+                placeholder={`Reply to ${authorName}`}
+                className="min-h-20"
+              />
+              <Button type="submit" size="sm" className="mt-2">
+                Post reply
+              </Button>
+            </form>
+          </details>
+        ) : null}
+
+        {userId ? (
+          <ReportButton targetType="comment" targetId={comment.id} label="Report" />
+        ) : null}
+
+        {canDelete && !comment.deleted ? (
+          <form action={deleteCommentAction}>
+            <input type="hidden" name="commentId" value={comment.id} />
+            <input type="hidden" name="targetId" value={propertyId} />
+            <input type="hidden" name="next" value={`/p/${propertyId}#comments`} />
+            <Button type="submit" variant="ghost" size="sm">
+              Delete
+            </Button>
+          </form>
+        ) : null}
+      </div>
+
+      {comment.replies.length > 0 ? (
+        <ol className="mt-4 space-y-4 border-l border-line pl-4">
+          {comment.replies.map((reply) => (
+            <li key={reply.id}>
+              <CommentItem
+                comment={reply}
+                propertyId={propertyId}
+                userId={userId}
+                canModerate={canModerate}
+              />
+            </li>
+          ))}
+        </ol>
+      ) : null}
+    </article>
   );
 }

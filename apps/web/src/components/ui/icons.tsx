@@ -192,6 +192,39 @@ export function SettingsIcon(props: IconProps) {
   );
 }
 
+export function BellIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M6 9a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 13 6 9Z" />
+      <path d="M10 18.5a2 2 0 0 0 4 0" />
+    </Icon>
+  );
+}
+
+export function MessageIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4H6.5A2.5 2.5 0 0 1 4 13.5v-7Z" />
+    </Icon>
+  );
+}
+
+export function FlagIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M5 21V4m0 0h11l-2 3.5L16 11H5" />
+    </Icon>
+  );
+}
+
+export function StarIcon({ filled = false, ...props }: IconProps & { filled?: boolean }) {
+  return (
+    <Icon {...props} fill={filled ? "currentColor" : "none"}>
+      <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z" />
+    </Icon>
+  );
+}
+
 export function SpinnerIcon({ className = "", size = 18 }: { className?: string; size?: number }) {
   return (
     <svg

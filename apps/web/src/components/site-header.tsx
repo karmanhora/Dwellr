@@ -4,11 +4,13 @@ import Link from "next/link";
 import { AccountMenu } from "@/components/account-menu";
 import { Logo } from "@/components/brand/logo";
 import { SearchForm } from "@/components/search-form";
+import { NotificationBell } from "@/components/social/notification-bell";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { PlusIcon, SearchIcon } from "@/components/ui/icons";
 import { getCurrentUser } from "@/lib/auth";
 import { getProfileById } from "@/lib/properties";
+import { getUnreadNotificationCount } from "@/lib/social";
 import { avatarPublicUrl } from "@/lib/storage";
 
 export async function SiteHeader() {
@@ -16,7 +18,10 @@ export async function SiteHeader() {
 
   // The profile supplies the handle and avatar for the account menu; a missing
   // row is treated as "no profile yet" rather than blocking the header.
-  const profile = user ? await getProfileById(user.id) : null;
+  const [profile, unreadCount] = await Promise.all([
+    user ? getProfileById(user.id) : Promise.resolve(null),
+    user ? getUnreadNotificationCount(user.id) : Promise.resolve(0),
+  ]);
   const name = profile
     ? getDisplayName(profile)
     : (user?.email?.split("@")[0] ?? "Your account");
@@ -34,6 +39,14 @@ export async function SiteHeader() {
           >
             Explore
           </Link>
+          {user ? (
+            <Link
+              href="/feed"
+              className="hidden text-body-sm font-medium text-stone transition hover:text-ink md:inline"
+            >
+              Feed
+            </Link>
+          ) : null}
         </div>
 
         <div className="hidden flex-1 justify-center px-6 md:flex">
@@ -51,6 +64,7 @@ export async function SiteHeader() {
 
           {user ? (
             <>
+              <NotificationBell initialCount={unreadCount} />
               <ButtonLink href="/create" size="sm" className="max-sm:hidden">
                 <PlusIcon size={16} />
                 Post a home

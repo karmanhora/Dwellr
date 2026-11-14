@@ -19,10 +19,10 @@ export function MobileNav({ username }: { username: string | null }) {
 
   const items: NavItem[] = [
     {
-      href: "/",
-      label: "Home",
+      href: username ? "/feed" : "/",
+      label: username ? "Feed" : "Home",
       icon: <HomeIcon />,
-      match: (path) => path === "/",
+      match: (path) => (username ? path.startsWith("/feed") : path === "/"),
     },
     {
       href: "/explore",

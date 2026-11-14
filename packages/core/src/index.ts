@@ -1,12 +1,21 @@
 export { BRAND, type BrandColor } from "./constants/brand";
 export {
   COLLECTION_DESCRIPTION_MAX_LENGTH,
+  COLLECTION_EVALUATION_MAX_TAGS,
+  COLLECTION_EVALUATION_NOTE_MAX_LENGTH,
+  COLLECTION_EVALUATION_TAG_MAX_LENGTH,
+  COLLECTION_INVITE_DEFAULT_DAYS,
+  COLLECTION_INVITE_MAX_DAYS,
+  COLLECTION_INVITE_MAX_USES,
+  COLLECTION_INVITE_ROLES,
   COLLECTION_MAX_ITEMS,
   COLLECTION_NAME_MAX_LENGTH,
   COLLECTION_NAME_MIN_LENGTH,
   COLLECTION_NOTE_MAX_LENGTH,
+  COLLECTION_ROLES,
   COLLECTION_SHARE_SLUG_LENGTH,
   COLLECTION_SHARE_SLUG_PATTERN,
+  type CollectionRoleValue,
 } from "./constants/collection";
 export {
   AVATAR_URL_MAX_LENGTH,
@@ -49,19 +58,46 @@ export {
   PROPERTY_TYPE_LABELS,
   PROPERTY_TYPES,
 } from "./constants/property";
+export {
+  COMMENT_MAX_LENGTH,
+  COMMENT_RATE_LIMIT_PER_MINUTE,
+  COMMENTS_MAX_PAGE,
+  FEED_NEIGHBORHOOD_MAX,
+  FEED_PAGE_SIZE,
+  FEED_RELEVANCE,
+  FEED_STYLE_MAX,
+  NOTIFICATION_TYPES,
+  REPORT_DETAILS_MAX_LENGTH,
+  REPORT_REASON_LABELS,
+  REPORT_REASONS,
+  REPORT_STATUSES,
+  REPORT_TARGET_TYPES,
+  SOCIAL_TARGET_TYPES,
+  type NotificationType,
+  type ReportTargetType,
+  type SocialTargetType,
+} from "./constants/social";
 
 export {
   addCollectionItemSchema,
   collectionDescriptionSchema,
+  collectionEvaluationSchema,
+  collectionInviteRoleSchema,
   collectionNameSchema,
   collectionNoteSchema,
+  collectionRoleSchema,
   collectionShareSlugSchema,
+  createCollectionInviteLinkSchema,
+  createCollectionInviteSchema,
   createCollectionSchema,
   updateCollectionSchema,
 } from "./schemas/collection";
 export type {
   AddCollectionItemInput,
+  CollectionEvaluationInput,
   CreateCollectionInput,
+  CreateCollectionInviteInput,
+  CreateCollectionInviteLinkInput,
   UpdateCollectionInput,
 } from "./schemas/collection";
 
@@ -99,12 +135,32 @@ export type {
   PropertyPhotoInput,
   UpdatePropertyInput,
 } from "./schemas/property";
+export {
+  commentSchema,
+  feedPreferencesSchema,
+  reportReasonSchema,
+  reportSchema,
+  reportTargetTypeSchema,
+  socialTargetTypeSchema,
+} from "./schemas/social";
+export type { CommentInput, FeedPreferencesInput, ReportInput } from "./schemas/social";
 
 export type { Profile, ProfileField, ProfileRow } from "./types/profile";
 export type {
   Collection,
+  CollectionActivity,
+  CollectionActivityRow,
+  CollectionComparison,
+  CollectionEvaluation,
+  CollectionEvaluationRow,
+  CollectionHomeComparison,
+  CollectionInviteRow,
   CollectionItem,
   CollectionItemRow,
+  CollectionMember,
+  CollectionMemberProfileRow,
+  CollectionMemberRow,
+  CollectionRole,
   CollectionRow,
   CollectionWithItems,
   PropertySaveRow,
@@ -126,13 +182,42 @@ export type {
   PropertyType,
   Provenance,
 } from "./types/property";
+export type {
+  Comment,
+  CommentAuthor,
+  CommentRow,
+  FeedCursor,
+  FeedItem,
+  FeedPage,
+  FeedPreferences,
+  FeedPreferencesRow,
+  FeedPropertyRow,
+  FollowCounts,
+  FollowRow,
+  LikeRow,
+  LikeSummary,
+  Notification,
+  NotificationRow,
+  Report,
+  ReportRow,
+} from "./types/social";
 
 export {
+  averageRating,
+  canContribute,
+  collectionActivityLabel,
+  collectionRoleLabel,
   collectionSharePath,
   collectionVisibilityLabel,
   formatCollectionCount,
+  formatEvaluationTags,
+  parseTagList,
+  summarizeCollectionComparison,
   toCollection,
+  toCollectionActivity,
+  toCollectionEvaluation,
   toCollectionItem,
+  toCollectionMember,
   toCollectionWithItems,
 } from "./services/collection";
 export { getListingFreshness, toPriceCut } from "./services/freshness";
@@ -156,3 +241,14 @@ export {
 } from "./services/property";
 export { safeRedirectPath } from "./services/redirect";
 export { getFieldErrors } from "./services/validation";
+export {
+  buildCommentTree,
+  countComments,
+  decodeFeedCursor,
+  encodeFeedCursor,
+  feedRelevanceLabel,
+  notificationHref,
+  notificationLabel,
+  notificationTypeLabel,
+  reportReasonLabel,
+} from "./services/social";
