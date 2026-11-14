@@ -10,6 +10,7 @@
  * SUPABASE_TEST_URL and SUPABASE_TEST_ANON_KEY explicitly.
  */
 
+import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 
 const url = process.env.SUPABASE_TEST_URL;
@@ -45,11 +46,16 @@ function makeClient() {
 const anon = makeClient();
 const owner = makeClient();
 const stranger = makeClient();
+const viewer = makeClient();
+const editor = makeClient();
+const late = makeClient();
 
-const accounts = { owner: null, stranger: null };
+const accounts = { owner: null, stranger: null, viewer: null, editor: null, late: null };
 let propertyId = null;
 let strangerPropertyId = null;
+let editorPropertyId = null;
 let collectionId = null;
+let firstCommentId = null;
 let photoPath = null;
 let avatarPath = null;
 
@@ -60,6 +66,33 @@ const png = Buffer.from(
 
 function uuid() {
   return crypto.randomUUID();
+}
+
+function tokenHash(token) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+async function createInvite({
+  role = "viewer",
+  inviteeId = null,
+  maxUses = 1,
+  expiresInMs = 60 * 60 * 1000,
+} = {}) {
+  const token = `sec-${uuid()}`;
+  const { data, error } = await owner
+    .from("collection_invites")
+    .insert({
+      collection_id: collectionId,
+      invited_by: accounts.owner.id,
+      invitee_id: inviteeId,
+      role,
+      token_hash: tokenHash(token),
+      max_uses: maxUses,
+      expires_at: new Date(Date.now() + expiresInMs).toISOString(),
+    })
+    .select("id")
+    .single();
+  return { token, hash: tokenHash(token), id: data?.id ?? null, error };
 }
 
 async function signUp(client, label) {
@@ -89,7 +122,13 @@ async function signUp(client, label) {
 try {
   accounts.owner = await signUp(owner, "owner");
   accounts.stranger = await signUp(stranger, "stranger");
-  check("two accounts sign up and receive sessions", Boolean(accounts.owner?.id && accounts.stranger?.id));
+  accounts.viewer = await signUp(viewer, "viewer");
+  accounts.editor = await signUp(editor, "editor");
+  accounts.late = await signUp(late, "late");
+  check(
+    "five accounts sign up and receive sessions",
+    Object.values(accounts).every((account) => Boolean(account?.id)),
+  );
 
   // --- profiles ------------------------------------------------------------
   const publicProfiles = await anon
@@ -515,6 +554,293 @@ try {
     .single();
   check("the collection survives foreign writes", stillThere.data?.name === `Security collection ${runId}`);
 
+  // --- collaboration roles, evaluations and invites -----------------------
+  const editorProperty = await owner
+    .from("properties")
+    .insert({
+      created_by: accounts.owner.id,
+      title: `Collaboration home ${runId}`,
+      neighborhood: "Test Heights",
+      city: "Portland",
+      property_type: "house",
+    })
+    .select("id")
+    .single();
+  if (editorProperty.error) {
+    throw new Error(`editor property insert failed: ${editorProperty.error.message}`);
+  }
+  editorPropertyId = editorProperty.data.id;
+
+  const ownerEvaluation = await owner.from("collection_item_evaluations").insert({
+    collection_id: collectionId,
+    property_id: propertyId,
+    user_id: accounts.owner.id,
+    rating: 4,
+    note: "Owner's private note.",
+    pros: ["Light"],
+    cons: ["Street noise"],
+  });
+  check("the owner writes an evaluation", !ownerEvaluation.error, ownerEvaluation.error?.message);
+
+  const strangerEvaluationRead = await stranger
+    .from("collection_item_evaluations")
+    .select("rating, note")
+    .eq("collection_id", collectionId);
+  check("a non-member cannot read evaluations", strangerEvaluationRead.data?.length === 0);
+
+  const viewerInvite = await createInvite({ role: "viewer", inviteeId: accounts.viewer.id });
+  if (viewerInvite.error) throw new Error(`viewer invite failed: ${viewerInvite.error.message}`);
+
+  const hashedTokenRead = await owner
+    .from("collection_invites")
+    .select("token_hash")
+    .eq("id", viewerInvite.id);
+  check(
+    "invite token hashes are not readable",
+    Boolean(hashedTokenRead.error) || hashedTokenRead.data?.length === 0,
+    hashedTokenRead.error?.message,
+  );
+
+  const inviteMetadata = await viewer
+    .from("collection_invites")
+    .select("id, role, invitee_id")
+    .eq("id", viewerInvite.id);
+  check("an invitee reads their invite metadata", inviteMetadata.data?.length === 1);
+
+  const strangerInviteRead = await stranger
+    .from("collection_invites")
+    .select("id")
+    .eq("id", viewerInvite.id);
+  check("a non-invitee cannot read the invite", strangerInviteRead.data?.length === 0);
+
+  const viewerAccept = await viewer.rpc("accept_collection_invite", {
+    p_token_hash: viewerInvite.hash,
+  });
+  check(
+    "an invitee accepts a hashed invite",
+    !viewerAccept.error && viewerAccept.data === collectionId,
+    viewerAccept.error?.message,
+  );
+
+  const viewerMembership = await viewer
+    .from("collection_members")
+    .select("role")
+    .eq("collection_id", collectionId)
+    .eq("user_id", accounts.viewer.id)
+    .single();
+  check("the accepted invite creates a viewer membership", viewerMembership.data?.role === "viewer");
+
+  const viewerCollectionRead = await viewer
+    .from("collections")
+    .select("id")
+    .eq("id", collectionId);
+  check("a viewer reads the private collection", viewerCollectionRead.data?.length === 1);
+
+  const viewerEvaluationRead = await viewer
+    .from("collection_item_evaluations")
+    .select("rating")
+    .eq("collection_id", collectionId);
+  check("a viewer reads evaluations", viewerEvaluationRead.data?.length === 1);
+
+  const viewerEvaluationInsert = await viewer.from("collection_item_evaluations").insert({
+    collection_id: collectionId,
+    property_id: propertyId,
+    user_id: accounts.viewer.id,
+    rating: 5,
+  });
+  check("a viewer cannot write an evaluation", Boolean(viewerEvaluationInsert.error));
+
+  const viewerItemInsert = await viewer.from("collection_items").insert({
+    collection_id: collectionId,
+    property_id: editorPropertyId,
+    added_by: accounts.viewer.id,
+  });
+  check("a viewer cannot add a home", Boolean(viewerItemInsert.error));
+
+  const viewerItemUpdate = await viewer
+    .from("collection_items")
+    .update({ note: "Viewer rewrite" })
+    .eq("collection_id", collectionId)
+    .eq("property_id", propertyId)
+    .select("note");
+  check("a viewer cannot update an item", viewerItemUpdate.data?.length === 0);
+
+  const viewerCollectionUpdate = await viewer
+    .from("collections")
+    .update({ name: "Viewer rewrite" })
+    .eq("id", collectionId)
+    .select("id");
+  check("a viewer cannot rename the collection", viewerCollectionUpdate.data?.length === 0);
+
+  const viewerRoleUpdate = await viewer
+    .from("collection_members")
+    .update({ role: "editor" })
+    .eq("collection_id", collectionId)
+    .eq("user_id", accounts.viewer.id)
+    .select("role");
+  check("a viewer cannot promote themselves", viewerRoleUpdate.data?.length === 0);
+
+  const viewerInviteInsert = await viewer.from("collection_invites").insert({
+    collection_id: collectionId,
+    invited_by: accounts.viewer.id,
+    role: "viewer",
+    token_hash: tokenHash(`viewer-${uuid()}`),
+    max_uses: 1,
+    expires_at: new Date(Date.now() + 60_000).toISOString(),
+  });
+  check("a viewer cannot create invites", Boolean(viewerInviteInsert.error));
+
+  const ownerPromotion = await owner
+    .from("collection_members")
+    .update({ role: "editor" })
+    .eq("collection_id", collectionId)
+    .eq("user_id", accounts.viewer.id)
+    .select("role")
+    .single();
+  check("the owner promotes a viewer to editor", ownerPromotion.data?.role === "editor");
+
+  const editorItemInsert = await editor
+    .from("collection_items")
+    .insert({
+      collection_id: collectionId,
+      property_id: editorPropertyId,
+      added_by: accounts.editor.id,
+      note: "Editor's addition.",
+    });
+  check("an editor adds a home", !editorItemInsert.error, editorItemInsert.error?.message);
+
+  const editorItemUpdate = await editor
+    .from("collection_items")
+    .update({ note: "Editor's note." })
+    .eq("collection_id", collectionId)
+    .eq("property_id", editorPropertyId)
+    .select("note")
+    .single();
+  check("an editor updates an item", editorItemUpdate.data?.note === "Editor's note.");
+
+  const editorEvaluation = await editor.from("collection_item_evaluations").insert({
+    collection_id: collectionId,
+    property_id: editorPropertyId,
+    user_id: accounts.editor.id,
+    rating: 3,
+  });
+  check("an editor writes an evaluation", !editorEvaluation.error, editorEvaluation.error?.message);
+
+  const editorCollectionUpdate = await editor
+    .from("collections")
+    .update({ name: "Editor rewrite" })
+    .eq("id", collectionId)
+    .select("id");
+  check("an editor cannot manage the collection", editorCollectionUpdate.data?.length === 0);
+
+  const editorRoleUpdate = await editor
+    .from("collection_members")
+    .update({ role: "owner" })
+    .eq("collection_id", collectionId)
+    .eq("user_id", accounts.viewer.id)
+    .select("role");
+  check("an editor cannot change roles", editorRoleUpdate.data?.length === 0);
+
+  const editorOwnerDemotion = await editor
+    .from("collection_members")
+    .update({ role: "viewer" })
+    .eq("collection_id", collectionId)
+    .eq("user_id", accounts.owner.id)
+    .select("role");
+  check("an editor cannot demote the owner", editorOwnerDemotion.data?.length === 0);
+
+  const editorInviteInsert = await editor.from("collection_invites").insert({
+    collection_id: collectionId,
+    invited_by: accounts.editor.id,
+    role: "viewer",
+    token_hash: tokenHash(`editor-${uuid()}`),
+    max_uses: 1,
+    expires_at: new Date(Date.now() + 60_000).toISOString(),
+  });
+  check("an editor cannot create invites", Boolean(editorInviteInsert.error));
+
+  const ownerDelete = await owner
+    .from("collection_members")
+    .delete()
+    .eq("collection_id", collectionId)
+    .eq("user_id", accounts.owner.id)
+    .select("user_id");
+  check("the owner membership cannot be removed", Boolean(ownerDelete.error));
+
+  const ownerDemotion = await owner
+    .from("collection_members")
+    .update({ role: "viewer" })
+    .eq("collection_id", collectionId)
+    .eq("user_id", accounts.owner.id)
+    .select("role");
+  check("the owner membership cannot be demoted", Boolean(ownerDemotion.error));
+
+  const ownershipTransfer = await owner
+    .from("collections")
+    .update({ owner_id: accounts.stranger.id })
+    .eq("id", collectionId)
+    .select("owner_id");
+  check("collection ownership cannot be transferred", Boolean(ownershipTransfer.error));
+
+  const directAcceptInvite = await createInvite({ inviteeId: accounts.stranger.id });
+  if (directAcceptInvite.error) {
+    throw new Error(`direct invite failed: ${directAcceptInvite.error.message}`);
+  }
+  const wrongDirectAccept = await owner.rpc("accept_collection_invite_by_id", {
+    p_invite_id: directAcceptInvite.id,
+  });
+  check("a named invite can only be accepted by its invitee", Boolean(wrongDirectAccept.error));
+  const directAccept = await stranger.rpc("accept_collection_invite_by_id", {
+    p_invite_id: directAcceptInvite.id,
+  });
+  check("a named invite is accepted without exposing a token", !directAccept.error, directAccept.error?.message);
+  const directReuse = await stranger.rpc("accept_collection_invite_by_id", {
+    p_invite_id: directAcceptInvite.id,
+  });
+  check("a used named invite cannot be accepted twice", Boolean(directReuse.error));
+
+  const lateInvite = await createInvite({ inviteeId: accounts.late.id });
+  if (lateInvite.error) throw new Error(`late invite failed: ${lateInvite.error.message}`);
+  const lateAccept = await late.rpc("accept_collection_invite", { p_token_hash: lateInvite.hash });
+  check("a one-use invite can be accepted", !lateAccept.error, lateAccept.error?.message);
+  const lateReuse = await late.rpc("accept_collection_invite", { p_token_hash: lateInvite.hash });
+  check("a used one-use invite cannot be reused", Boolean(lateReuse.error));
+
+  const revokedInvite = await createInvite({ inviteeId: accounts.stranger.id });
+  if (revokedInvite.error) throw new Error(`revoked invite setup failed: ${revokedInvite.error.message}`);
+  const revoke = await owner
+    .from("collection_invites")
+    .update({ revoked_at: new Date().toISOString() })
+    .eq("id", revokedInvite.id)
+    .select("revoked_at")
+    .single();
+  check("the owner revokes an invite", Boolean(revoke.data?.revoked_at), revoke.error?.message);
+  const revokedAccept = await stranger.rpc("accept_collection_invite", {
+    p_token_hash: revokedInvite.hash,
+  });
+  check("a revoked invite cannot be accepted", Boolean(revokedAccept.error));
+
+  const directInvite = await stranger.from("collection_invites").insert({
+    collection_id: collectionId,
+    invited_by: accounts.stranger.id,
+    role: "viewer",
+    token_hash: tokenHash(`direct-${uuid()}`),
+    max_uses: 1,
+    expires_at: new Date(Date.now() + 60_000).toISOString(),
+  });
+  check("a non-owner cannot create a direct invite", Boolean(directInvite.error));
+
+  const expiringInvite = await createInvite({
+    inviteeId: accounts.stranger.id,
+    expiresInMs: 1000,
+  });
+  if (expiringInvite.error) throw new Error(`expiring invite failed: ${expiringInvite.error.message}`);
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+  const expiredAccept = await stranger.rpc("accept_collection_invite", {
+    p_token_hash: expiringInvite.hash,
+  });
+  check("an expired invite cannot be accepted", Boolean(expiredAccept.error));
+
   const publish = await owner
     .from("collections")
     .update({ is_public: true })
@@ -533,7 +859,7 @@ try {
     .from("collection_items")
     .select("property_id, note")
     .eq("collection_id", collectionId);
-  check("anon reads items of a published collection", anonPublicItems.data?.length === 1);
+  check("anon reads items of a published collection", (anonPublicItems.data?.length ?? 0) >= 2);
 
   const ownerItemDelete = await owner
     .from("collection_items")
@@ -572,6 +898,381 @@ try {
     .select("property_id");
   check("the saver removes their own save", ownerSaveDelete.data?.length === 1);
 
+  // --- social graph: likes, comments, follows, notifications and blocks ----
+  const initialLikes = await anon
+    .from("content_like_counts")
+    .select("like_count")
+    .eq("target_type", "property")
+    .eq("target_id", propertyId)
+    .maybeSingle();
+  check("anon reads a zero like count", (initialLikes.data?.like_count ?? 0) === 0);
+
+  const strangerLike = await stranger.from("content_likes").insert({
+    user_id: accounts.stranger.id,
+    target_type: "property",
+    target_id: propertyId,
+  });
+  check("a signed-in user likes a property", !strangerLike.error, strangerLike.error?.message);
+
+  const duplicateLike = await stranger.from("content_likes").insert({
+    user_id: accounts.stranger.id,
+    target_type: "property",
+    target_id: propertyId,
+  });
+  check("a user cannot like the same target twice", Boolean(duplicateLike.error));
+
+  const forgedLike = await stranger.from("content_likes").insert({
+    user_id: accounts.owner.id,
+    target_type: "property",
+    target_id: propertyId,
+  });
+  check("a client cannot like as another user", Boolean(forgedLike.error));
+
+  const anonLike = await anon.from("content_likes").insert({
+    user_id: accounts.stranger.id,
+    target_type: "property",
+    target_id: propertyId,
+  });
+  check("anon cannot like", Boolean(anonLike.error));
+
+  const viewerLike = await viewer.from("content_likes").insert({
+    user_id: accounts.viewer.id,
+    target_type: "property",
+    target_id: propertyId,
+  });
+  check("a second user likes the same property", !viewerLike.error, viewerLike.error?.message);
+
+  const likeCount = await anon
+    .from("content_like_counts")
+    .select("like_count")
+    .eq("target_type", "property")
+    .eq("target_id", propertyId)
+    .maybeSingle();
+  check("the like count is derived from rows", likeCount.data?.like_count === 2);
+
+  const likeNotification = await owner
+    .from("notifications")
+    .select("id, actor_count, read_at")
+    .eq("type", "like")
+    .eq("target_id", propertyId)
+    .maybeSingle();
+  check(
+    "likes collapse into one unread notification",
+    likeNotification.data?.actor_count === 2 && likeNotification.data?.read_at === null,
+    JSON.stringify(likeNotification.data),
+  );
+
+  const actorIdsRead = await owner
+    .from("notifications")
+    .select("actor_ids")
+    .eq("id", likeNotification.data?.id ?? 0);
+  check(
+    "notification actor_ids are not exposed",
+    Boolean(actorIdsRead.error) || actorIdsRead.data?.length === 0,
+    actorIdsRead.error?.message,
+  );
+
+  const strangerNotifications = await stranger.from("notifications").select("id");
+  check("a user cannot read another user's notifications", strangerNotifications.data?.length === 0);
+
+  const forgedNotification = await owner.from("notifications").insert({
+    user_id: accounts.owner.id,
+    type: "follow",
+    actor_id: accounts.stranger.id,
+  });
+  check("clients cannot forge notifications", Boolean(forgedNotification.error));
+
+  const selfFollow = await owner.from("follows").insert({
+    follower_id: accounts.owner.id,
+    following_id: accounts.owner.id,
+  });
+  check("a user cannot follow themselves", Boolean(selfFollow.error));
+
+  const forgedFollow = await stranger.from("follows").insert({
+    follower_id: accounts.owner.id,
+    following_id: accounts.stranger.id,
+  });
+  check("a user cannot follow as someone else", Boolean(forgedFollow.error));
+
+  const strangerFollow = await stranger.from("follows").insert({
+    follower_id: accounts.stranger.id,
+    following_id: accounts.owner.id,
+  });
+  check("a user follows another user", !strangerFollow.error, strangerFollow.error?.message);
+
+  const followCounts = await anon
+    .from("profile_follow_counts")
+    .select("follower_count")
+    .eq("user_id", accounts.owner.id)
+    .maybeSingle();
+  check("follower counts include the new follow", (followCounts.data?.follower_count ?? 0) >= 1);
+
+  const followNotification = await owner
+    .from("notifications")
+    .select("id")
+    .eq("type", "follow");
+  check("a follow creates a notification", (followNotification.data?.length ?? 0) >= 1);
+
+  const strangerComment = await stranger
+    .from("comments")
+    .insert({
+      target_type: "property",
+      target_id: propertyId,
+      author_id: accounts.stranger.id,
+      body: "Security suite comment.",
+    })
+    .select("id")
+    .single();
+  check("a signed-in user comments", !strangerComment.error, strangerComment.error?.message);
+  firstCommentId = strangerComment.data?.id ?? null;
+
+  const anonCommentRead = await anon
+    .from("comments")
+    .select("body")
+    .eq("id", firstCommentId);
+  check("comments are publicly readable", anonCommentRead.data?.length === 1);
+
+  const forgedComment = await stranger.from("comments").insert({
+    target_type: "property",
+    target_id: propertyId,
+    author_id: accounts.owner.id,
+    body: "Forged comment.",
+  });
+  check("a user cannot comment as someone else", Boolean(forgedComment.error));
+
+  const ownerReply = await owner
+    .from("comments")
+    .insert({
+      target_type: "property",
+      target_id: propertyId,
+      author_id: accounts.owner.id,
+      parent_id: firstCommentId,
+      body: "Owner reply.",
+    })
+    .select("id")
+    .single();
+  check("an owner replies to a comment", !ownerReply.error, ownerReply.error?.message);
+
+  const nestedReply = await stranger.from("comments").insert({
+    target_type: "property",
+    target_id: propertyId,
+    author_id: accounts.stranger.id,
+    parent_id: ownerReply.data?.id,
+    body: "Too deep.",
+  });
+  check("comments only nest one level", Boolean(nestedReply.error));
+
+  const commentBodyEdit = await stranger
+    .from("comments")
+    .update({ body: "Rewritten." })
+    .eq("id", firstCommentId)
+    .select("body");
+  check("comment bodies are immutable", Boolean(commentBodyEdit.error));
+
+  const commentNotification = await owner
+    .from("notifications")
+    .select("id")
+    .eq("type", "comment")
+    .eq("comment_id", firstCommentId);
+  check("a comment creates a notification", (commentNotification.data?.length ?? 0) === 1);
+
+  const strangerDeleteOwnerComment = await stranger
+    .from("comments")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", ownerReply.data?.id)
+    .select("id");
+  check("a stranger cannot delete someone else's comment", strangerDeleteOwnerComment.data?.length === 0);
+
+  const report = await stranger
+    .from("reports")
+    .insert({
+      reporter_id: accounts.stranger.id,
+      target_type: "comment",
+      target_id: firstCommentId,
+      reason: "harassment",
+      details: "Security suite report.",
+    })
+    .select("id, status")
+    .single();
+  check("a user reports a comment", !report.error, report.error?.message);
+  check("a new report starts open", report.data?.status === "open");
+
+  const ownerReportRead = await owner.from("reports").select("id").eq("id", report.data?.id);
+  check("a user cannot read another reporter's report", ownerReportRead.data?.length === 0);
+
+  const anonReport = await anon.from("reports").insert({
+    reporter_id: accounts.stranger.id,
+    target_type: "property",
+    target_id: propertyId,
+    reason: "spam",
+  });
+  check("anon cannot report", Boolean(anonReport.error));
+
+  const invalidReport = await stranger.from("reports").insert({
+    reporter_id: accounts.stranger.id,
+    target_type: "property",
+    target_id: uuid(),
+    reason: "spam",
+  });
+  check("reports require an existing target", Boolean(invalidReport.error));
+
+  const reportStatusUpdate = await stranger
+    .from("reports")
+    .update({ status: "dismissed", resolved_at: new Date().toISOString() })
+    .eq("id", report.data?.id)
+    .select("id");
+  check("reporters cannot resolve their own reports", Boolean(reportStatusUpdate.error) || reportStatusUpdate.data?.length === 0);
+
+  const ownerDeleteStrangerComment = await owner
+    .from("comments")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", firstCommentId)
+    .select("body, deleted_at")
+    .single();
+  check(
+    "a content owner soft-deletes a comment into a tombstone",
+    ownerDeleteStrangerComment.data?.body === "" && Boolean(ownerDeleteStrangerComment.data?.deleted_at),
+    ownerDeleteStrangerComment.error?.message,
+  );
+
+  const reportAfterSoftDelete = await stranger
+    .from("reports")
+    .select("id")
+    .eq("id", report.data?.id);
+  check(
+    "soft-deleting a comment keeps the report for moderation",
+    reportAfterSoftDelete.data?.length === 1,
+  );
+
+  await stranger.from("follows").delete().eq("follower_id", accounts.stranger.id);
+  const refollow = await stranger.from("follows").insert({
+    follower_id: accounts.stranger.id,
+    following_id: accounts.owner.id,
+  });
+  check("a user can follow again", !refollow.error, refollow.error?.message);
+
+  const preferences = await stranger
+    .from("feed_preferences")
+    .upsert({
+      user_id: accounts.stranger.id,
+      neighborhoods: ["Test Heights"],
+      property_types: ["house"],
+    })
+    .select("neighborhoods")
+    .single();
+  check("a user saves feed preferences", preferences.data?.neighborhoods?.[0] === "Test Heights", preferences.error?.message);
+
+  const strangerFeed = await stranger
+    .from("feed_properties")
+    .select("id, relevance")
+    .eq("id", propertyId)
+    .maybeSingle();
+  check(
+    "the feed includes followed homes with relevance",
+    strangerFeed.data?.id === propertyId && strangerFeed.data.relevance >= 2,
+    JSON.stringify(strangerFeed.data),
+  );
+
+  const foreignPreferences = await owner
+    .from("feed_preferences")
+    .select("user_id")
+    .eq("user_id", accounts.stranger.id);
+  check("feed preferences are private", foreignPreferences.data?.length === 0);
+
+  const anonFeed = await anon.from("feed_properties").select("id").eq("id", propertyId);
+  check("anon cannot read the personalized feed", Boolean(anonFeed.error) || anonFeed.data?.length === 0);
+
+  // A block hides both directions and stops new interactions.
+  await stranger.from("follows").delete().eq("follower_id", accounts.stranger.id);
+  const strangerBlock = await stranger.from("blocks").insert({
+    blocker_id: accounts.stranger.id,
+    blocked_id: accounts.owner.id,
+  });
+  check("a user blocks another account", !strangerBlock.error, strangerBlock.error?.message);
+
+  const blockedProperty = await stranger.from("properties").select("id").eq("id", propertyId);
+  check("a blocked user's property disappears", blockedProperty.data?.length === 0);
+
+  const blockedProfile = await stranger
+    .from("profiles")
+    .select("id")
+    .eq("id", accounts.owner.id);
+  check("a blocked user's profile disappears", blockedProfile.data?.length === 0);
+
+  const ownerSeesStranger = await owner
+    .from("profiles")
+    .select("id")
+    .eq("id", accounts.stranger.id);
+  check("blocking hides the blocker in both directions", ownerSeesStranger.data?.length === 0);
+
+  const anonStillSees = await anon.from("properties").select("id").eq("id", propertyId);
+  check("a block does not hide public content from anon", anonStillSees.data?.length === 1);
+
+  const blockedComment = await stranger.from("comments").insert({
+    target_type: "property",
+    target_id: propertyId,
+    author_id: accounts.stranger.id,
+    body: "Blocked comment.",
+  });
+  check("a blocked user cannot comment", Boolean(blockedComment.error));
+
+  const blockedFollow = await stranger
+    .from("follows")
+    .insert({ follower_id: accounts.stranger.id, following_id: accounts.owner.id });
+  check("a blocked user cannot follow", Boolean(blockedFollow.error));
+
+  const blockedLike = await stranger.from("content_likes").insert({
+    user_id: accounts.stranger.id,
+    target_type: "property",
+    target_id: editorPropertyId,
+  });
+  check("a blocked user cannot like the blocker's content", Boolean(blockedLike.error));
+
+  const ownerComments = await owner
+    .from("comments")
+    .select("author_id")
+    .eq("target_id", propertyId);
+  check(
+    "comments from a blocked user are hidden from the blocker",
+    (ownerComments.data ?? []).every((row) => row.author_id !== accounts.stranger.id),
+    JSON.stringify(ownerComments.data),
+  );
+
+  const blockList = await stranger.from("blocks").select("blocked_id");
+  check("a user reads their own block list", blockList.data?.length === 1);
+  const foreignBlockList = await owner.from("blocks").select("blocked_id");
+  check("a user cannot read someone else's block list", foreignBlockList.data?.length === 0);
+
+  const unblock = await stranger
+    .from("blocks")
+    .delete()
+    .eq("blocker_id", accounts.stranger.id)
+    .eq("blocked_id", accounts.owner.id);
+  check("a user unblocks", !unblock.error, unblock.error?.message);
+
+  const visibleAgain = await stranger.from("properties").select("id").eq("id", propertyId);
+  check("unblocking restores visibility", visibleAgain.data?.length === 1);
+
+  // The database, not the UI, is the rate limiter.
+  let rateLimitError = null;
+  for (let index = 0; index < 11; index += 1) {
+    const result = await stranger.from("comments").insert({
+      target_type: "property",
+      target_id: propertyId,
+      author_id: accounts.stranger.id,
+      body: `Rate limit comment ${index}.`,
+    });
+    if (result.error) {
+      rateLimitError = result.error;
+      break;
+    }
+  }
+  check(
+    "commenting faster than ten a minute is rejected",
+    Boolean(rateLimitError) && /too quickly/i.test(rateLimitError.message),
+    rateLimitError?.message,
+  );
+
   // --- cascades ------------------------------------------------------------
   const deleteStrangerProperty = await stranger
     .from("properties")
@@ -600,12 +1301,41 @@ try {
     .eq("property_id", property.data.id);
   check("price history cascades with the property", historyAfterDelete.data?.length === 0);
 
+  const socialLikesAfterDelete = await anon
+    .from("content_likes")
+    .select("user_id")
+    .eq("target_id", property.data.id);
+  check("likes are cleaned up with the property", socialLikesAfterDelete.data?.length === 0);
+
+  const socialCommentsAfterDelete = await anon
+    .from("comments")
+    .select("id")
+    .eq("target_id", property.data.id);
+  check("comments are cleaned up with the property", socialCommentsAfterDelete.data?.length === 0);
+
+  const socialNotificationsAfterDelete = await owner
+    .from("notifications")
+    .select("id")
+    .eq("target_id", property.data.id);
+  check("notifications are cleaned up with the property", socialNotificationsAfterDelete.data?.length === 0);
+
+  const commentReportsAfterDelete = await stranger.from("reports").select("id");
+  check("reports are cleaned up when their target is deleted", commentReportsAfterDelete.data?.length === 0);
+
   const confirmationsAfterDelete = await anon
     .from("property_confirmations")
     .select("id")
     .eq("property_id", property.data.id);
   check("confirmations cascade with the property", confirmationsAfterDelete.data?.length === 0);
   propertyId = null;
+
+  const deleteEditorProperty = await owner
+    .from("properties")
+    .delete()
+    .eq("id", editorPropertyId)
+    .select("id");
+  check("the owner deletes the collaboration property", deleteEditorProperty.data?.length === 1);
+  editorPropertyId = null;
 
   const deleteCollection = await owner
     .from("collections")
@@ -620,6 +1350,7 @@ try {
 } finally {
   if (collectionId) await owner.from("collections").delete().eq("id", collectionId);
   if (strangerPropertyId) await stranger.from("properties").delete().eq("id", strangerPropertyId);
+  if (editorPropertyId) await owner.from("properties").delete().eq("id", editorPropertyId);
   if (propertyId) await owner.from("properties").delete().eq("id", propertyId);
   if (photoPath) await owner.storage.from(photoBucket).remove([photoPath]);
   if (avatarPath) await owner.storage.from(avatarBucket).remove([avatarPath]);

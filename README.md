@@ -4,6 +4,11 @@ A social network for home hunting. Save homes, build shared collections, and
 evaluate properties together — with every property detail marked as verified or
 user-submitted.
 
+Milestone 2 adds the collaborative and social layer: collection roles
+(owner/editor/viewer), hashed invites, per-member ratings and comparisons,
+likes, threaded comments, follows, blocking, private reports, notifications,
+and a feed ranked only by explicit follows and preferences.
+
 > Not a listing site. No scraped data, no invented addresses.
 
 ## Stack
@@ -45,7 +50,9 @@ pnpm supabase db push --remote
 | `pnpm build`     | Production build                           |
 | `pnpm lint`      | ESLint across workspaces                   |
 | `pnpm typecheck` | `tsc --noEmit` across workspaces           |
-| `pnpm test`      | Vitest suite for `packages/core`           |
+| `pnpm test`     | Vitest suite for `packages/core`           |
+| `pnpm test:security` | Anon-key RLS/storage suite (needs Supabase) |
+| `pnpm --filter @dwellr/web test:e2e` | Playwright flows (needs `.env.local`) |
 | `pnpm format`    | Prettier write                             |
 
 ## Structure
@@ -57,5 +64,19 @@ supabase      Config and versioned migrations
 docs          Architecture and brand documentation
 scripts       Brand asset generation
 ```
+
+## Milestone 2 surfaces
+
+- `/c/[slug]` — shared collection with members, roles, evaluations, activity,
+  comparison and invites.
+- `/notifications` — invites, comments, likes and follows, with named-invite
+  accept/decline.
+- `/feed` — followed and preference-matched homes with an explicit reason on
+  every card.
+- `/settings/blocked` — unblock accounts hidden in both directions.
+
+Property pages include likes and comments; profile pages include follows,
+blocking and reporting. Social tables are target-polymorphic so Milestone 3
+posts can reuse the same layer.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/BRAND.md](docs/BRAND.md).

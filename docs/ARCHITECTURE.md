@@ -28,9 +28,13 @@ dwellr/
 │           │   ├── (auth)/   sign-up / sign-in route group
 │           │   ├── explore/  discovery feed
 │           │   ├── create/   new property post
-│           │   ├── p/[id]/   detail, edit, delete
-│           │   ├── u/[username]/ public profile
-│           │   ├── settings/ profile settings
+│           │   ├── p/[id]/   detail, edit, delete, comments, likes
+│           │   ├── u/[username]/ public profile, follows, block/report
+│           │   ├── c/[slug]/ shared collection, compare, invites
+│           │   ├── feed/     personalized, explainable ranking
+│           │   ├── notifications/ activity and pending invites
+│           │   ├── invite/[token]/ link invite acceptance
+│           │   ├── settings/ profile and blocked accounts
 │           │   └── me/       protected account page
 │           ├── components/   Brand, auth, property and UI components
 │           │   └── ui/       Design-system primitives
@@ -360,8 +364,9 @@ Known gaps (deliberately out of scope for this milestone):
 
 - Vitest covers `packages/core`: property schemas (ranges, defaults, photo
   limits, path format, paired coordinates/dimensions), provenance aggregation,
-  price formatting and parsing, cursor encoding, storage URLs, profile rules
-  and collection contracts — 169 tests, no browser or network.
+  price formatting and parsing, cursor encoding, storage URLs, profile rules,
+  collection collaboration and social contracts — 212 tests, no browser or
+  network.
 - Playwright (Chromium) adds one smoke test for the cross-system flow that unit
   tests cannot see: sign-up → photo upload to Storage under RLS → post insert →
   card on `/explore` → detail page → owner edit → save → create a public
@@ -485,8 +490,8 @@ UI labels and badge rules for provenance are unchanged.
 
 - **Note editing** — the `note` column and display exist, but there is no UI to
   write a note yet; it is reserved for the collection-detail editor.
-- **Collaboration** — only the owner can add or remove items. Shared editing,
-  invites and roles need a membership table and a policy rewrite.
+- **Collaboration** — implemented in Milestone 2B below with memberships,
+  roles, invites and evaluations.
 - **Discovery** — public collections are link-only; there is no directory or
   profile section listing them yet.
 - **Counters** — save counts and collection counts are read live, not
@@ -496,6 +501,222 @@ UI labels and badge rules for provenance are unchanged.
 - **Rate limiting / moderation** — unchanged from Milestone 1; collections add
   another write surface that needs the same abuse controls before public
   launch.
+
+## Milestone 2B: shared decisions and the social graph
+
+Milestone 2B turns collections into a shared workspace and adds the social
+layer around homes: likes, comments, follows, blocking, notifications,
+reports and a personalized feed. Everything is enforced in Postgres RLS and
+triggers; the browser remains an anon-key client.
+
+### Migrations
+
+- `20261115090000_collaborative_collections.sql`
+- `20261115100000_social_graph.sql`
+- `20261115110000_notifications_and_reports.sql`
+- `20261115120000_feed_preferences.sql`
+
+### Collaborative collections
+
+`collection_members` is the authority for access and roles:
+
+| Role | Can read | Can add/remove homes | Can rate/note | Manage members/invites |
+| --- | --- | --- | --- | --- |
+| `owner` | yes | yes | yes | yes |
+| `editor` | yes | yes | yes | no |
+| `viewer` | yes | no | no | no |
+
+The collection owner gets an `owner` membership from an `after insert`
+trigger; pre-existing collections were backfilled in the migration. Owner
+identity is immutable for now, the owner row cannot be removed or demoted, and
+member `collection_id`/`user_id` cannot be changed. A public collection is
+readable by anyone; a private one is visible only to its members. Checks that
+need the membership table run through `security definer` helpers
+(`is_collection_member`, `collection_role_for`) to avoid recursive RLS.
+
+`collection_item_evaluations` stores one row per member/home with a 1–5
+rating, optional note ≤ 500 characters, and up to six pros and six cons tags.
+Writes are limited to the member themselves and require an owner/editor role;
+a viewer can read but not write. The composite foreign keys guarantee that the
+member and item exist, so an evaluation cannot point at a home outside the
+collection.
+
+`collection_activity` is an append-only, trigger-written trail: joins, leaves,
+home add/remove, and evaluation saves. Clients have select only.
+
+### Invites
+
+Invite tokens are generated on the server with `randomBytes(32)`, sent in the
+URL, and stored only as a SHA-256 hash. `token_hash` is excluded from the
+client column grant. Named (username) invites store `invitee_id` and notify
+the invitee; because the token is not exposed to them, they accept through
+`accept_collection_invite_by_id`, which checks `invitee_id = auth.uid()`. Link
+invites have no invitee and are accepted through
+`accept_collection_invite(p_token_hash)`.
+
+Both RPCs are `security definer` because the invitee is not yet a member and
+cannot read the collection through RLS. They lock the invite row, reject
+expired, declined, revoked, exhausted, and wrong-account invites, insert the
+membership at the invite's role, and increment `use_count`. `max_uses > 1`
+links therefore stop working when the count is reached. Owners can revoke;
+invitees can decline. A trigger rejects changes to every field except the
+status/use fields the RPCs own. Declines and revokes are soft state, so the
+audit row survives.
+
+### Polymorphic social targets
+
+Likes and comments use `social_target_type` (`property` | `post`) plus
+`target_id`. The database does not use a polymorphic foreign key; instead:
+
+- `assert_social_target` verifies the target exists and rejects `post` with
+  `feature_not_supported` until Milestone 3.
+- `social_target_owner` resolves the owner for block checks and notifications.
+- cleanup triggers remove likes, comments, reports and notifications when a
+  property is deleted, and reports when a comment is hard-deleted.
+
+This keeps one social table per concept, ready for posts without a schema
+rewrite, while still preventing dangling rows today. The tradeoff is explicit
+cleanup code instead of a cascading FK.
+
+### Likes, comments and follows
+
+`content_likes` has PK `(user_id, target_type, target_id)`; clients can only
+insert/delete their own row. Counts come from the security-invoker
+`content_like_counts` view, so a browser can never post a count. Likes across a
+block are rejected by a trigger.
+
+Comments are one level deep. A trigger enforces:
+
+- author identity is the session user;
+- the target exists (and is a property today);
+- replies match the parent's target and cannot reply to a reply;
+- a block between the author and content owner rejects the comment;
+- at most 10 comments per author per rolling minute, enforced in the database
+  so direct PostgREST calls cannot bypass it.
+
+Clients have insert and a column-limited update for soft deletion. The
+`protect_comment_update` trigger clears the body, records `deleted_by`, and
+refuses edits to identity or an undelete. The author and the content owner can
+delete; tombstones remain so replies do not collapse. `comments` selects are
+public except across a block.
+
+`follows` is a simple `(follower_id, following_id)` edge with a self-follow
+check, a block check, and public block-aware reads. `profile_follow_counts` is
+a security-invoker view. `blocks` is readable only by its owner and is checked
+in both directions by `is_blocked_between`; the profiles and properties select
+policies hide blocked accounts' content from the blocker and vice versa.
+
+### Notifications and reports
+
+Notifications are trigger-written only: clients have select and a
+column-level update of `read_at`, with no insert/delete grant or policy. Events:
+
+- collection invite, collection join/leave, and collection item additions;
+- comment on a property (owner) and replies (parent author);
+- follow;
+- likes, collapsed into one unread row per target via a partial unique index
+  and `actor_ids`/`actor_count`.
+
+`actor_ids` is internal and is not in the client grant. The bell polls the
+unread count every 60 seconds and refetches on window focus; Realtime is
+deliberately not used for this milestone because notifications are durable
+rows and the polling surface is small. The tradeoff is up to a minute of delay
+while a tab stays focused.
+
+`reports` accepts one of the report reasons for a property, post, comment or
+profile, validates that the target exists, and is readable only by its
+reporter. There is no client update path; moderation status is a server-side
+concern for a later milestone. Reporters cannot see each other's reports.
+
+### Personalized feed
+
+`feed_preferences` stores up to ten neighborhoods and ten property types per
+user, readable and writable only by that user. `feed_properties` is a
+security-invoker view over properties, follows and preferences:
+
+| Relevance | Meaning |
+| --- | --- |
+| 3 | followed person **and** a neighborhood/style match |
+| 2 | followed person |
+| 1 | neighborhood/style match |
+
+Ordering is relevance descending, then `created_at` descending, then `id`
+descending. The cursor is the same opaque `relevance|createdAt|id` tuple used
+by the UI, validated before use. No clicks, dwell time or other hidden signals
+are collected; the preferences are explicit and the ranking is explainable.
+
+### Product surface
+
+- `/c/[slug]` shows members and roles, per-home evaluations, "Everyone likes"
+  (every current member rated ≥ 4) and "Split opinion" (at least a two-point
+  spread), activity, owner controls, named invites and a one-time link display.
+- `/c/[slug]/compare` puts up to four homes side by side with property facts,
+  each member's rating and the collection read.
+- `/invite/[token]` accepts or declines a link invite; `/notifications` shows
+  named pending invites with accept/decline.
+- Property pages add Like, threaded comments (with reply and soft delete), and
+  a report action. Profile pages add Follow, follower/following lists, Block
+  and Report. `/settings/blocked` is the unblock surface.
+- `/feed` shows followed and preference-matched homes with the reason for each
+  card, a preferences form, suggested people to follow, and an empty state.
+
+### RLS and grants summary
+
+| Table | SELECT | INSERT | UPDATE | DELETE |
+| --- | --- | --- | --- | --- |
+| `collection_members` | public collection or member | owner | owner | owner, or self-leave |
+| `collection_invites` | invitee or owner | owner | owner revoke / invitee decline | none |
+| `collection_item_evaluations` | public collection or member | owner/editor, self | self, owner/editor | self, owner/editor |
+| `collection_activity` | member | none | none | none |
+| `content_likes` | public | self | none | self |
+| `comments` | public block-aware | self | author/content owner, soft delete only | none |
+| `follows` | public block-aware | self | none | self |
+| `blocks` | owner | self | none | self |
+| `notifications` | own | none | own `read_at` | none |
+| `reports` | own | self | none | none |
+| `feed_preferences` | own | self | self | none |
+
+Every new table revokes Supabase's default `ALL` grant first. Count views are
+security-invoker, so the caller's RLS on the base tables still applies.
+`social_target_owner` is executable by authenticated users because comment
+RLS calls it, while `assert_social_target` remains internal.
+
+### Testing
+
+- `packages/core` now has **212** tests: collection role/permission rules,
+  invite schemas, evaluation validation, comment trees, notification labels and
+  feed cursor/relevance helpers.
+- `tests/security/access.mjs` was extended to five accounts and covers
+  non-member reads, viewer/editor write boundaries, role-change denial, owner
+  immutability, hashed-token secrecy, named/link invite acceptance, one-use,
+  revocation and expiry, comment/reply/soft-delete rules, like count derivation,
+  forged social rows, block visibility in both directions, notification
+  ownership and collapse, report privacy, feed preference privacy, and cleanup
+  of polymorphic rows.
+- `apps/web/e2e/collaboration.spec.ts` is a two-context Playwright flow:
+  owner posts two homes, creates a private collection, invites an editor;
+  the editor accepts from notifications, rates both homes, compares them,
+  follows the owner, comments and reports; the owner sees the notifications
+  and the shared evaluations, then cleans up.
+
+Both database-backed suites require the four migrations above to be applied to
+the target project before they can run. The local machine has no Docker, so the
+hosted dev project is the integration target after explicit approval.
+
+### Known gaps (2B)
+
+- **Moderation queue** — reports are captured privately, but there is no
+  moderator UI, assignment, or status transition yet.
+- **Notifications** — polling, not push; no email delivery. Named invites rely
+  on the in-app notification, not email.
+- **Rate limiting** — comments are limited in the database; property posts,
+  likes, follows, reports and invites still rely on Supabase platform limits.
+- **Posts as targets** — the schema accepts `post` but every resolver rejects it
+  with `feature_not_supported` until Milestone 3.
+- **Edit history** — comments are immutable except for deletion; collection
+  activity records the event, not before/after values.
+- **Collection note editing** — item notes still have no authoring UI.
+- **Search** — unchanged; `ilike` scans until a trigram/full-text index lands.
 
 ## Listing freshness
 
