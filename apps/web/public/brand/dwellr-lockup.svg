@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 100" width="340" height="100" role="img" aria-label="dwellr">
+  <g transform="translate(0 2)">
+    <path fill="#1F2422" fill-rule="evenodd" clip-rule="evenodd" d="M48 2 94 40v54H2V40L48 2Zm-12 92V66a12 12 0 0 1 24 0v28H36Z" />
+  </g>
+  <g transform="translate(112 4)" fill="none" stroke="#1F2422" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="27" cy="54" r="19.5" />
+    <path d="M51 18.5V73.5" />
+    <path d="M64.5 34.5 73 73.5 81.5 48 90 73.5 98.5 34.5" />
+    <path d="M156.5 54a19.5 19.5 0 1 0-5.71 13.79" />
+    <path d="M117 54h33.5" />
+    <path d="M174 18.5v55" />
+    <path d="M188 18.5v55" />
+    <path d="M202 73.5V34.5" />
+    <path d="M202 52a16 16 0 0 1 16-16" />
+  </g>
+</svg>
