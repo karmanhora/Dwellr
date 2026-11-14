@@ -6,7 +6,7 @@ import { Container } from "@/components/ui/container";
 export function SiteFooter() {
   return (
     <footer className="border-t border-line">
-      <Container className="flex flex-col gap-6 py-10 md:flex-row md:items-center md:justify-between">
+      <Container className="flex flex-col gap-6 pt-10 pb-24 md:flex-row md:items-center md:justify-between md:py-10">
         <Logo size="sm" />
         <nav aria-label="Footer" className="flex gap-6">
           <Link href="/explore" className="text-body-sm text-stone transition hover:text-ink">
