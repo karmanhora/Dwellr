@@ -1,12 +1,60 @@
 @import "tailwindcss";
 
 @theme {
+  /* Colour --------------------------------------------------------------- */
   --color-ink: #1f2422;
+  --color-ink-soft: #333936;
   --color-paper: #ffffff;
   --color-mist: #f5f4ef;
+  --color-sand: #ece8df;
   --color-line: #e5e2da;
+  --color-line-strong: #d3cfc4;
   --color-stone: #6e736d;
+  --color-stone-soft: #737871;
   --color-moss: #2f4f43;
+  --color-moss-soft: #eaf0ea;
+  --color-danger: #a4291f;
+  --color-danger-soft: #fdf1f0;
+
+  /* Type ----------------------------------------------------------------- */
+  --text-eyebrow: 0.6875rem;
+  --text-eyebrow--line-height: 1rem;
+  --text-eyebrow--letter-spacing: 0.22em;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.1rem;
+  --text-body-sm: 0.875rem;
+  --text-body-sm--line-height: 1.45;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.6;
+  --text-lead: 1.0625rem;
+  --text-lead--line-height: 1.6;
+  --text-title: 1.5rem;
+  --text-title--line-height: 1.2;
+  --text-headline: 2rem;
+  --text-headline--line-height: 1.1;
+  --text-display: 2.75rem;
+  --text-display--line-height: 1.02;
+  --text-hero: 4.25rem;
+  --text-hero--line-height: 0.98;
+
+  /* Shape ---------------------------------------------------------------- */
+  --radius-control: 0.75rem;
+  --radius-card: 1.25rem;
+  --radius-panel: 1.75rem;
+  --radius-sheet: 2rem;
+
+  --shadow-soft: 0 1px 2px rgb(31 36 34 / 0.04), 0 12px 32px -24px rgb(31 36 34 / 0.28);
+  --shadow-lift: 0 2px 6px rgb(31 36 34 / 0.05), 0 24px 48px -32px rgb(31 36 34 / 0.35);
+
+  /* Rhythm --------------------------------------------------------------- */
+  --spacing-gutter: 1.25rem;
+  --spacing-section: 5rem;
+
+  /* Motion --------------------------------------------------------------- */
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 150ms;
+  --duration-base: 240ms;
+  --duration-slow: 700ms;
 
   --font-sans: var(--font-outfit), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
@@ -19,6 +67,15 @@
   body {
     @apply bg-paper font-sans text-ink antialiased;
     text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
   }
 
   ::selection {
@@ -34,7 +91,20 @@
 
 @layer utilities {
   .animate-rise {
-    animation: rise 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: rise var(--duration-slow) var(--ease-soft) both;
+  }
+
+  .animate-fade-in {
+    animation: fade-in var(--duration-base) var(--ease-soft) both;
+  }
+
+  /* Horizontal scrollers that keep snapping without showing a scrollbar. */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }
 
@@ -46,6 +116,27 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.55;
   }
 }
 

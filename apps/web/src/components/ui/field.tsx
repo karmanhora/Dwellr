@@ -1,4 +1,41 @@
-import type { InputHTMLAttributes } from "react";
+import type { InputHTMLAttributes, ReactNode } from "react";
+
+import { Input } from "./input";
+
+type FieldShellProps = {
+  id: string;
+  label: string;
+  hint?: string;
+  error?: string;
+  children: ReactNode;
+  className?: string;
+};
+
+/** Label + control + hint/error, with ids wired for screen readers. */
+export function FieldShell({ id, label, hint, error, children, className = "" }: FieldShellProps) {
+  return (
+    <div className={className}>
+      <div className="flex items-baseline justify-between gap-3">
+        <label htmlFor={id} className="text-body-sm font-medium text-ink">
+          {label}
+        </label>
+        {hint ? (
+          <span id={`${id}-hint`} className="text-caption text-stone">
+            {hint}
+          </span>
+        ) : null}
+      </div>
+
+      <div className="mt-2">{children}</div>
+
+      {error ? (
+        <p id={`${id}-error`} role="alert" className="mt-1.5 text-caption text-danger">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
 type FieldProps = InputHTMLAttributes<HTMLInputElement> & {
   label: string;
@@ -7,41 +44,19 @@ type FieldProps = InputHTMLAttributes<HTMLInputElement> & {
   error?: string;
 };
 
-export function Field({ label, name, hint, error, id, className = "", ...props }: FieldProps) {
+export function Field({ label, name, hint, error, id, className, ...props }: FieldProps) {
   const fieldId = id ?? name;
-  const errorId = `${fieldId}-error`;
-  const hintId = `${fieldId}-hint`;
-  const describedBy = error ? errorId : hint ? hintId : undefined;
+  const describedBy = error ? `${fieldId}-error` : hint ? `${fieldId}-hint` : undefined;
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-baseline justify-between gap-3">
-        <label htmlFor={fieldId} className="text-sm font-medium text-ink">
-          {label}
-        </label>
-        {hint ? (
-          <span id={hintId} className="text-xs text-stone">
-            {hint}
-          </span>
-        ) : null}
-      </div>
-
-      <input
+    <FieldShell id={fieldId} label={label} hint={hint} error={error} className={className}>
+      <Input
         id={fieldId}
         name={name}
-        aria-invalid={error ? true : undefined}
+        invalid={Boolean(error)}
         aria-describedby={describedBy}
-        className={`h-12 w-full rounded-xl border bg-white px-3.5 text-[15px] text-ink transition outline-none placeholder:text-stone/60 focus:ring-2 focus:ring-ink/10 ${
-          error ? "border-red-400 focus:border-red-500" : "border-line focus:border-ink"
-        } ${className}`}
         {...props}
       />
-
-      {error ? (
-        <p id={errorId} className="text-xs text-red-600">
-          {error}
-        </p>
-      ) : null}
-    </div>
+    </FieldShell>
   );
 }

@@ -90,14 +90,104 @@ geometric sans with circular bowls, close to the wordmark's construction.
 
 Fallback stack: `ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif`.
 
-## Layout and motion
+## Design tokens
 
-- Generous spacing: section padding 80–112 px on desktop, 56–72 px on mobile.
-- Max content width 72rem (`max-w-6xl`), 20–32 px side gutters.
-- Corners: pills for buttons (full radius), `1.75rem`–`2rem` for large panels.
-- Motion: 800 ms `cubic-bezier(0.22, 1, 0.36, 1)` fade-and-rise on entrance,
-  small hover transitions only. Everything collapses to no motion under
-  `prefers-reduced-motion`.
+Declared once in `apps/web/src/app/globals.css` under Tailwind v4's `@theme`.
+Components use the generated utilities (`bg-mist`, `rounded-card`,
+`text-body-sm`); raw hex values and arbitrary one-off sizes are not allowed in
+app code.
+
+### Colour
+
+| Token | Utility | Value | Contrast on paper | Use |
+| --- | --- | --- | --- | --- |
+| `ink` | `text-ink` / `bg-ink` | `#1F2422` | 15.2:1 | Primary text, buttons, dark panels |
+| `ink-soft` | `bg-ink-soft` | `#333936` | 12.1:1 | Hover state for ink surfaces |
+| `paper` | `bg-paper` | `#FFFFFF` | — | Page and card background |
+| `mist` | `bg-mist` | `#F5F4EF` | — | Quiet surfaces, inputs, skeleton base |
+| `sand` | `bg-sand` | `#ECE8DF` | — | Warmer neutral, used sparingly |
+| `line` | `border-line` | `#E5E2DA` | — | Hairline dividers and input borders |
+| `line-strong` | `border-line-strong` | `#D3CFC4` | — | Secondary button border, dashed empty states |
+| `stone` | `text-stone` | `#6E736D` | 4.9:1 | Secondary text, metadata |
+| `stone-soft` | `text-stone-soft` | `#737871` | 4.5:1 | Placeholders and micro-labels only |
+| `moss` | `text-moss` | `#2F4F43` | 9.1:1 | Verified / positive states only |
+| `moss-soft` | `bg-moss-soft` | `#EAF0EA` | — | Verified badge and success surface |
+| `danger` | `text-danger` | `#A4291F` | 6.4:1 | Errors, destructive actions |
+| `danger-soft` | `bg-danger-soft` | `#FDF1F0` | — | Error surface |
+
+Ink on paper is 15.2:1, stone on paper 4.9:1, stone-soft 4.5:1 — every text
+colour clears WCAG AA at its intended size. Moss is a status colour, never a
+decorative accent.
+
+### Type scale
+
+| Token | Utility | Size / line-height | Use |
+| --- | --- | --- | --- |
+| `hero` | `text-hero` | 68 / 0.98 | Landing hero on large screens |
+| `display` | `text-display` | 44 / 1.02 | Page titles, property price |
+| `headline` | `text-headline` | 32 / 1.1 | Section and screen titles |
+| `title` | `text-title` | 24 / 1.2 | Card-group and panel titles |
+| `lead` | `text-lead` | 17 / 1.6 | Card price, intro copy |
+| `body` | `text-body` | 15 / 1.6 | Default body text |
+| `body-sm` | `text-body-sm` | 14 / 1.45 | UI labels, secondary copy |
+| `caption` | `text-caption` | 12 / 1.1 | Metadata, helper text |
+| `eyebrow` | `text-eyebrow` | 11 / 0.22em tracking, uppercase | Section kickers |
+
+Display sizes use 500 weight with `-0.03em` to `-0.045em` tracking. Body copy
+is 400. Labels are 500.
+
+### Shape, spacing, motion
+
+| Token | Value | Utility |
+| --- | --- | --- |
+| `radius-control` | 0.75rem | `rounded-control` — inputs, small controls |
+| `radius-card` | 1.25rem | `rounded-card` — property cards, menus |
+| `radius-panel` | 1.75rem | `rounded-panel` — galleries, panels |
+| `radius-sheet` | 2rem | `rounded-sheet` — modals |
+| `shadow-soft` | 1 px + 32 px ambient | `shadow-soft` — menus, floating controls |
+| `shadow-lift` | 6 px + 48 px ambient | `shadow-lift` — modals, account menu |
+| `spacing-gutter` | 1.25rem | `p-gutter` etc. |
+| `spacing-section` | 5rem | `py-section` etc. |
+| `ease-soft` | `cubic-bezier(0.22, 1, 0.36, 1)` | `--ease-soft` in custom animations |
+| `duration-fast` / `base` / `slow` | 150 / 240 / 700 ms | Hover / fade / entrance |
+
+Entrance motion is a single 700 ms fade-and-rise (`.animate-rise`); hover
+motion is limited to colour, a 1.03 image scale and 0.5 px arrow drift. Every
+animation and transition collapses to ~0 ms under `prefers-reduced-motion`.
+
+## Layout
+
+- Max content width 72rem (`Container` default), 88rem for the explore grid,
+  48rem for forms and reading views.
+- Gutters: 20 px mobile, 32 px from `sm`.
+- Grid: 1 column mobile, 2 at `sm`, 3 at `lg`, with 24 px column and 40 px row
+  gaps. Cards use a fixed 4:3 photo frame so images never cause layout shift.
+- Section padding 40–56 px on mobile, 56–80 px on desktop.
+
+## Components
+
+`apps/web/src/components/ui` is the whole component layer — there is no
+third-party component library.
+
+| Component | Notes |
+| --- | --- |
+| `Container` | Page gutter and max-width; `narrow` for forms, `wide` for grids |
+| `Button`, `ButtonLink` | `primary`, `secondary`, `ghost`, `danger`; `sm`, `md`, `lg`; loading state announced with `aria-busy` |
+| `Input`, `Textarea`, `Select` | Ink focus ring, `aria-invalid`, danger border on error |
+| `Field`, `TextareaField`, `SelectField` | Label + hint + error, `aria-describedby` wired automatically |
+| `Avatar` | Initials fallback; only renders an image when a real URL exists |
+| `Badge`, `ProvenanceBadge`, `ListingStatusBadge` | Uppercase 10 px labels; provenance is never omitted |
+| `Modal` | Native `<dialog>`: focus trap, Escape and backdrop close come from the platform |
+| `Toast`, `useToast` | `aria-live="polite"` region, auto-dismiss after 5 s |
+| `Skeleton`, `PropertyCardSkeleton` | Matches real card geometry to avoid jumps |
+| `EmptyState`, `ErrorState` | One calm message plus one action; error uses `role="alert"` |
+| `Tabs` | WAI-ARIA tabs with arrow-key navigation and roving tabindex |
+| `icons` | Inline monoline SVG set, `currentColor`, 1.6 px stroke |
+
+Accessibility contract: every interactive element has a visible
+`:focus-visible` outline (2 px ink, 3 px offset); colour is never the only
+signal; icon-only controls carry an `sr-only` label; motion respects the OS
+preference.
 
 ## Voice
 
@@ -120,3 +210,5 @@ Two label styles, used on every property detail:
 - **Community** — white with a hairline ink border.
 
 They are informational, not decorative. A field always carries one of them.
+On cards the badge sits beside the price; on a property page each fact row
+repeats the label in micro-caps so provenance is readable without colour.
