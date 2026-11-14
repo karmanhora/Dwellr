@@ -400,7 +400,12 @@ create policy "Property provenance is publicly readable"
 -- never author provenance. The trigger (security definer) records user input,
 -- and only service-role integrations may set 'verified'.
 
-grant select on public.property_field_provenance to anon, authenticated;
+-- Column-level read grant: source_ref identifies the verifying integration and
+-- is deliberately not readable by clients. Service-role integrations bypass
+-- grants, so they can still write and read it.
+grant select (property_id, field, provenance, verified_at)
+  on public.property_field_provenance
+  to anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Storage: property photos and avatars
