@@ -515,6 +515,13 @@ triggers; the browser remains an anon-key client.
 - `20261115100000_social_graph.sql`
 - `20261115110000_notifications_and_reports.sql`
 - `20261115120000_feed_preferences.sql`
+- `20261115130000_fix_collection_owner_select.sql` — keeps `owner_id` as a
+  SELECT fallback during `INSERT ... RETURNING`; the membership row is written
+  by an `AFTER INSERT` trigger and is not visible to that statement.
+- `20261115140000_harden_notification_columns.sql` — replaces the table-level
+  notification SELECT with an explicit column grant that excludes `actor_ids`.
+- `20261115150000_pending_invite_rpc.sql` — returns the caller's active named
+  invites without widening private-collection visibility.
 
 ### Collaborative collections
 
@@ -562,6 +569,12 @@ links therefore stop working when the count is reached. Owners can revoke;
 invitees can decline. A trigger rejects changes to every field except the
 status/use fields the RPCs own. Declines and revokes are soft state, so the
 audit row survives.
+
+The notifications page cannot read a private collection before accepting, so
+`get_my_pending_invites()` returns only the caller's active named invites
+(id, collection name/slug, role, expiry). It is a narrow `security definer`
+RPC; it does not widen the collections policy. Link invites have no
+`invitee_id` and are accepted only through their token.
 
 ### Polymorphic social targets
 
@@ -617,7 +630,8 @@ column-level update of `read_at`, with no insert/delete grant or policy. Events:
 - likes, collapsed into one unread row per target via a partial unique index
   and `actor_ids`/`actor_count`.
 
-`actor_ids` is internal and is not in the client grant. The bell polls the
+`actor_ids` is internal and the client grant is column-limited to exclude it.
+The bell polls the
 unread count every 60 seconds and refetches on window focus; Realtime is
 deliberately not used for this milestone because notifications are durable
 rows and the polling surface is small. The tradeoff is up to a minute of delay
@@ -686,22 +700,27 @@ RLS calls it, while `assert_social_target` remains internal.
 - `packages/core` now has **212** tests: collection role/permission rules,
   invite schemas, evaluation validation, comment trees, notification labels and
   feed cursor/relevance helpers.
-- `tests/security/access.mjs` was extended to five accounts and covers
+- `tests/security/access.mjs` now runs **166 checks** across five accounts and
+  covers
   non-member reads, viewer/editor write boundaries, role-change denial, owner
   immutability, hashed-token secrecy, named/link invite acceptance, one-use,
   revocation and expiry, comment/reply/soft-delete rules, like count derivation,
   forged social rows, block visibility in both directions, notification
-  ownership and collapse, report privacy, feed preference privacy, and cleanup
-  of polymorphic rows.
+  ownership/collapse and hidden `actor_ids`, pending-invite RPC scoping,
+  report privacy, feed preference privacy, and cleanup of polymorphic rows.
 - `apps/web/e2e/collaboration.spec.ts` is a two-context Playwright flow:
   owner posts two homes, creates a private collection, invites an editor;
   the editor accepts from notifications, rates both homes, compares them,
   follows the owner, comments and reports; the owner sees the notifications
   and the shared evaluations, then cleans up.
 
-Both database-backed suites require the four migrations above to be applied to
-the target project before they can run. The local machine has no Docker, so the
+Both database-backed suites require the migrations above to be applied to the
+target project before they can run. The local machine has no Docker, so the
 hosted dev project is the integration target after explicit approval.
+
+The responsive review captures `/feed`, `/notifications`, the collection,
+property comments, and blocked accounts at 390, 768, and 1440 px. It is a
+review harness rather than a committed regression suite.
 
 ### Known gaps (2B)
 

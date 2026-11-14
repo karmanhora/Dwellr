@@ -607,6 +607,15 @@ try {
     .eq("id", viewerInvite.id);
   check("an invitee reads their invite metadata", inviteMetadata.data?.length === 1);
 
+  const viewerPending = await viewer.rpc("get_my_pending_invites");
+  check(
+    "the pending-invite RPC returns the caller's active invite",
+    (viewerPending.data ?? []).some((invite) => invite.id === viewerInvite.id),
+    viewerPending.error?.message,
+  );
+  const strangerPending = await stranger.rpc("get_my_pending_invites");
+  check("the pending-invite RPC does not leak another invitee's invite", strangerPending.data?.length === 0);
+
   const strangerInviteRead = await stranger
     .from("collection_invites")
     .select("id")
@@ -629,6 +638,12 @@ try {
     .eq("user_id", accounts.viewer.id)
     .single();
   check("the accepted invite creates a viewer membership", viewerMembership.data?.role === "viewer");
+
+  const viewerPendingAfterAccept = await viewer.rpc("get_my_pending_invites");
+  check(
+    "an accepted invite disappears from pending invites",
+    !(viewerPendingAfterAccept.data ?? []).some((invite) => invite.id === viewerInvite.id),
+  );
 
   const viewerCollectionRead = await viewer
     .from("collections")
@@ -698,6 +713,13 @@ try {
     .select("role")
     .single();
   check("the owner promotes a viewer to editor", ownerPromotion.data?.role === "editor");
+
+  const editorInvite = await createInvite({ role: "editor", inviteeId: accounts.editor.id });
+  if (editorInvite.error) throw new Error(`editor invite failed: ${editorInvite.error.message}`);
+  const editorAccept = await editor.rpc("accept_collection_invite_by_id", {
+    p_invite_id: editorInvite.id,
+  });
+  check("a second editor accepts their named invite", !editorAccept.error, editorAccept.error?.message);
 
   const editorItemInsert = await editor
     .from("collection_items")
@@ -972,7 +994,10 @@ try {
     actorIdsRead.error?.message,
   );
 
-  const strangerNotifications = await stranger.from("notifications").select("id");
+  const strangerNotifications = await stranger
+    .from("notifications")
+    .select("id")
+    .eq("id", likeNotification.data?.id ?? 0);
   check("a user cannot read another user's notifications", strangerNotifications.data?.length === 0);
 
   const forgedNotification = await owner.from("notifications").insert({

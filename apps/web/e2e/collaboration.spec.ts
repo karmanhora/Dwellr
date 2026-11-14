@@ -70,6 +70,10 @@ async function rate(
 test("two members invite, rate, compare, follow and comment", async ({ browser, page }) => {
   await signUp(page, ownerEmail, ownerUsername, "M2 Owner");
 
+  const editorContext = await browser.newContext({ baseURL: "http://127.0.0.1:3100" });
+  const editorPage = await editorContext.newPage();
+  await signUp(editorPage, editorEmail, editorUsername, "M2 Editor");
+
   const firstUrl = await postHome(page, firstTitle, "525000");
   const firstId = firstUrl.split("/").pop() ?? "";
   const secondUrl = await postHome(page, secondTitle, "610000");
@@ -102,10 +106,6 @@ test("two members invite, rate, compare, follow and comment", async ({ browser, 
   await page.getByRole("button", { name: "Send invite" }).click();
   await expect(page.getByText("Invite sent. It appears in their notifications.")).toBeVisible();
 
-  const editorContext = await browser.newContext({ baseURL: "http://127.0.0.1:3100" });
-  const editorPage = await editorContext.newPage();
-  await signUp(editorPage, editorEmail, editorUsername, "M2 Editor");
-
   // Accept the named invite from notifications.
   await editorPage.goto("/notifications");
   await expect(editorPage.getByRole("heading", { name: "Invitations" })).toBeVisible();
@@ -127,7 +127,7 @@ test("two members invite, rate, compare, follow and comment", async ({ browser, 
   await page.getByRole("link", { name: "Compare all 2 homes" }).click();
   await expect(page.getByRole("heading", { name: "Compare 2 homes" })).toBeVisible();
   await expect(page.getByText("Everyone likes")).toBeVisible();
-  await expect(page.getByText("Split opinion")).toBeVisible();
+  await expect(page.getByText("Split opinion", { exact: true })).toBeVisible();
   await expect(page.getByText(firstTitle)).toBeVisible();
   await expect(page.getByText(secondTitle)).toBeVisible();
 
@@ -155,7 +155,7 @@ test("two members invite, rate, compare, follow and comment", async ({ browser, 
   const reportDialog = editorPage.getByRole("dialog");
   await reportDialog.getByLabel("Reason").selectOption("spam");
   await reportDialog.getByRole("button", { name: "Send report" }).click();
-  await expect(reportDialog.getByRole("status")).toContainText("report");
+  await expect(reportDialog.getByRole("status")).toContainText("Report received");
 
   // Clean up the collection and both test homes.
   await page.goto(collectionUrl);
@@ -165,7 +165,10 @@ test("two members invite, rate, compare, follow and comment", async ({ browser, 
 
   for (const id of [firstId, secondId]) {
     await page.goto(`/p/${id}`);
-    await page.getByRole("button", { name: "Delete", exact: true }).click();
+    await page
+      .getByRole("complementary", { name: "Home details" })
+      .getByRole("button", { name: "Delete", exact: true })
+      .click();
     await page.getByRole("button", { name: "Delete permanently" }).click();
     await expect(page).toHaveURL(/\/explore\?deleted=1$/);
   }
