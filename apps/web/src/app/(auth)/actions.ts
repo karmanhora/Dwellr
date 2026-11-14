@@ -1,6 +1,7 @@
 "use server";
 
 import { getFieldErrors, signInSchema, signUpSchema } from "@dwellr/core";
+import type { AuthError } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 
 import { safeRedirectPath, type AuthFormState } from "@/lib/auth-form";
@@ -15,20 +16,34 @@ function readText(formData: FormData, key: string): string {
  * Maps Supabase auth errors to copy that is useful without leaking internals
  * (no raw database errors, no account enumeration beyond what auth already does).
  */
-function friendlyAuthError(message: string): string {
-  const normalized = message.toLowerCase();
+function friendlyAuthError(error: AuthError): string {
+  const code = error.code ?? "";
+  const message = (error.message ?? "").toLowerCase();
 
-  if (normalized.includes("invalid login credentials")) {
+  if (code === "email_address_invalid" || message.includes("is invalid")) {
+    return "That email address can't receive mail. Check it and try another one.";
+  }
+  if (code === "invalid_credentials" || message.includes("invalid login credentials")) {
     return "That email and password don't match. Try again.";
   }
-  if (normalized.includes("email not confirmed")) {
+  if (code === "email_not_confirmed" || message.includes("email not confirmed")) {
     return "Confirm your email address first, then sign in.";
   }
-  if (normalized.includes("already registered")) {
+  if (code === "user_already_exists" || message.includes("already registered")) {
     return "An account with that email already exists. Sign in instead.";
   }
-  if (normalized.includes("rate limit") || normalized.includes("too many")) {
+  if (code === "over_email_send_rate_limit" || message.includes("email rate limit")) {
+    return "Supabase is limiting confirmation emails right now. Wait a few minutes, or turn off email confirmation in your dev project.";
+  }
+  if (
+    code === "over_request_rate_limit" ||
+    message.includes("rate limit") ||
+    message.includes("too many")
+  ) {
     return "Too many attempts. Wait a minute and try again.";
+  }
+  if (message.includes("database error saving new user")) {
+    return "We couldn't finish creating your profile. Please try again.";
   }
 
   return "Something went wrong on our end. Please try again.";
@@ -73,7 +88,7 @@ export async function signUpAction(
   });
 
   if (error) {
-    return { status: "error", message: friendlyAuthError(error.message), values };
+    return { status: "error", message: friendlyAuthError(error), values };
   }
 
   // With email confirmation enabled Supabase returns no session. The dev
@@ -112,7 +127,7 @@ export async function signInAction(
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error) {
-    return { status: "error", message: friendlyAuthError(error.message), values: { email } };
+    return { status: "error", message: friendlyAuthError(error), values: { email } };
   }
 
   redirect(safeRedirectPath(readText(formData, "next")));
