@@ -8,7 +8,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { ErrorState } from "@/components/ui/error-state";
-import { CompassIcon, PlusIcon, SettingsIcon } from "@/components/ui/icons";
+import { CompassIcon, HeartIcon, PlusIcon, SettingsIcon } from "@/components/ui/icons";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { getCurrentUser } from "@/lib/auth";
 import { getProfileById } from "@/lib/properties";
@@ -69,7 +69,7 @@ export default async function MePage() {
         <h2 id="next-heading" className="text-title font-medium">
           What next
         </h2>
-        <ul className="mt-5 grid gap-3 sm:grid-cols-3">
+        <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <li>
             <Link
               href="/create"
@@ -91,6 +91,18 @@ export default async function MePage() {
               <span className="text-body-sm font-medium text-ink">Explore homes</span>
               <span className="text-caption leading-relaxed text-stone">
                 See what the community has added.
+              </span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/saved"
+              className="flex h-full flex-col gap-3 rounded-card border border-line p-5 transition hover:border-ink"
+            >
+              <HeartIcon className="text-ink" />
+              <span className="text-body-sm font-medium text-ink">Saved homes</span>
+              <span className="text-caption leading-relaxed text-stone">
+                Private saves and collections.
               </span>
             </Link>
           </li>

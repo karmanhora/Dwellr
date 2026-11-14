@@ -331,7 +331,8 @@ Covered:
 - No service-role key or database password in the app; only the anon key is
   shipped, and RLS is what protects data.
 - Server identity always comes from `getUser()`. The proxy gates `/me`,
-  `/create`, `/settings/*` as a fast first pass, and every page/action re-checks.
+  `/create`, `/settings/*` and `/saved` as a fast first pass, and every
+  page/action re-checks.
 - Server Actions inherit Next's origin checks and `SameSite` cookies.
 - `source_ref` is not readable by clients, and table-level default grants
   cannot re-open it (see the hardening migration above).
@@ -359,15 +360,111 @@ Known gaps (deliberately out of scope for this milestone):
 
 - Vitest covers `packages/core`: property schemas (ranges, defaults, photo
   limits, path format, paired coordinates/dimensions), provenance aggregation,
-  price formatting and parsing, cursor encoding, storage URLs and profile rules
-  — 153 tests, no browser or network.
+  price formatting and parsing, cursor encoding, storage URLs, profile rules
+  and collection contracts — 169 tests, no browser or network.
 - Playwright (Chromium) adds one smoke test for the cross-system flow that unit
   tests cannot see: sign-up → photo upload to Storage under RLS → post insert →
-  card on `/explore` → detail page → owner edit → account menu sign-out →
-  sign-in → owner delete. The dependency is justified by that coverage; it is
-  Chromium-only and runs against a dev server on port 3100.
+  card on `/explore` → detail page → owner edit → save → create a public
+  collection with the home → sign-out → read the shared collection signed out
+  → sign-in → `/saved` → delete the post and the collection. The dependency is
+  justified by that coverage; it is Chromium-only and runs against a dev server
+  on port 3100.
+- Milestone 2A was also verified directly against the live project with an
+  anon-key script (23 checks): save privacy between two accounts, anonymous
+  denial on `property_saves`, private collections invisible to anon and to a
+  second account, foreign writes on collections/items rejected, public
+  collections and their items readable by anon after publishing, and property
+  deletion cascading through collection items.
 
 ```powershell
 pnpm test          # Vitest
 pnpm --filter @dwellr/web test:e2e   # Playwright (needs .env.local + a live dev project)
 ```
+
+## Milestone 2A: saves and collections
+
+Milestone 2A adds two separate ideas:
+
+- **Saves** (`property_saves`) are private bookmarks. A saved home is visible
+  only to the person who saved it; saves never affect a property's facts,
+  provenance or public listing.
+- **Collections** (`collections` + `collection_items`) are named, ordered lists
+  owned by one person. They are private by default and become readable by
+  anyone with the link only when the owner publishes them.
+
+`saves` is deliberately not a hidden default collection. Saving is a one-tap
+bookmark that must work without choosing a list, while collections are curated
+and can be shared. Keeping the tables separate avoids a "default collection"
+that cannot be renamed or deleted safely, and keeps save/unsave a single
+row write.
+
+### Schema
+
+`supabase/migrations/20261114210000_create_collections.sql` creates:
+
+- **`collections`** — `owner_id → profiles(id) on delete cascade`, name 1–60,
+  optional description ≤ 500, `is_public` (default false), unique
+  `share_slug`, timestamps. `unique (owner_id, lower(btrim(name)))` prevents
+  duplicate names per person. Share slugs are 12 lowercase alphanumerics,
+  generated server-side; the database enforces the shape and uniqueness but the
+  slug is a convenience, not the access control.
+- **`collection_items`** — PK `(collection_id, property_id)`, both cascading;
+  `added_by → profiles`, optional note ≤ 500, timestamp. A `security definer`
+  trigger rejects the 101st item so the limit does not depend on RLS visibility.
+- **`property_saves`** — PK `(property_id, user_id)`, both cascading, timestamp.
+
+Indexes: `(owner_id, name)` unique, `(owner_id, created_at desc)`, partial
+`(created_at desc) where is_public`, `(property_id)` on items, and
+`(user_id, created_at desc)` on saves.
+
+### RLS and grants
+
+| Table | SELECT | INSERT | UPDATE | DELETE |
+| --- | --- | --- | --- | --- |
+| `collections` | public rows, or own rows | authenticated, `owner_id = auth.uid()` | owner | owner |
+| `collection_items` | items of public or own collections | collection owner, `added_by = auth.uid()` | collection owner | collection owner |
+| `property_saves` | own rows only | own rows only | none | own rows only |
+
+All three tables revoke Supabase's default `ALL` grant first, then grant the
+minimum. `anon` can select public collections and their items; it has no access
+to `property_saves` at all. Item policies re-check collection ownership through
+an `exists` subquery rather than trusting `added_by`.
+
+A private collection returns no row to a non-owner, so `/c/[slug]` renders the
+same not-found page as a slug that never existed; it does not reveal that the
+collection is private. The page sets `robots: noindex` while a collection is
+private.
+
+### Product surface
+
+- The property page shows **Save** (toggle, private) and **Add to collection**
+  when signed in. The picker lists the user's collections and can create a new
+  one with the home already attached.
+- `/saved` has two tabs: saved homes and the user's collections, plus the
+  collection create form. It is gated by the proxy and by the page itself.
+- `/c/[slug]` shows a collection, its owner, its homes, and per-item notes.
+  Owners can publish/unpublish, delete the collection and remove items;
+  visitors get a read-only page for public collections.
+- Deleting a collection removes its items but not the homes or the owner's
+  saves. Deleting a property removes it from every collection through the
+  cascade.
+
+Collection notes are owner annotations about a home, not property facts. They
+are stored on the item and are never fed into `property_field_provenance`; the
+UI labels and badge rules for provenance are unchanged.
+
+### Known gaps for 2A
+
+- **Note editing** — the `note` column and display exist, but there is no UI to
+  write a note yet; it is reserved for the collection-detail editor.
+- **Collaboration** — only the owner can add or remove items. Shared editing,
+  invites and roles need a membership table and a policy rewrite.
+- **Discovery** — public collections are link-only; there is no directory or
+  profile section listing them yet.
+- **Counters** — save counts and collection counts are read live, not
+  denormalised; fine at this size, revisit with likes in 2B.
+- **Cover images** — collection cards show name, visibility and count, not a
+  photo mosaic.
+- **Rate limiting / moderation** — unchanged from Milestone 1; collections add
+  another write surface that needs the same abuse controls before public
+  launch.

@@ -12,6 +12,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { CollectionPicker } from "@/components/collections/collection-picker";
+import { SaveButton } from "@/components/collections/save-button";
 import { DeletePropertyButton } from "@/components/property/delete-property-button";
 import { PropertyGallery } from "@/components/property/property-gallery";
 import { Avatar } from "@/components/ui/avatar";
@@ -21,6 +23,7 @@ import { Container } from "@/components/ui/container";
 import { ErrorState } from "@/components/ui/error-state";
 import { ArrowLeftIcon, MapPinIcon, PencilIcon } from "@/components/ui/icons";
 import { getCurrentUser } from "@/lib/auth";
+import { getUserCollections, isPropertySaved } from "@/lib/collections";
 import { getPropertyDetail } from "@/lib/properties";
 import { avatarPublicUrl, propertyPhotoUrl } from "@/lib/storage";
 
@@ -83,6 +86,8 @@ export default async function PropertyPage({ params, searchParams }: PropertyPag
   const { property, creator } = result;
   const user = await getCurrentUser();
   const isOwner = Boolean(user && user.id === property.createdBy);
+  const isSaved = user ? await isPropertySaved(property.id, user.id) : false;
+  const collections = user ? await getUserCollections(user.id) : [];
   const paramsValue = await searchParams;
   const updated = (Array.isArray(paramsValue.updated) ? paramsValue.updated[0] : paramsValue.updated) === "1";
 
@@ -215,6 +220,13 @@ export default async function PropertyPage({ params, searchParams }: PropertyPag
               Approximate location only — rounded to about a kilometre. dwellr does not publish
               street addresses.
             </p>
+          ) : null}
+
+          {user ? (
+            <div className="mt-6 flex flex-wrap items-center gap-2">
+              <SaveButton propertyId={property.id} saved={isSaved} />
+              <CollectionPicker propertyId={property.id} collections={collections} />
+            </div>
           ) : null}
 
           {creator ? (

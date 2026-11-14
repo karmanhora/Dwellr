@@ -6,9 +6,12 @@ const runId = Date.now();
 const email = `dwellr.m1.${runId}@gmail.com`;
 const username = `m1check${String(runId).slice(-6)}`;
 const title = `Sunlit test home ${runId}`;
+const collectionName = `Weekend tours ${runId}`;
 const fixture = path.join(__dirname, "fixtures", "sample-home.png");
 
-test("sign up, post a home, find it on explore, edit it, then sign out", async ({ page }) => {
+test.setTimeout(150_000);
+
+test("sign up, post, save into a public collection, share it, then clean up", async ({ page }) => {
   // 1. Sign up — the dev project has email confirmation disabled.
   await page.goto("/sign-up");
   await page.getByLabel("Email").fill(email);
@@ -65,23 +68,55 @@ test("sign up, post a home, find it on explore, edit it, then sign out", async (
   await expect(page).toHaveURL(/\?updated=1$/);
   await expect(page.getByText("$510,000")).toBeVisible();
 
-  // 7. Sign out through the account menu.
+  // 7. Save the home privately, then add it to a new public collection.
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Saved", exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Add to collection" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Name").fill(collectionName);
+  await dialog.getByLabel("Make this collection public").check();
+  await dialog.getByRole("button", { name: "Create and add" }).click();
+  await expect(page).toHaveURL(/\/c\/[a-z0-9]{12}\?added=1$/);
+  await expect(page.getByRole("heading", { name: collectionName })).toBeVisible();
+  await expect(page.getByRole("heading", { name: title })).toBeVisible();
+  const collectionUrl = page.url();
+
+  // 8. Sign out and confirm a signed-out visitor can read the published collection.
   await page.getByRole("button", { name: "Account menu" }).click();
   await page.getByRole("menuitem", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("link", { name: "Create account" })).toBeVisible();
 
-  // 8. Signing back in lands on the account page, then clean up the test post.
+  await page.goto(collectionUrl);
+  await expect(page.getByRole("heading", { name: collectionName })).toBeVisible();
+  await expect(page.getByRole("heading", { name: title })).toBeVisible();
+  await expect(page.getByText("Public", { exact: true })).toBeVisible();
+
+  // 9. Signing back in lands on the account page; the save and collection are listed.
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/me$/);
 
+  await page.goto("/saved");
+  await page.getByRole("tab", { name: /Collections/ }).click();
+  await expect(page.getByRole("link", { name: new RegExp(collectionName) })).toBeVisible();
+
+  // 10. Clean up the test post, then the now-empty collection.
   await page.goto("/explore");
   await page.getByRole("link", { name: new RegExp(title) }).first().click();
   await page.getByRole("button", { name: "Delete" }).click();
   await page.getByRole("button", { name: "Delete permanently" }).click();
   await expect(page).toHaveURL(/\/explore\?deleted=1$/);
   await expect(page.getByText(title)).toHaveCount(0);
+
+  await page.goto("/saved");
+  await page.getByRole("tab", { name: /Collections/ }).click();
+  await page.getByRole("link", { name: new RegExp(collectionName) }).click();
+  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await page.getByRole("button", { name: "Delete collection" }).click();
+  await expect(page).toHaveURL(/\/saved\?deleted=1$/);
+  await expect(page.getByText("Collection deleted")).toBeVisible();
 });

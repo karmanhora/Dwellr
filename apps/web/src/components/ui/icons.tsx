@@ -133,6 +133,23 @@ export function ImageIcon(props: IconProps) {
   );
 }
 
+export function HeartIcon({ filled = false, ...props }: IconProps & { filled?: boolean }) {
+  return (
+    <Icon {...props} fill={filled ? "currentColor" : "none"}>
+      <path d="M12 20.5S4 15.2 4 9.5A4.5 4.5 0 0 1 12 6.6a4.5 4.5 0 0 1 8 2.9c0 5.7-8 11-8 11Z" />
+    </Icon>
+  );
+}
+
+export function FolderPlusIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M3.5 7.5A2.5 2.5 0 0 1 6 5h3.5l2 2.5H18a2.5 2.5 0 0 1 2.5 2.5v7A2.5 2.5 0 0 1 18 19.5H6A2.5 2.5 0 0 1 3.5 17V7.5Z" />
+      <path d="M12 10.5v5M9.5 13h5" />
+    </Icon>
+  );
+}
+
 export function MapPinIcon(props: IconProps) {
   return (
     <Icon {...props}>

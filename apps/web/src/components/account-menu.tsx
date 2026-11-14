@@ -69,6 +69,9 @@ export function AccountMenu({ name, username, avatarUrl }: AccountMenuProps) {
               Your profile
             </Link>
           ) : null}
+          <Link href="/saved" role="menuitem" className={itemClass} onClick={() => setOpen(false)}>
+            Saved homes
+          </Link>
           <Link href="/create" role="menuitem" className={itemClass} onClick={() => setOpen(false)}>
             Post a home
           </Link>

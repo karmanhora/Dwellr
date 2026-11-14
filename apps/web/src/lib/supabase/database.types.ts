@@ -164,6 +164,115 @@ export type Database = {
           },
         ];
       };
+      collections: {
+        Row: {
+          id: string;
+          owner_id: string;
+          name: string;
+          description: string | null;
+          is_public: boolean;
+          share_slug: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          name: string;
+          description?: string | null;
+          is_public?: boolean;
+          share_slug: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          name?: string;
+          description?: string | null;
+          is_public?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "collections_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneRelation: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      collection_items: {
+        Row: {
+          collection_id: string;
+          property_id: string;
+          added_by: string;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          collection_id: string;
+          property_id: string;
+          added_by: string;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          note?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "collection_items_collection_id_fkey";
+            columns: ["collection_id"];
+            isOneRelation: true;
+            referencedRelation: "collections";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "collection_items_property_id_fkey";
+            columns: ["property_id"];
+            isOneRelation: true;
+            referencedRelation: "properties";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "collection_items_added_by_fkey";
+            columns: ["added_by"];
+            isOneRelation: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      property_saves: {
+        Row: {
+          property_id: string;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          property_id: string;
+          user_id: string;
+          created_at?: string;
+        };
+        Update: {
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "property_saves_property_id_fkey";
+            columns: ["property_id"];
+            isOneRelation: true;
+            referencedRelation: "properties";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "property_saves_user_id_fkey";
+            columns: ["user_id"];
+            isOneRelation: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       property_field_provenance: {
         Row: {
           property_id: string;

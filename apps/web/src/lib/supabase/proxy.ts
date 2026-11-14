@@ -9,7 +9,7 @@ import type { Database } from "./database.types";
 const SIGN_IN_PATH = "/sign-in";
 
 // Fast first gate only. Every page and Server Action re-checks the user.
-const PROTECTED_PREFIXES = ["/me", "/create", "/settings"];
+const PROTECTED_PREFIXES = ["/me", "/create", "/settings", "/saved"];
 
 /**
  * Refreshes the Supabase session on matched requests and gates /me.
