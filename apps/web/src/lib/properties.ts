@@ -179,6 +179,36 @@ export async function getPropertyDetail(id: string): Promise<PropertyDetailResul
   };
 }
 
+export async function getPropertiesByIds(
+  ids: readonly string[],
+): Promise<Map<string, PropertySummary>> {
+  const result = new Map<string, PropertySummary>();
+  if (ids.length === 0) return result;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("properties").select(RELATIONS).in("id", [...ids]);
+
+  if (error) {
+    console.error("[properties] id lookup failed:", error.message);
+    return result;
+  }
+
+  const rows = (data ?? []) as FeedRow[];
+  const priceCuts = await getLatestPriceCuts(rows.map((row) => row.id));
+  for (const row of rows) {
+    result.set(
+      row.id,
+      toPropertySummary(
+        row,
+        row.property_photos ?? [],
+        row.property_field_provenance ?? [],
+        priceCuts.get(row.id) ?? null,
+      ),
+    );
+  }
+  return result;
+}
+
 export async function getPropertiesByCreator(
   creatorId: string,
   limit = 24,

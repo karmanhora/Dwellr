@@ -1,4 +1,5 @@
 import {
+  collectionRoleLabel,
   collectionSharePath,
   collectionVisibilityLabel,
   formatCollectionCount,
@@ -109,6 +110,11 @@ export default async function SavedPage({ searchParams }: SavedPageProps) {
                                 <Badge tone={collection.isPublic ? "positive" : "quiet"}>
                                   {collectionVisibilityLabel(collection.isPublic)}
                                 </Badge>
+                                {collection.viewerRole && collection.viewerRole !== "owner" ? (
+                                  <Badge tone="quiet">
+                                    Shared · {collectionRoleLabel(collection.viewerRole)}
+                                  </Badge>
+                                ) : null}
                               </span>
                               <span className="mt-1 block text-caption text-stone">
                                 {formatCollectionCount(collection.itemCount)}

@@ -4,15 +4,29 @@ import {
   type Profile,
 } from "@dwellr/core";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import {
+  blockUserAction,
+  followUserAction,
+  unfollowUserAction,
+} from "@/app/social/actions";
 import { PropertyCard } from "@/components/property/property-card";
+import { ReportButton } from "@/components/social/report-button";
 import { Avatar } from "@/components/ui/avatar";
-import { ButtonLink } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getCurrentUser } from "@/lib/auth";
 import { getProfileByUsername, getPropertiesByCreator } from "@/lib/properties";
+import {
+  getBlockState,
+  getFollowCounts,
+  getFollowerProfiles,
+  getFollowingProfiles,
+  getFollowState,
+} from "@/lib/social";
 import { avatarPublicUrl } from "@/lib/storage";
 
 type ProfilePageProps = {
@@ -37,22 +51,63 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
   const profile = await getProfileByUsername(username);
   if (!profile) notFound();
 
-  const [posts, user, query] = await Promise.all([
+  const user = await getCurrentUser();
+  const [posts, query, counts, following, followers, blocked] = await Promise.all([
     getPropertiesByCreator(profile.id),
-    getCurrentUser(),
     searchParams,
+    getFollowCounts(profile.id),
+    getFollowingProfiles(profile.id),
+    getFollowerProfiles(profile.id),
+    getBlockState(user?.id ?? null, profile.id),
   ]);
+  const isFollowing = user ? await getFollowState(user.id, profile.id) : false;
 
   const isOwner = Boolean(user && user.id === profile.id);
   const updated = (Array.isArray(query.updated) ? query.updated[0] : query.updated) === "1";
+  const followed = (Array.isArray(query.followed) ? query.followed[0] : query.followed) === "1";
 
   return (
     <Container className="py-10 sm:py-14">
-      <ProfileHeader profile={profile} isOwner={isOwner} />
+      <ProfileHeader
+        profile={profile}
+        isOwner={isOwner}
+        followerCount={counts.followerCount}
+        followingCount={counts.followingCount}
+      />
 
       {updated ? (
         <p role="status" className="mt-6 rounded-card bg-moss-soft px-4 py-3 text-body-sm text-moss">
           Profile saved.
+        </p>
+      ) : null}
+      {followed ? (
+        <p role="status" className="mt-6 rounded-card bg-moss-soft px-4 py-3 text-body-sm text-moss">
+          You are following {profile.displayName ?? profile.username}.
+        </p>
+      ) : null}
+
+      {!isOwner && user ? (
+        <div className="mt-6 flex flex-wrap items-center gap-2">
+          <form action={isFollowing ? unfollowUserAction : followUserAction}>
+            <input type="hidden" name="targetId" value={profile.id} />
+            <input type="hidden" name="next" value={`/u/${profile.username}`} />
+            <Button type="submit" variant={isFollowing ? "secondary" : "primary"} size="sm">
+              {isFollowing ? "Following" : "Follow"}
+            </Button>
+          </form>
+          <ReportButton targetType="profile" targetId={profile.id} label="Report profile" />
+          <form action={blockUserAction}>
+            <input type="hidden" name="targetId" value={profile.id} />
+            <Button type="submit" variant="ghost" size="sm">
+              Block
+            </Button>
+          </form>
+        </div>
+      ) : null}
+
+      {blocked.blockedByMe || blocked.blocksMe ? (
+        <p className="mt-4 text-body-sm text-stone">
+          This profile is hidden while a block is in place.
         </p>
       ) : null}
 
@@ -94,11 +149,36 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
           </ul>
         )}
       </section>
+
+      <div className="mt-14 grid gap-10 border-t border-line pt-10 sm:grid-cols-2">
+        <PeopleList
+          id="followers"
+          title={`Followers (${counts.followerCount})`}
+          people={followers}
+          empty="No followers yet."
+        />
+        <PeopleList
+          id="following"
+          title={`Following (${counts.followingCount})`}
+          people={following}
+          empty="Not following anyone yet."
+        />
+      </div>
     </Container>
   );
 }
 
-function ProfileHeader({ profile, isOwner }: { profile: Profile; isOwner: boolean }) {
+function ProfileHeader({
+  profile,
+  isOwner,
+  followerCount,
+  followingCount,
+}: {
+  profile: Profile;
+  isOwner: boolean;
+  followerCount: number;
+  followingCount: number;
+}) {
   return (
     <header className="border-b border-line pb-10">
       <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
@@ -114,6 +194,14 @@ function ProfileHeader({ profile, isOwner }: { profile: Profile; isOwner: boolea
             </h1>
             <p className="mt-1 text-body-sm text-stone">@{profile.username}</p>
             <p className="mt-2 text-caption text-stone">{formatMemberSince(profile.createdAt)}</p>
+            <div className="mt-3 flex gap-4 text-body-sm text-stone">
+              <a href="#followers" className="hover:text-ink">
+                <span className="font-medium text-ink">{followerCount}</span> followers
+              </a>
+              <a href="#following" className="hover:text-ink">
+                <span className="font-medium text-ink">{followingCount}</span> following
+              </a>
+            </div>
           </div>
         </div>
 
@@ -133,5 +221,51 @@ function ProfileHeader({ profile, isOwner }: { profile: Profile; isOwner: boolea
         <p className="mt-6 max-w-prose text-body leading-relaxed text-stone">{profile.bio}</p>
       ) : null}
     </header>
+  );
+}
+
+function PeopleList({
+  id,
+  title,
+  people,
+  empty,
+}: {
+  id: string;
+  title: string;
+  people: Profile[];
+  empty: string;
+}) {
+  return (
+    <section id={id} aria-labelledby={`${id}-heading`}>
+      <h2 id={`${id}-heading`} className="text-title font-medium">
+        {title}
+      </h2>
+      {people.length === 0 ? (
+        <p className="mt-2 text-body-sm text-stone">{empty}</p>
+      ) : (
+        <ul className="mt-4 divide-y divide-line border-y border-line">
+          {people.map((person) => (
+            <li key={person.id}>
+              <Link
+                href={`/u/${person.username}`}
+                className="flex items-center gap-3 py-3 transition hover:bg-mist/50"
+              >
+                <Avatar
+                  name={getDisplayName(person)}
+                  src={avatarPublicUrl(person.avatarUrl)}
+                  size="xs"
+                />
+                <span className="min-w-0">
+                  <span className="block truncate text-body-sm font-medium">
+                    {getDisplayName(person)}
+                  </span>
+                  <span className="block truncate text-caption text-stone">@{person.username}</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
