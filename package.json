@@ -13,11 +13,13 @@
     "lint": "pnpm -r --if-present lint",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
+    "test:security": "node tests/security/run.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "supabase": "supabase"
   },
   "devDependencies": {
+    "@supabase/supabase-js": "^2.119.0",
     "eslint": "^9.39.0",
     "prettier": "^3.10.1",
     "supabase": "^3.1.0",

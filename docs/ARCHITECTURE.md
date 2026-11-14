@@ -376,6 +376,33 @@ Known gaps (deliberately out of scope for this milestone):
   collections and their items readable by anon after publishing, and property
   deletion cascading through collection items.
 
+### Continuous integration and the access suite
+
+`.github/workflows/ci.yml` runs two jobs on every push to `main` and every pull
+request:
+
+1. **quality** — frozen-lockfile install, `pnpm typecheck`, `pnpm lint`,
+   `pnpm test`, then a production build with placeholder public env values
+   (dynamic pages, so the build never contacts a project).
+2. **security** — starts the local Supabase stack, resets the database so every
+   migration is applied from scratch, and runs `pnpm test:security`.
+
+The access suite (`tests/security/access.mjs`) is committed, repeatable and uses
+only the public anon key — no service-role bypass. It signs up an owner and a
+stranger, then checks anonymous, owner and stranger behaviour for every table
+and Storage bucket: public profile reads and owner-only writes; property reads,
+writes and deletes; provenance remaining read-only and `source_ref`
+unreadable; photo rows and owner-prefixed objects, including the cross-owner
+path trigger and public reads; private versus published collections and their
+items; save privacy and the absence of anonymous access; and cascade behaviour
+on delete. Test rows and Storage objects are removed in a `finally` block; the
+local database is disposable, so accounts need no cleanup.
+
+The suite runs against a local stack only (`pnpm supabase start`, then
+`pnpm test:security`); pointing it at a hosted project requires explicitly
+setting `SUPABASE_TEST_URL` and `SUPABASE_TEST_ANON_KEY` and will create real
+accounts there.
+
 ```powershell
 pnpm test          # Vitest
 pnpm --filter @dwellr/web test:e2e   # Playwright (needs .env.local + a live dev project)
