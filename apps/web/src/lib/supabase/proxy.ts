@@ -8,6 +8,9 @@ import type { Database } from "./database.types";
 
 const SIGN_IN_PATH = "/sign-in";
 
+// Fast first gate only. Every page and Server Action re-checks the user.
+const PROTECTED_PREFIXES = ["/me", "/create", "/settings"];
+
 /**
  * Refreshes the Supabase session on matched requests and gates /me.
  *
@@ -53,7 +56,12 @@ export async function updateSession(request: NextRequest) {
     );
   }
 
-  if (!user && request.nextUrl.pathname.startsWith("/me")) {
+  const pathname = request.nextUrl.pathname;
+  const needsAuth = PROTECTED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+
+  if (!user && needsAuth) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = SIGN_IN_PATH;
     redirectUrl.search = "";
