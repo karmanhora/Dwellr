@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import type { User } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getPublicEnv } from "@/lib/env";
@@ -38,9 +39,19 @@ export async function updateSession(request: NextRequest) {
   });
 
   // getUser() validates the token with Supabase; do not trust getSession() here.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // If auth cannot be reached we fail closed for protected routes.
+  let user: User | null = null;
+  try {
+    const {
+      data: { user: currentUser },
+    } = await supabase.auth.getUser();
+    user = currentUser;
+  } catch (error) {
+    console.error(
+      "[auth] proxy could not verify the session:",
+      error instanceof Error ? error.message : error,
+    );
+  }
 
   if (!user && request.nextUrl.pathname.startsWith("/me")) {
     const redirectUrl = request.nextUrl.clone();
