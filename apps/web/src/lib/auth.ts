@@ -4,6 +4,20 @@ import { getPublicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
 /**
+ * Next.js signals "this route must be dynamic" by throwing an error carrying a
+ * `digest`. That is control flow, not a failure — it must reach Next untouched,
+ * otherwise the route would be treated as static during build.
+ */
+function isFrameworkSignal(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "digest" in error &&
+    typeof (error as { digest?: unknown }).digest === "string"
+  );
+}
+
+/**
  * Current user for the request. cache() dedupes the Supabase call across the
  * layout and page that render in the same request.
  *
@@ -24,6 +38,8 @@ export const getCurrentUser = cache(async () => {
 
     return user;
   } catch (error) {
+    if (isFrameworkSignal(error)) throw error;
+
     console.error(
       "[auth] could not read the current user:",
       error instanceof Error ? error.message : error,
