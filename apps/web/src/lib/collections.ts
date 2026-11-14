@@ -176,44 +176,32 @@ export interface PendingInvite {
 /** Named invites waiting for this user. Link invites have no invitee_id. */
 export async function getPendingInvites(userId: string): Promise<PendingInvite[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("collection_invites")
-    .select(
-      "id, role, max_uses, use_count, expires_at, collections!inner(name, share_slug)",
-    )
-    .eq("invitee_id", userId)
-    .is("revoked_at", null)
-    .is("declined_at", null)
-    .gt("expires_at", new Date().toISOString())
-    .order("created_at", { ascending: false });
+  const { data, error } = await supabase.rpc("get_my_pending_invites");
 
   if (error) {
     console.error("[collections] pending invites failed:", error.message);
     return [];
   }
 
+  // The RPC derives the caller from auth.uid(); userId is kept in the signature
+  // so callers cannot accidentally treat this as a public query.
+  void userId;
+
   type Row = {
     id: string;
+    collection_name: string;
+    collection_slug: string;
     role: Exclude<CollectionRole, "owner">;
-    max_uses: number;
-    use_count: number;
     expires_at: string;
-    collections: { name: string; share_slug: string } | null;
   };
 
-  return ((data ?? []) as unknown as Row[]).flatMap((row) =>
-    row.collections && row.use_count < row.max_uses
-      ? [
-          {
-            id: row.id,
-            collectionName: row.collections.name,
-            collectionSlug: row.collections.share_slug,
-            role: row.role,
-            expiresAt: row.expires_at,
-          },
-        ]
-      : [],
-  );
+  return ((data ?? []) as unknown as Row[]).map((row) => ({
+    id: row.id,
+    collectionName: row.collection_name,
+    collectionSlug: row.collection_slug,
+    role: row.role,
+    expiresAt: row.expires_at,
+  }));
 }
 
 export type CollectionDetailResult =

@@ -716,8 +716,22 @@ export default async function CollectionPage({ params, searchParams }: Collectio
                 {activity.map((entry) => (
                   <li key={entry.id} className="border-t border-line pt-3 first:border-t-0 first:pt-0">
                     <p className="text-body-sm leading-relaxed text-ink">
-                      <span className="font-medium">{entry.actorName}</span>{" "}
-                      {collectionActivityLabel(entry).toLowerCase()}
+                      {entry.action === "member_joined" || entry.action === "member_left" ? (
+                        <>
+                          <span className="font-medium">{entry.targetName ?? "Someone"}</span>{" "}
+                          {entry.action === "member_joined" ? "joined" : "left"}
+                        </>
+                      ) : entry.action === "member_removed" ? (
+                        <>
+                          <span className="font-medium">{entry.actorName}</span> removed{" "}
+                          <span className="font-medium">{entry.targetName ?? "a member"}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-medium">{entry.actorName}</span>{" "}
+                          {collectionActivityLabel(entry).toLowerCase()}
+                        </>
+                      )}
                     </p>
                     <p className="mt-0.5 text-caption text-stone">
                       {new Intl.DateTimeFormat("en-US", {

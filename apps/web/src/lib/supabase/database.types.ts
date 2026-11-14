@@ -682,6 +682,16 @@ export type Database = {
         Args: { p_invite_id: string };
         Returns: undefined;
       };
+      get_my_pending_invites: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string;
+          collection_name: string;
+          collection_slug: string;
+          role: "editor" | "viewer";
+          expires_at: string;
+        }[];
+      };
     };
     Enums: {
       listing_status: "for_sale" | "off_market" | "sold" | "unknown";
