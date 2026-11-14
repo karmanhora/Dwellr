@@ -153,6 +153,19 @@ describe("createPropertySchema", () => {
     ).toBe(false);
   });
 
+  it("rejects a one-character state", () => {
+    expect(createPropertySchema.safeParse({ ...validProperty, state: "O" }).success).toBe(false);
+  });
+
+  it("rejects half-recorded photo dimensions", () => {
+    expect(
+      createPropertySchema.safeParse({
+        ...validProperty,
+        photos: [{ storagePath, width: 1600 }],
+      }).success,
+    ).toBe(false);
+  });
+
   it("rejects a photo path with a disallowed extension", () => {
     expect(
       createPropertySchema.safeParse({
@@ -165,7 +178,8 @@ describe("createPropertySchema", () => {
 
 describe("updatePropertySchema", () => {
   it("does not require photos when editing facts", () => {
-    const { photos: _photos, ...fields } = validProperty;
+    const { photos, ...fields } = validProperty;
+    expect(photos).toHaveLength(1);
     expect(updatePropertySchema.safeParse(fields).success).toBe(true);
   });
 

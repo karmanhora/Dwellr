@@ -59,7 +59,7 @@ export const citySchema = z
 export const stateSchema = optionalText(
   PROPERTY_STATE_MAX_LENGTH,
   `States are ${PROPERTY_STATE_MAX_LENGTH} characters or fewer.`,
-);
+).refine((value) => value === undefined || value.length >= 2, "Use the full state or region name.");
 
 export const postalCodeSchema = z
   .string()
@@ -109,15 +109,20 @@ export const photoStoragePathSchema = z
     "That photo reference is not valid.",
   );
 
-export const propertyPhotoInputSchema = z.object({
-  storagePath: photoStoragePathSchema,
-  altText: optionalText(
-    PROPERTY_PHOTO_ALT_MAX_LENGTH,
-    `Alt text is ${PROPERTY_PHOTO_ALT_MAX_LENGTH} characters or fewer.`,
-  ),
-  width: z.number().int().min(1).max(PROPERTY_PHOTO_MAX_DIMENSION).optional(),
-  height: z.number().int().min(1).max(PROPERTY_PHOTO_MAX_DIMENSION).optional(),
-});
+export const propertyPhotoInputSchema = z
+  .object({
+    storagePath: photoStoragePathSchema,
+    altText: optionalText(
+      PROPERTY_PHOTO_ALT_MAX_LENGTH,
+      `Alt text is ${PROPERTY_PHOTO_ALT_MAX_LENGTH} characters or fewer.`,
+    ),
+    width: z.number().int().min(1).max(PROPERTY_PHOTO_MAX_DIMENSION).optional(),
+    height: z.number().int().min(1).max(PROPERTY_PHOTO_MAX_DIMENSION).optional(),
+  })
+  .refine((photo) => (photo.width === undefined) === (photo.height === undefined), {
+    message: "Width and height must be recorded together.",
+    path: ["width"],
+  });
 
 /** Everything a poster can write. Photos are uploaded separately, then linked. */
 export const propertyFieldsSchema = z.object({

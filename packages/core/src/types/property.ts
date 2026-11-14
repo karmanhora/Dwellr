@@ -65,7 +65,8 @@ export interface PropertyProvenanceRow {
   field: PropertyField;
   provenance: Provenance;
   verified_at: string | null;
-  source_ref: string | null;
+  /** Server-side only: never selected by client-facing queries. */
+  source_ref?: string | null;
 }
 
 export interface PropertyPhoto {

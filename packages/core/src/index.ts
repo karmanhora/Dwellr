@@ -97,6 +97,7 @@ export {
   formatCount,
   formatPrice,
   getPropertyVerification,
+  isUuid,
   listingStatusLabel,
   propertyFacts,
   sortPhotos,
