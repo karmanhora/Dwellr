@@ -260,7 +260,14 @@ Later, exact addresses should arrive as a separate
 | --- | --- | --- | --- | --- |
 | `properties` | public (`using true`) | authenticated, `created_by = auth.uid()` | owner, `using` + `with check` | owner |
 | `property_photos` | public | authenticated, property owner via `exists` | property owner, `using` + `with check` | property owner |
-| `property_field_provenance` | public, column-limited | none | none | none |
+| `property_field_provenance` | public, column-limited (`source_ref` excluded) | none | none | none |
+
+Supabase grants `ALL` on new public tables to `anon` and `authenticated` by
+default, which silently defeats column-level grants. Migration
+`20261114200000_harden_property_security.sql` revokes those table-level
+privileges first and re-grants the minimum: `select` for both client roles,
+DML for `authenticated` on properties/photos, and a column-level `select` on
+provenance. `truncate`, `references` and `trigger` are revoked from both roles.
 
 | Bucket | Public read | Size / types | Write policy |
 | --- | --- | --- | --- |
@@ -268,11 +275,13 @@ Later, exact addresses should arrive as a separate
 | `avatars` | yes | 2 MiB; same types | same owner-prefix rule |
 
 Object keys are generated as `<user-id>/<uuid>.webp`. The client never supplies
-a filename, and the server action re-checks that every referenced photo path
-starts with the caller's id, so a post cannot point at another account's
-objects. Uploads are downscaled to a 2000 px long edge, re-encoded as WebP and
-stripped of EXIF in the browser before they reach the bucket; the bucket's MIME
-allowlist is the second line of defence.
+a filename. Three independent checks keep a post from referencing another
+account's objects: the upload policy's prefix rule, the server action's prefix
+check, and a `before insert or update` trigger
+(`enforce_property_photo_owner`) that compares `storage_path`'s first segment
+with the property's `created_by`. Uploads are downscaled to a 2000 px long
+edge, re-encoded as WebP and stripped of EXIF in the browser before they reach
+the bucket; the bucket's MIME allowlist is the second line of defence.
 
 ### Writes and validation
 
@@ -324,7 +333,10 @@ Covered:
 - Server identity always comes from `getUser()`. The proxy gates `/me`,
   `/create`, `/settings/*` as a fast first pass, and every page/action re-checks.
 - Server Actions inherit Next's origin checks and `SameSite` cookies.
-- `source_ref` is not readable by clients.
+- `source_ref` is not readable by clients, and table-level default grants
+  cannot re-open it (see the hardening migration above).
+- Photo rows are database-checked against the property owner's id, not only
+  by the application.
 
 Known gaps (deliberately out of scope for this milestone):
 
