@@ -27,6 +27,8 @@ const runId = Date.now().toString().slice(-9);
 const password = "DwellrSecurity42";
 const photoBucket = "property-photos";
 const avatarBucket = "avatars";
+const postPhotoBucket = "post-photos";
+const postVideoBucket = "post-videos";
 
 let failures = 0;
 let checks = 0;
@@ -58,6 +60,14 @@ let collectionId = null;
 let firstCommentId = null;
 let photoPath = null;
 let avatarPath = null;
+let postId = null;
+let videoPostId = null;
+let postPhotoPath = null;
+let posterPath = null;
+let videoPath = null;
+let strangerPostId = null;
+const uploadedPostPhotos = [];
+const uploadedPostVideos = [];
 
 const png = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
@@ -1298,6 +1308,372 @@ try {
     rateLimitError?.message,
   );
 
+  // --- posts and short video ------------------------------------------------
+  const anonPost = await anon.from("posts").insert({
+    author_id: accounts.owner.id,
+    kind: "text",
+    caption: "Anon post",
+  });
+  check("anon cannot insert a post directly", Boolean(anonPost.error));
+
+  const directPost = await owner.from("posts").insert({
+    author_id: accounts.owner.id,
+    kind: "text",
+    caption: "Bypassing the RPC",
+  });
+  check("even an author cannot bypass create_post()", Boolean(directPost.error));
+
+  const textPost = await owner.rpc("create_post", {
+    p_kind: "text",
+    p_caption: `Security post ${runId}`,
+    p_categories: ["interiors"],
+    p_property_id: propertyId,
+    p_neighborhood: "Test Heights",
+    p_city: "Portland",
+    p_photos: [],
+    p_video: null,
+  });
+  check("an author publishes a text post through create_post", !textPost.error, textPost.error?.message);
+  postId = textPost.data;
+
+  const anonPostRead = await anon.from("posts").select("id, kind").eq("id", postId).maybeSingle();
+  check("anon reads a live post", anonPostRead.data?.id === postId);
+
+  const strangerPostEdit = await stranger
+    .from("posts")
+    .update({ caption: "Hijacked" })
+    .eq("id", postId)
+    .select("id");
+  check("a stranger cannot edit another author's post", strangerPostEdit.data?.length === 0);
+
+  const ownPostEdit = await owner
+    .from("posts")
+    .update({ caption: `Edited security post ${runId}` })
+    .eq("id", postId)
+    .select("caption")
+    .single();
+  check("an author edits their own post", ownPostEdit.data?.caption?.startsWith("Edited"));
+
+  const identityEdit = await owner
+    .from("posts")
+    .update({ kind: "video" })
+    .eq("id", postId)
+    .select("id");
+  check("post kind is immutable", Boolean(identityEdit.error) || identityEdit.data?.length === 0);
+
+  postPhotoPath = `${accounts.owner.id}/${uuid()}.png`;
+  const postPhotoUpload = await owner.storage
+    .from(postPhotoBucket)
+    .upload(postPhotoPath, png, { contentType: "image/png", upsert: false });
+  check("an owner uploads a post photo under their prefix", !postPhotoUpload.error, postPhotoUpload.error?.message);
+  if (!postPhotoUpload.error) uploadedPostPhotos.push(postPhotoPath);
+
+  const outsidePath = `${accounts.owner.id}/${uuid()}.png`;
+  const outsideUpload = await stranger.storage
+    .from(postPhotoBucket)
+    .upload(outsidePath, png, { contentType: "image/png", upsert: false });
+  check("a user cannot upload a post photo outside their own prefix", Boolean(outsideUpload.error));
+
+  const wrongMime = await owner.storage
+    .from(postPhotoBucket)
+    .upload(`${accounts.owner.id}/${uuid()}.pdf`, Buffer.from("%PDF-1.4"), {
+      contentType: "application/pdf",
+      upsert: false,
+    });
+  check("the post-photo bucket rejects a non-image MIME type", Boolean(wrongMime.error));
+
+  const oversizePhoto = await owner.storage
+    .from(postPhotoBucket)
+    .upload(`${accounts.owner.id}/${uuid()}.png`, Buffer.alloc(5 * 1024 * 1024 + 1), {
+      contentType: "image/png",
+      upsert: false,
+    });
+  check("the post-photo bucket rejects files over 5 MB", Boolean(oversizePhoto.error));
+
+  const photoPost = await owner.rpc("create_post", {
+    p_kind: "photo",
+    p_caption: `Photo security post ${runId}`,
+    p_categories: ["before_after"],
+    p_property_id: null,
+    p_neighborhood: null,
+    p_city: null,
+    p_photos: [
+      {
+        storagePath: postPhotoPath,
+        width: 1,
+        height: 1,
+        sizeBytes: png.length,
+        altText: "One pixel",
+      },
+    ],
+    p_video: null,
+  });
+  check("an author publishes a photo post", !photoPost.error, photoPost.error?.message);
+
+  const directPhotoRow = await owner.from("post_photos").insert({
+    post_id: photoPost.data ?? uuid(),
+    storage_path: `${accounts.owner.id}/${uuid()}.png`,
+    position: 0,
+    size_bytes: png.length,
+  });
+  check("clients cannot insert post_photos rows directly", Boolean(directPhotoRow.error));
+
+  const tooManyPhotos = await owner.rpc("create_post", {
+    p_kind: "photo",
+    p_caption: "Nine photos",
+    p_categories: [],
+    p_property_id: null,
+    p_neighborhood: null,
+    p_city: null,
+    p_photos: Array.from({ length: 9 }, () => ({
+      storagePath: `${accounts.owner.id}/${uuid()}.png`,
+      width: 1,
+      height: 1,
+      sizeBytes: png.length,
+    })),
+    p_video: null,
+  });
+  check("a photo post cannot carry nine photos", Boolean(tooManyPhotos.error));
+
+  const foreignPhotoPath = await stranger.rpc("create_post", {
+    p_kind: "photo",
+    p_caption: "Someone else's photo",
+    p_categories: [],
+    p_property_id: null,
+    p_neighborhood: null,
+    p_city: null,
+    p_photos: [
+      {
+        storagePath: `${accounts.owner.id}/${uuid()}.png`,
+        width: 1,
+        height: 1,
+        sizeBytes: png.length,
+      },
+    ],
+    p_video: null,
+  });
+  check("a user cannot attach another account's photo path", Boolean(foreignPhotoPath.error));
+
+  videoPath = `${accounts.owner.id}/${uuid()}.webm`;
+  const videoUpload = await owner.storage
+    .from(postVideoBucket)
+    .upload(videoPath, Buffer.from("webm-test"), { contentType: "video/webm", upsert: false });
+  check("an owner uploads a video under their prefix", !videoUpload.error, videoUpload.error?.message);
+  if (!videoUpload.error) uploadedPostVideos.push(videoPath);
+
+  const outsideVideo = await stranger.storage
+    .from(postVideoBucket)
+    .upload(`${accounts.owner.id}/${uuid()}.webm`, Buffer.from("webm-test"), {
+      contentType: "video/webm",
+      upsert: false,
+    });
+  check("a user cannot upload a video outside their own prefix", Boolean(outsideVideo.error));
+
+  const wrongVideoMime = await owner.storage
+    .from(postVideoBucket)
+    .upload(`${accounts.owner.id}/${uuid()}.mov`, Buffer.from("mov-test"), {
+      contentType: "video/quicktime",
+      upsert: false,
+    });
+  check("the video bucket rejects unsupported MIME types", Boolean(wrongVideoMime.error));
+
+  posterPath = `${accounts.owner.id}/${uuid()}.webp`;
+  const posterUpload = await owner.storage
+    .from(postPhotoBucket)
+    .upload(posterPath, Buffer.from("poster-test"), { contentType: "image/webp", upsert: false });
+  if (!posterUpload.error) uploadedPostPhotos.push(posterPath);
+
+  const validVideo = {
+    storagePath: videoPath,
+    posterPath,
+    durationSeconds: 12.5,
+    width: 720,
+    height: 1280,
+    sizeBytes: Buffer.from("webm-test").length,
+    mimeType: "video/webm",
+  };
+
+  const longVideo = await owner.rpc("create_post", {
+    p_kind: "video",
+    p_caption: "Too long",
+    p_categories: [],
+    p_property_id: null,
+    p_neighborhood: null,
+    p_city: null,
+    p_photos: [],
+    p_video: { ...validVideo, durationSeconds: 30.1 },
+  });
+  check("a video over 30 seconds is rejected", Boolean(longVideo.error));
+
+  const heavyVideo = await owner.rpc("create_post", {
+    p_kind: "video",
+    p_caption: "Too heavy",
+    p_categories: [],
+    p_property_id: null,
+    p_neighborhood: null,
+    p_city: null,
+    p_photos: [],
+    p_video: { ...validVideo, sizeBytes: 26214401 },
+  });
+  check("a video over 25 MB is rejected by create_post", Boolean(heavyVideo.error));
+
+  const foreignPoster = await owner.rpc("create_post", {
+    p_kind: "video",
+    p_caption: "Foreign poster",
+    p_categories: [],
+    p_property_id: null,
+    p_neighborhood: null,
+    p_city: null,
+    p_photos: [],
+    p_video: { ...validVideo, posterPath: `${accounts.stranger.id}/${uuid()}.webp` },
+  });
+  check("a video poster must belong to the author", Boolean(foreignPoster.error));
+
+  const videoPost = await owner.rpc("create_post", {
+    p_kind: "video",
+    p_caption: `Video security post ${runId}`,
+    p_categories: ["walkthrough"],
+    p_property_id: propertyId,
+    p_neighborhood: null,
+    p_city: null,
+    p_photos: [],
+    p_video: validVideo,
+  });
+  check("an author publishes a video post", !videoPost.error, videoPost.error?.message);
+  videoPostId = videoPost.data;
+
+  const directVideoRow = await owner.from("videos").insert({
+    post_id: videoPostId ?? uuid(),
+    author_id: accounts.owner.id,
+    storage_path: videoPath,
+    poster_path: posterPath,
+    duration_seconds: 10,
+    width: 720,
+    height: 1280,
+    size_bytes: 10,
+    mime_type: "video/webm",
+  });
+  check("clients cannot insert videos rows directly", Boolean(directVideoRow.error));
+
+  const usageRead = await owner
+    .from("user_media_usage")
+    .select("photo_bytes, video_bytes")
+    .eq("user_id", accounts.owner.id)
+    .maybeSingle();
+  check(
+    "media usage tracks the published photo and video",
+    Number(usageRead.data?.photo_bytes ?? 0) >= png.length &&
+      Number(usageRead.data?.video_bytes ?? 0) >= validVideo.sizeBytes,
+    JSON.stringify(usageRead.data),
+  );
+  const foreignUsage = await stranger
+    .from("user_media_usage")
+    .select("user_id")
+    .eq("user_id", accounts.owner.id);
+  check("media usage is private", foreignUsage.data?.length === 0);
+
+  const reportPost = await stranger.from("reports").insert({
+    reporter_id: accounts.stranger.id,
+    target_type: "post",
+    target_id: postId,
+    reason: "personal_information",
+  });
+  check("a post can be reported for personal or identifying information", !reportPost.error, reportPost.error?.message);
+
+  // Blocked users disappear from posts, watch and media rows.
+  strangerPostId = (
+    await stranger.rpc("create_post", {
+      p_kind: "text",
+      p_caption: `Blocked post ${runId}`,
+      p_categories: [],
+      p_property_id: null,
+      p_neighborhood: null,
+      p_city: null,
+      p_photos: [],
+      p_video: null,
+    })
+  ).data;
+
+  await owner.from("blocks").insert({
+    blocker_id: accounts.owner.id,
+    blocked_id: accounts.stranger.id,
+  });
+  const blockedPostRead = await owner.from("posts").select("id").eq("id", strangerPostId);
+  check("a blocked user's post is hidden from the blocker", blockedPostRead.data?.length === 0);
+  const blockedWatch = await owner
+    .from("watch_posts")
+    .select("post_id")
+    .eq("post_id", strangerPostId);
+  check("a blocked user's post is absent from /watch ranking", blockedWatch.data?.length === 0);
+  const ownerVideoPostForStranger = await stranger.from("posts").select("id").eq("id", videoPostId);
+  check("a block hides posts in both directions", ownerVideoPostForStranger.data?.length === 0);
+  await owner
+    .from("blocks")
+    .delete()
+    .eq("blocker_id", accounts.owner.id)
+    .eq("blocked_id", accounts.stranger.id);
+
+  // Rate limit: ten posts per hour, enforced by the database.
+  let postRateError = null;
+  const ratePostIds = [];
+  for (let index = 0; index < 12; index += 1) {
+    const result = await owner.rpc("create_post", {
+      p_kind: "text",
+      p_caption: `Rate post ${index} ${runId}`,
+      p_categories: [],
+      p_property_id: null,
+      p_neighborhood: null,
+      p_city: null,
+      p_photos: [],
+      p_video: null,
+    });
+    if (result.error) {
+      postRateError = result.error;
+      break;
+    }
+    ratePostIds.push(result.data);
+  }
+  check(
+    "publishing more than ten posts an hour is rejected",
+    Boolean(postRateError) && /ten posts an hour/i.test(postRateError.message),
+    postRateError?.message,
+  );
+  for (const id of ratePostIds) await owner.rpc("soft_delete_post", { p_post_id: id });
+
+  const strangerDelete = await stranger.rpc("soft_delete_post", { p_post_id: postId });
+  check("a stranger cannot soft-delete another author's post", Boolean(strangerDelete.error));
+
+  const anonDelete = await anon.rpc("soft_delete_post", { p_post_id: postId });
+  check("anon cannot soft-delete a post", Boolean(anonDelete.error));
+
+  const ownerDeletePost = await owner.rpc("soft_delete_post", { p_post_id: postId });
+  check("an author soft-deletes their own post", !ownerDeletePost.error, ownerDeletePost.error?.message);
+  const deletedPostRead = await anon.from("posts").select("id").eq("id", postId);
+  check("a soft-deleted post is hidden even from anon", deletedPostRead.data?.length === 0);
+  const deletedPostComments = await anon
+    .from("comments")
+    .select("id")
+    .eq("target_type", "post")
+    .eq("target_id", postId);
+  check("comments on a soft-deleted post are hidden", deletedPostComments.data?.length === 0);
+
+  const ownerDeleteVideo = await owner.rpc("soft_delete_post", { p_post_id: videoPostId });
+  check("an author deletes a video post", !ownerDeleteVideo.error, ownerDeleteVideo.error?.message);
+  const deletedVideoRead = await anon.from("videos").select("id").eq("post_id", videoPostId);
+  check("video rows disappear with a deleted post", deletedVideoRead.data?.length === 0);
+
+  const usageAfterDelete = await owner
+    .from("user_media_usage")
+    .select("photo_bytes, video_bytes")
+    .eq("user_id", accounts.owner.id)
+    .maybeSingle();
+  check(
+    "deleting posts releases media quota",
+    Number(usageAfterDelete.data?.photo_bytes ?? 0) === 0 &&
+      Number(usageAfterDelete.data?.video_bytes ?? 0) === 0,
+    JSON.stringify(usageAfterDelete.data),
+  );
+
   // --- cascades ------------------------------------------------------------
   const deleteStrangerProperty = await stranger
     .from("properties")
@@ -1377,8 +1753,17 @@ try {
   if (strangerPropertyId) await stranger.from("properties").delete().eq("id", strangerPropertyId);
   if (editorPropertyId) await owner.from("properties").delete().eq("id", editorPropertyId);
   if (propertyId) await owner.from("properties").delete().eq("id", propertyId);
+  if (strangerPostId) await stranger.rpc("soft_delete_post", { p_post_id: strangerPostId });
+  if (postId) await owner.rpc("soft_delete_post", { p_post_id: postId });
+  if (videoPostId) await owner.rpc("soft_delete_post", { p_post_id: videoPostId });
   if (photoPath) await owner.storage.from(photoBucket).remove([photoPath]);
   if (avatarPath) await owner.storage.from(avatarBucket).remove([avatarPath]);
+  if (uploadedPostPhotos.length > 0) {
+    await owner.storage.from(postPhotoBucket).remove(uploadedPostPhotos);
+  }
+  if (uploadedPostVideos.length > 0) {
+    await owner.storage.from(postVideoBucket).remove(uploadedPostVideos);
+  }
 }
 
 console.log(`\n${checks - failures}/${checks} checks passed`);

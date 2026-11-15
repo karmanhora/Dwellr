@@ -7,6 +7,14 @@
  * TypeScript interfaces do not (they lack an implicit index signature) — using
  * an interface here silently collapses query results to `never`.
  */
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
 export type Database = {
   public: {
     Tables: {
@@ -576,7 +584,13 @@ export type Database = {
           reporter_id: string;
           target_type: "property" | "post" | "comment" | "profile";
           target_id: string;
-          reason: "spam" | "harassment" | "false_information" | "inappropriate" | "other";
+          reason:
+            | "spam"
+            | "harassment"
+            | "false_information"
+            | "inappropriate"
+            | "personal_information"
+            | "other";
           details: string | null;
           status: "open" | "reviewing" | "resolved" | "dismissed";
           created_at: string;
@@ -587,7 +601,13 @@ export type Database = {
           reporter_id: string;
           target_type: "property" | "post" | "comment" | "profile";
           target_id: string;
-          reason: "spam" | "harassment" | "false_information" | "inappropriate" | "other";
+          reason:
+            | "spam"
+            | "harassment"
+            | "false_information"
+            | "inappropriate"
+            | "personal_information"
+            | "other";
           details?: string | null;
           status?: "open" | "reviewing" | "resolved" | "dismissed";
           created_at?: string;
@@ -627,6 +647,147 @@ export type Database = {
         Update: { read_at?: string | null };
         Relationships: [];
       };
+      posts: {
+        Row: {
+          id: string;
+          author_id: string;
+          kind: "text" | "photo" | "video";
+          caption: string;
+          categories: (
+            | "walkthrough"
+            | "renovation"
+            | "architecture"
+            | "interiors"
+            | "neighborhood"
+            | "before_after"
+            | "diy"
+            | "other"
+          )[];
+          property_id: string | null;
+          neighborhood: string | null;
+          city: string | null;
+          created_at: string;
+          updated_at: string;
+          deleted_at: string | null;
+          deleted_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          author_id: string;
+          kind: "text" | "photo" | "video";
+          caption?: string;
+          categories?: (
+            | "walkthrough"
+            | "renovation"
+            | "architecture"
+            | "interiors"
+            | "neighborhood"
+            | "before_after"
+            | "diy"
+            | "other"
+          )[];
+          property_id?: string | null;
+          neighborhood?: string | null;
+          city?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          deleted_at?: string | null;
+          deleted_by?: string | null;
+        };
+        Update: {
+          caption?: string;
+          categories?: (
+            | "walkthrough"
+            | "renovation"
+            | "architecture"
+            | "interiors"
+            | "neighborhood"
+            | "before_after"
+            | "diy"
+            | "other"
+          )[];
+          property_id?: string | null;
+          neighborhood?: string | null;
+          city?: string | null;
+        };
+        Relationships: [];
+      };
+      post_photos: {
+        Row: {
+          id: string;
+          post_id: string;
+          storage_path: string;
+          position: number;
+          alt_text: string | null;
+          width: number | null;
+          height: number | null;
+          size_bytes: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          post_id: string;
+          storage_path: string;
+          position: number;
+          alt_text?: string | null;
+          width?: number | null;
+          height?: number | null;
+          size_bytes: number;
+          created_at?: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
+      videos: {
+        Row: {
+          id: string;
+          post_id: string;
+          author_id: string;
+          storage_path: string;
+          poster_path: string;
+          duration_seconds: number;
+          width: number;
+          height: number;
+          size_bytes: number;
+          mime_type: "video/mp4" | "video/webm";
+          captions: string | null;
+          status: "uploaded" | "ready" | "failed";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          post_id: string;
+          author_id: string;
+          storage_path: string;
+          poster_path: string;
+          duration_seconds: number;
+          width: number;
+          height: number;
+          size_bytes: number;
+          mime_type: "video/mp4" | "video/webm";
+          captions?: string | null;
+          status?: "uploaded" | "ready" | "failed";
+          created_at?: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
+      user_media_usage: {
+        Row: {
+          user_id: string;
+          photo_bytes: number;
+          video_bytes: number;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          photo_bytes?: number;
+          video_bytes?: number;
+          updated_at?: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
       feed_preferences: {
         Row: {
           user_id: string;
@@ -664,6 +825,15 @@ export type Database = {
         Row: { id: string; created_at: string; relevance: number };
         Relationships: [];
       };
+      watch_posts: {
+        Row: {
+          post_id: string;
+          created_at: string;
+          relevance: number;
+          engagement_score: number;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       accept_collection_invite: {
@@ -680,6 +850,32 @@ export type Database = {
       };
       decline_collection_invite_by_id: {
         Args: { p_invite_id: string };
+        Returns: undefined;
+      };
+      create_post: {
+        Args: {
+          p_kind: "text" | "photo" | "video";
+          p_caption: string;
+          p_categories: (
+            | "walkthrough"
+            | "renovation"
+            | "architecture"
+            | "interiors"
+            | "neighborhood"
+            | "before_after"
+            | "diy"
+            | "other"
+          )[];
+          p_property_id?: string | null;
+          p_neighborhood?: string | null;
+          p_city?: string | null;
+          p_photos?: Json;
+          p_video?: Json;
+        };
+        Returns: string;
+      };
+      soft_delete_post: {
+        Args: { p_post_id: string };
         Returns: undefined;
       };
       get_my_pending_invites: {
@@ -714,7 +910,13 @@ export type Database = {
         | "evaluation_saved";
       social_target_type: "property" | "post";
       report_target_type: "property" | "post" | "comment" | "profile";
-      report_reason: "spam" | "harassment" | "false_information" | "inappropriate" | "other";
+      report_reason:
+        | "spam"
+        | "harassment"
+        | "false_information"
+        | "inappropriate"
+        | "personal_information"
+        | "other";
       report_status: "open" | "reviewing" | "resolved" | "dismissed";
       notification_type:
         | "collection_invite"
@@ -722,6 +924,17 @@ export type Database = {
         | "comment"
         | "like"
         | "follow";
+      post_kind: "text" | "photo" | "video";
+      post_category:
+        | "walkthrough"
+        | "renovation"
+        | "architecture"
+        | "interiors"
+        | "neighborhood"
+        | "before_after"
+        | "diy"
+        | "other";
+      video_status: "uploaded" | "ready" | "failed";
     };
     CompositeTypes: Record<never, never>;
   };
