@@ -4,7 +4,7 @@
  */
 export const SITE_NAME = "dwellr";
 export const SITE_DESCRIPTION =
-  "Find a home together. Rate, compare, and decide on homes with your partner or family, privately. Early access starts in Seattle / King County.";
+  "A social network for home hunting. Follow people you trust, save and react to homes, and decide together in private shared collections. Early access starts in Seattle / King County.";
 
 export function isWaitlistOnly(): boolean {
   return process.env.WAITLIST_ONLY === "true";

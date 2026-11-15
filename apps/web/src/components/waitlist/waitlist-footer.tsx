@@ -12,7 +12,7 @@ export function WaitlistFooter() {
           <div>
             <Logo size="sm" />
             <p className="mt-3 max-w-xs text-body-sm leading-relaxed text-stone">
-              Find a home together. Early access starts in Seattle / King County.
+              A social network for home hunting. Early access starts in Seattle / King County.
             </p>
           </div>
 

@@ -5,9 +5,28 @@ import { CheckIcon, HomeIcon, MapPinIcon, StarIcon, UserIcon } from "@/component
 import { getVisibleWaitlistCount } from "@/lib/waitlist";
 
 const promises = [
-  "Private by default",
-  "Neighborhood-level locations, never street addresses",
-  "Verified and user-submitted details, clearly labelled",
+  "A feed built from accounts you follow, the neighborhoods and styles you choose, and community posts",
+  "Private shared collections for your partner, family, or friends",
+  "Neighborhood-level locations and clearly labelled details",
+];
+
+const socialFeatures = [
+  {
+    title: "Follow the people you trust",
+    body: "The feed combines homes from accounts you follow, homes in the neighborhoods and styles you choose, and community posts. It is explicit, not inferred from clicks.",
+  },
+  {
+    title: "Share what you notice",
+    body: "Post photos, notes, or a short video about a home or neighborhood. Likes and threaded comments keep the conversation with the home.",
+  },
+  {
+    title: "Keep the decision private",
+    body: "Invite your partner, family, or friends into a private collection. Everyone can rate, add pros and cons, and see where opinions split.",
+  },
+  {
+    title: "Know what you are looking at",
+    body: "Property details are labelled verified or community-added. Posts and comments stay clearly separate from verified facts.",
+  },
 ];
 
 const steps = [
@@ -50,7 +69,12 @@ const faqs = [
   {
     question: "What is dwellr?",
     answer:
-      "dwellr is a private place for home hunters to save, rate, and compare homes with the people deciding with them. We are starting with early access in Seattle / King County.",
+      "dwellr is a social network for home hunting, not a real-estate listing portal. Follow people you trust, share posts about homes and neighborhoods, and keep a private collection for the people deciding with you. We are starting with early access in Seattle / King County.",
+  },
+  {
+    question: "Is dwellr social media?",
+    answer:
+      "It has a social layer: profiles, follows, posts, likes, and threaded comments. The decision itself stays private. You can follow people and share what you are learning, or use dwellr only with the people in your collection.",
   },
   {
     question: "Is it free?",
@@ -137,7 +161,7 @@ export async function WaitlistLanding() {
           <div>
             <p className="flex items-center gap-3 text-[11px] font-medium tracking-[0.22em] text-stone uppercase">
               <span aria-hidden="true" className="h-px w-8 bg-ink/30" />
-              Seattle / King County · early access
+              A social network for home hunting · Seattle / King County
             </p>
 
             <h1 className="mt-7 text-[3rem] leading-[0.95] font-medium tracking-[-0.05em] text-ink sm:text-6xl lg:text-[5.25rem]">
@@ -147,7 +171,7 @@ export async function WaitlistLanding() {
             </h1>
 
             <p className="mt-7 max-w-xl text-lg leading-relaxed text-stone sm:text-xl">
-              Rate, compare, and decide on homes with your partner or family, privately.
+              dwellr is a social network for home hunting. Follow people whose taste you trust, save and react to the homes you are considering, and make the decision together in one private place.
             </p>
 
             <ul className="mt-9 space-y-3">
@@ -181,6 +205,35 @@ export async function WaitlistLanding() {
 
       <section className="border-b border-line">
         <Container className="py-16 sm:py-20">
+          <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
+            <div>
+              <p className="text-[11px] font-medium tracking-[0.2em] text-stone uppercase">
+                More than a shortlist
+              </p>
+              <h2 className="mt-4 text-3xl leading-tight font-medium tracking-[-0.035em] text-ink sm:text-4xl">
+                A social network for the home hunt.
+              </h2>
+              <p className="mt-5 max-w-md text-[15px] leading-relaxed text-stone">
+                Home search already happens in group chats, saved tabs, and screenshots. dwellr
+                brings the useful social parts together: people you trust, homes worth discussing,
+                and a private place to decide.
+              </p>
+            </div>
+
+            <div className="grid gap-8 sm:grid-cols-2">
+              {socialFeatures.map((feature) => (
+                <div key={feature.title} className="border-t border-line pt-5">
+                  <h3 className="text-base font-medium text-ink">{feature.title}</h3>
+                  <p className="mt-1.5 text-body-sm leading-relaxed text-stone">{feature.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Container>
+      </section>
+
+      <section className="border-b border-line">
+        <Container className="py-16 sm:py-20">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
               <p className="text-[11px] font-medium tracking-[0.2em] text-stone uppercase">
@@ -191,7 +244,7 @@ export async function WaitlistLanding() {
               </h2>
             </div>
             <p className="max-w-sm text-body-sm leading-relaxed text-stone sm:text-right">
-              Not another feed of listings. A shared record of the homes you are actually
+              Not a listings portal. A social place to work through the homes you are actually
               considering.
             </p>
           </div>
