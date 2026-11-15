@@ -10,12 +10,12 @@ Tagline (product-facing): **Find a home. Together.**
 
 ## Logo
 
-Two elements, one lockup:
+Two elements, one supplied lockup:
 
-1. **House mark** — a solid near-black house silhouette with a rounded doorway
-   cut out of the base. Geometric, no outline, no gradient.
-2. **Wordmark** — "dwellr" in a lowercase geometric sans, optically spaced
-   tight, with the crossbar of the `e` aligned to the x-height.
+1. **House mark** — a thick, continuous house outline with a notched inner form.
+   Geometric, no gradient, no effects.
+2. **Wordmark** — "dwellr" in the supplied custom lowercase geometric vector,
+   optically spaced tight.
 
 ### Files
 
@@ -36,17 +36,15 @@ Regenerate the raster files with:
 powershell -ExecutionPolicy Bypass -File scripts/generate-brand-assets.ps1
 ```
 
-The in-app logo (`src/components/brand/logo.tsx`) draws the mark as inline SVG
-and sets the wordmark in the live typeface, so it stays crisp and inherits
-`currentColor`. Keep its path data identical to `dwellr-mark.svg`.
+The in-app logo (`src/components/brand/logo.tsx`) draws the supplied mark and
+wordmark as one inline SVG lockup, so it stays crisp and inherits `currentColor`.
+Its geometry lives in `logo-paths.ts` and must stay identical to the brand SVGs.
 
 ### Provenance
 
-The source `assets/dwellr-logo.png` was **not present in the repository**, so
-the mark and wordmark SVGs here are a faithful reconstruction from the brand
-description (solid house mark with doorway cut-out, lowercase geometric
-wordmark). Replace them with the original vector artwork when available; no
-layout changes should be needed.
+The original vector artwork was supplied as `Minimalist Dwellr House Logo.svg`.
+The brand SVGs and inline paths are derived from that artwork, replacing the
+earlier reconstruction from the brand description.
 
 ### Usage rules
 

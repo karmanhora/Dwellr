@@ -85,7 +85,7 @@ export async function SiteHeader() {
             <>
               <Link
                 href="/sign-in"
-                className="inline-flex h-10 items-center rounded-full px-3 text-body-sm font-medium text-stone transition hover:text-ink sm:px-4"
+                className="inline-flex h-10 items-center rounded-full px-3 text-body-sm font-medium whitespace-nowrap text-stone transition hover:text-ink sm:px-4"
               >
                 Sign in
               </Link>
