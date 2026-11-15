@@ -6,6 +6,7 @@ import {
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { PostCard } from "@/components/posts/post-card";
 import { PropertyCard } from "@/components/property/property-card";
 import { SearchInput } from "@/components/search-form";
 import { ButtonLink } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Select } from "@/components/ui/select";
 import { getCurrentUser } from "@/lib/auth";
+import { getPostSummaries } from "@/lib/posts";
 import { getPropertyFeed } from "@/lib/properties";
 
 export const metadata: Metadata = {
@@ -38,9 +40,10 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   const query = readParam(params.q)?.slice(0, 80) ?? null;
   const cursor = readParam(params.cursor);
 
-  const [{ items, nextCursor, failed }, user] = await Promise.all([
+  const [{ items, nextCursor, failed }, user, community] = await Promise.all([
     getPropertyFeed({ cursor, status, query }),
     getCurrentUser(),
+    getPostSummaries({ limit: 3 }),
   ]);
 
   const isFiltered = Boolean(query || status);
@@ -88,6 +91,36 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
           </button>
         </div>
       </form>
+
+      {community.items.length > 0 ? (
+        <section aria-labelledby="explore-community-heading" className="mt-8 border-y border-line py-8">
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <div>
+              <h2 id="explore-community-heading" className="text-title font-medium">
+                From the community
+              </h2>
+              <p className="mt-1 text-caption text-stone">
+                Recent home posts and videos. User-generated, never presented as verified facts.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <ButtonLink href="/watch" variant="secondary" size="sm">
+                Watch
+              </ButtonLink>
+              <ButtonLink href="/posts" variant="secondary" size="sm">
+                All posts
+              </ButtonLink>
+            </div>
+          </div>
+          <ul className="mt-6 grid gap-x-6 gap-y-8 sm:grid-cols-3">
+            {community.items.map((post) => (
+              <li key={post.id}>
+                <PostCard post={post} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {isFiltered ? (
         <p className="mt-4 text-caption text-stone">

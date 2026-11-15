@@ -9,6 +9,11 @@ Milestone 2 adds the collaborative and social layer: collection roles
 likes, threaded comments, follows, blocking, private reports, notifications,
 and a feed ranked only by explicit follows and preferences.
 
+Milestone 3 adds community posts (text, photo and 30-second video), a unified
+Create hub, a vertical `/watch` feed with mute/reduced-motion/data-saver
+handling, property and neighborhood tags, database rate limits and storage
+quotas, and post-level trust and safety.
+
 > Not a listing site. No scraped data, no invented addresses.
 
 ## Stack
@@ -76,7 +81,30 @@ scripts       Brand asset generation
 - `/settings/blocked` — unblock accounts hidden in both directions.
 
 Property pages include likes and comments; profile pages include follows,
-blocking and reporting. Social tables are target-polymorphic so Milestone 3
-posts can reuse the same layer.
+blocking and reporting. Social tables are target-polymorphic, and Milestone 3
+completes the `post` branch so posts reuse the same likes, comments, reports
+and notifications.
+
+## Milestone 3 surfaces
+
+- `/create` — choose List a home, Share a post, or Share a video.
+- `/create/post` — text or up to eight photos, topics, optional home and
+  neighborhood tags. Images are resized and re-encoded in the browser.
+- `/create/video` — 30 seconds / 25 MB, MP4 or WebM, browser-generated poster,
+  real upload progress and cancel, optional transcript, privacy notice.
+- `/watch` — vertical scroll-snap video feed with follow/neighborhood ranking,
+  mute persistence, keyboard controls, reduced-motion and data-saver support.
+- `/posts/[id]` — post detail, likes, threaded comments, property provenance
+  kept separate from the post, author edit/delete, report.
+- `/posts` — community post browse with topic filters and cursor pagination.
+
+Posts appear on profiles, tagged property pages (clearly labelled as community
+content), `/feed`, `/explore` and `/posts`. Tagging a home links to its existing
+profile; it never upgrades the post or the property to Verified.
+
+Video storage sits behind `VideoProvider` in `packages/core`. The current
+implementation is Supabase Storage, with no transcoding. See the Milestone 3
+section of [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the ranking SQL,
+storage/bandwidth estimates, moderation workflow and known video gaps.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/BRAND.md](docs/BRAND.md).

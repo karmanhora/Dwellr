@@ -47,6 +47,12 @@ export async function SiteHeader() {
               Feed
             </Link>
           ) : null}
+          <Link
+            href="/watch"
+            className="hidden text-body-sm font-medium text-stone transition hover:text-ink md:inline"
+          >
+            Watch
+          </Link>
         </div>
 
         <div className="hidden flex-1 justify-center px-6 md:flex">
@@ -67,7 +73,7 @@ export async function SiteHeader() {
               <NotificationBell initialCount={unreadCount} />
               <ButtonLink href="/create" size="sm" className="max-sm:hidden">
                 <PlusIcon size={16} />
-                Post a home
+                Create
               </ButtonLink>
               <AccountMenu
                 name={name}

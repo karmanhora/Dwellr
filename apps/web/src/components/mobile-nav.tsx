@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { CompassIcon, HomeIcon, PlusIcon, UserIcon } from "@/components/ui/icons";
+import { CompassIcon, HomeIcon, PlayIcon, PlusIcon, UserIcon } from "@/components/ui/icons";
 
 type NavItem = {
   href: string;
@@ -32,9 +32,15 @@ export function MobileNav({ username }: { username: string | null }) {
     },
     {
       href: "/create",
-      label: "Post",
+      label: "Create",
       icon: <PlusIcon />,
       match: (path) => path.startsWith("/create"),
+    },
+    {
+      href: "/watch",
+      label: "Watch",
+      icon: <PlayIcon />,
+      match: (path) => path.startsWith("/watch"),
     },
     {
       href: username ? `/u/${username}` : "/sign-in",
@@ -50,7 +56,7 @@ export function MobileNav({ username }: { username: string | null }) {
       aria-label="Primary"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper pb-[env(safe-area-inset-bottom)] md:hidden"
     >
-      <ul className="grid grid-cols-4">
+      <ul className="grid grid-cols-5">
         {items.map((item) => {
           const active = item.match(pathname);
           return (

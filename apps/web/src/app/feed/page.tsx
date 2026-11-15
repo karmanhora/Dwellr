@@ -14,6 +14,7 @@ import {
   followUserAction,
   saveFeedPreferencesAction,
 } from "@/app/social/actions";
+import { PostCard } from "@/components/posts/post-card";
 import { PropertyCard } from "@/components/property/property-card";
 import { Avatar } from "@/components/ui/avatar";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import { Container } from "@/components/ui/container";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { getCurrentUser } from "@/lib/auth";
+import { getPostSummaries } from "@/lib/posts";
 import {
   getFeedPreferences,
   getPersonalizedFeed,
@@ -51,10 +53,11 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
 
   const query = await searchParams;
   const cursor = param(query, "cursor");
-  const [preferences, result, suggested] = await Promise.all([
+  const [preferences, result, suggested, community] = await Promise.all([
     getFeedPreferences(user.id),
     getPersonalizedFeed({ userId: user.id, cursor }),
     getSuggestedPeople(user.id),
+    getPostSummaries({ limit: 4 }),
   ]);
 
   const hasPreferences =
@@ -85,6 +88,31 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
         <p role="alert" className="mt-6 rounded-card bg-danger-soft px-4 py-3 text-body-sm text-danger">
           Those preferences didn&rsquo;t save. Choose up to ten neighborhoods and styles.
         </p>
+      ) : null}
+
+      {community.items.length > 0 ? (
+        <section aria-labelledby="community-feed-heading" className="mt-10 border-b border-line pb-10">
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <div>
+              <h2 id="community-feed-heading" className="text-title font-medium">
+                Community posts
+              </h2>
+              <p className="mt-1 text-caption text-stone">
+                Photos, notes, and videos from people on dwellr. User content, not verified facts.
+              </p>
+            </div>
+            <ButtonLink href="/posts" variant="secondary" size="sm">
+              See all
+            </ButtonLink>
+          </div>
+          <ul className="mt-6 grid gap-x-6 gap-y-8 sm:grid-cols-2 xl:grid-cols-4">
+            {community.items.map((post) => (
+              <li key={post.id}>
+                <PostCard post={post} />
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
 
       <div className="mt-10 grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_20rem]">

@@ -29,10 +29,13 @@ export async function toggleLikeAction(formData: FormData): Promise<void> {
   const user = await getCurrentUser();
   const targetType = readText(formData, "targetType");
   const targetId = readText(formData, "targetId");
-  const next = backTo(formData, `/p/${targetId}`);
+  const fallback = targetType === "post" ? `/posts/${targetId}` : `/p/${targetId}`;
+  const next = backTo(formData, fallback);
 
   if (!user) redirect(`/sign-in?next=${encodeURIComponent(next)}`);
-  if (targetType !== "property" || !isUuid(targetId)) redirect(next);
+  if ((targetType !== "property" && targetType !== "post") || !isUuid(targetId)) {
+    redirect(next);
+  }
 
   const supabase = await createClient();
   const { data: existing } = await supabase
@@ -57,7 +60,8 @@ export async function toggleLikeAction(formData: FormData): Promise<void> {
       });
 
   if (error) console.error("[social] like toggle failed:", error.message);
-  revalidatePath(`/p/${targetId}`);
+  revalidatePath(targetType === "post" ? `/posts/${targetId}` : `/p/${targetId}`);
+  revalidatePath("/watch");
   redirect(next);
 }
 
@@ -96,7 +100,12 @@ export async function createCommentAction(formData: FormData): Promise<void> {
     );
   }
 
-  revalidatePath(`/p/${parsed.data.targetId}`);
+  revalidatePath(
+    parsed.data.targetType === "post"
+      ? `/posts/${parsed.data.targetId}`
+      : `/p/${parsed.data.targetId}`,
+  );
+  revalidatePath("/watch");
   redirect(`${next.split("#")[0]}#comments`);
 }
 
@@ -104,7 +113,11 @@ export async function deleteCommentAction(formData: FormData): Promise<void> {
   const user = await getCurrentUser();
   const commentId = readText(formData, "commentId");
   const targetId = readText(formData, "targetId");
-  const next = backTo(formData, `/p/${targetId}#comments`);
+  const targetType = readText(formData, "targetType") === "post" ? "post" : "property";
+  const next = backTo(
+    formData,
+    targetType === "post" ? `/posts/${targetId}#comments` : `/p/${targetId}#comments`,
+  );
 
   if (!user) redirect(`/sign-in?next=${encodeURIComponent(next)}`);
   if (!isUuid(commentId)) redirect(next);
@@ -118,7 +131,7 @@ export async function deleteCommentAction(formData: FormData): Promise<void> {
     .select("id");
 
   if (error) console.error("[social] delete comment failed:", error.message);
-  revalidatePath(`/p/${targetId}`);
+  revalidatePath(targetType === "post" ? `/posts/${targetId}` : `/p/${targetId}`);
   redirect(next);
 }
 

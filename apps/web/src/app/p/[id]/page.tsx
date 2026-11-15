@@ -22,6 +22,7 @@ import {
   deleteCommentAction,
   toggleLikeAction,
 } from "@/app/social/actions";
+import { PostCard } from "@/components/posts/post-card";
 import { ReportButton } from "@/components/social/report-button";
 import { DeletePropertyButton } from "@/components/property/delete-property-button";
 import { PropertyGallery } from "@/components/property/property-gallery";
@@ -34,6 +35,7 @@ import { ArrowLeftIcon, HeartIcon, MapPinIcon, PencilIcon } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { getCurrentUser } from "@/lib/auth";
 import { getWritableCollections, isPropertySaved } from "@/lib/collections";
+import { getPostSummaries } from "@/lib/posts";
 import { getPropertyDetail } from "@/lib/properties";
 import { getComments, getLikeSummaries } from "@/lib/social";
 import { avatarPublicUrl, propertyPhotoUrl } from "@/lib/storage";
@@ -98,11 +100,12 @@ export default async function PropertyPage({ params, searchParams }: PropertyPag
   const freshness = getListingFreshness(property.createdAt, lastConfirmedAt);
   const user = await getCurrentUser();
   const isOwner = Boolean(user && user.id === property.createdBy);
-  const [isSaved, collections, likeSummaries, comments] = await Promise.all([
+  const [isSaved, collections, likeSummaries, comments, communityPosts] = await Promise.all([
     user ? isPropertySaved(property.id, user.id) : Promise.resolve(false),
     user ? getWritableCollections(user.id) : Promise.resolve([]),
     getLikeSummaries([property.id], user?.id ?? null),
     getComments("property", property.id),
+    getPostSummaries({ propertyId: property.id, limit: 6 }),
   ]);
   const likes = likeSummaries.get(property.id) ?? { count: 0, likedByMe: false };
   const paramsValue = await searchParams;
@@ -224,9 +227,46 @@ export default async function PropertyPage({ params, searchParams }: PropertyPag
           </section>
 
           <section
+            aria-labelledby="community-posts-heading"
+            className="order-4 border-t border-line pt-8 lg:order-none lg:border-0 lg:pt-10"
+          >
+            <div className="flex flex-wrap items-baseline justify-between gap-3">
+              <h2 id="community-posts-heading" className="text-title font-medium">
+                Community posts
+              </h2>
+              <span className="text-caption text-stone">
+                {communityPosts.items.length}{" "}
+                {communityPosts.items.length === 1 ? "post" : "posts"}
+              </span>
+            </div>
+            <p className="mt-2 max-w-prose text-body-sm leading-relaxed text-stone">
+              These posts were written by people and tagged to this home. They are user content,
+              not verified property facts, and do not change this home&rsquo;s labels.
+            </p>
+
+            {communityPosts.failed ? (
+              <p role="alert" className="mt-4 text-body-sm text-danger">
+                Community posts didn&rsquo;t load.
+              </p>
+            ) : communityPosts.items.length === 0 ? (
+              <p className="mt-5 rounded-card border border-dashed border-line-strong bg-mist/40 px-4 py-6 text-body-sm text-stone">
+                No community posts have tagged this home yet.
+              </p>
+            ) : (
+              <ul className="mt-6 grid gap-x-5 gap-y-8 sm:grid-cols-2">
+                {communityPosts.items.map((post) => (
+                  <li key={post.id}>
+                    <PostCard post={post} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section
             id="comments"
             aria-labelledby="comments-heading"
-            className="order-4 border-t border-line pt-8 lg:order-none lg:border-0 lg:pt-10"
+            className="order-5 border-t border-line pt-8 lg:order-none lg:border-0 lg:pt-10"
           >
             <div className="flex flex-wrap items-baseline justify-between gap-3">
               <h2 id="comments-heading" className="text-title font-medium">

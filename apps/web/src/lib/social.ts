@@ -234,6 +234,24 @@ export async function getNotificationsWithStatus(
   );
 
   const properties = await getPropertiesByIds(propertyIds);
+  const postIds = Array.from(
+    new Set(
+      rows
+        .filter((row) => row.target_type === "post" && row.target_id)
+        .map((row) => row.target_id as string),
+    ),
+  );
+  const posts = new Map<string, string>();
+  if (postIds.length > 0) {
+    const { data: postRows } = await supabase
+      .from("posts")
+      .select("id, caption")
+      .in("id", postIds)
+      .is("deleted_at", null);
+    for (const post of (postRows ?? []) as { id: string; caption: string }[]) {
+      posts.set(post.id, post.caption);
+    }
+  }
 
   return {
     items: rows.map((row) => ({
@@ -246,7 +264,14 @@ export async function getNotificationsWithStatus(
       commentId: row.comment_id,
       collectionId: row.collection_id,
       collectionSlug: row.collections?.share_slug ?? null,
-      propertyTitle: row.target_id ? (properties.get(row.target_id)?.title ?? null) : null,
+      propertyTitle:
+        row.target_type === "property" && row.target_id
+          ? (properties.get(row.target_id)?.title ?? null)
+          : null,
+      postCaption:
+        row.target_type === "post" && row.target_id
+          ? (posts.get(row.target_id) ?? null)
+          : null,
       readAt: row.read_at,
       createdAt: row.created_at,
     })),

@@ -11,7 +11,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
 type ReportButtonProps = {
-  targetType: "property" | "comment" | "profile";
+  targetType: "property" | "post" | "comment" | "profile";
   targetId: string;
   label?: string;
 };

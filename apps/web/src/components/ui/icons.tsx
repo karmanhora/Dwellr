@@ -72,6 +72,14 @@ export function CloseIcon(props: IconProps) {
   );
 }
 
+export function PlayIcon({ filled = false, ...props }: IconProps & { filled?: boolean }) {
+  return (
+    <Icon {...props} fill={filled ? "currentColor" : "none"}>
+      <path d="M8 5.5v13l10-6.5-10-6.5Z" />
+    </Icon>
+  );
+}
+
 export function CompassIcon(props: IconProps) {
   return (
     <Icon {...props}>

@@ -581,8 +581,8 @@ RPC; it does not widen the collections policy. Link invites have no
 Likes and comments use `social_target_type` (`property` | `post`) plus
 `target_id`. The database does not use a polymorphic foreign key; instead:
 
-- `assert_social_target` verifies the target exists and rejects `post` with
-  `feature_not_supported` until Milestone 3.
+- `assert_social_target` verifies the target exists; Milestone 3 completes
+  the `post` branch instead of introducing parallel like/comment tables.
 - `social_target_owner` resolves the owner for block checks and notifications.
 - cleanup triggers remove likes, comments, reports and notifications when a
   property is deleted, and reports when a comment is hard-deleted.
@@ -730,8 +730,7 @@ review harness rather than a committed regression suite.
   on the in-app notification, not email.
 - **Rate limiting** — comments are limited in the database; property posts,
   likes, follows, reports and invites still rely on Supabase platform limits.
-- **Posts as targets** — the schema accepts `post` but every resolver rejects it
-  with `feature_not_supported` until Milestone 3.
+- **Posts as targets** — completed in Milestone 3 below.
 - **Edit history** — comments are immutable except for deletion; collection
   activity records the event, not before/after values.
 - **Collection note editing** — item notes still have no authoring UI.
@@ -786,3 +785,248 @@ that field's provenance to `user_submitted` through the existing trigger, so
 the overall badge can only become **Verified** through a server-side
 integration. Confirmation counts and freshness labels are never used as a
 substitute for the Verified badge.
+
+## Milestone 3: community posts and short video
+
+Milestone 3 adds user-generated posts (`text`, `photo`, `video`), thirty-second
+home videos, an explainable vertical `/watch` feed, a unified create hub, and
+the trust-and-safety controls that short-form video needs. Posts are community
+content. They never write `property_field_provenance` and never change a
+property's Verified or Community label.
+
+### Migration
+
+`supabase/migrations/20261116090000_posts_and_videos.sql` creates:
+
+- **`posts`** — author, `post_kind` (`text`, `photo`, `video`), caption ≤ 2200,
+  up to three categories from a fixed enum, optional property, neighborhood,
+  city, timestamps, and `deleted_at`/`deleted_by` for soft deletion. Text posts
+  require a caption. `kind`, author and deletion fields are not in the client
+  update grant.
+- **`post_photos`** — one to eight re-encoded images per photo post, ordered
+  `position`, alt text, dimensions and `size_bytes`. Paths must match
+  `<author-uuid>/<uuid>.(jpg|jpeg|png|webp)`.
+- **`videos`** — exactly one per video post: storage path, poster path,
+  duration, dimensions, bytes, MIME type, optional captions text, status.
+  Database checks repeat the 30-second, 25 MB, 4096 px and MP4/WebM limits.
+- **`user_media_usage`** — trigger-maintained photo and video bytes per user.
+  The client can read only its own row; no write grant exists.
+- **`create_post(...)`** — a `security definer` RPC that checks the session
+  identity, rate limits, media ownership and quotas, then inserts the post and
+  every media row in one transaction.
+- **`soft_delete_post(uuid)`** — author-only RPC. It deletes media rows (which
+  releases quota) and leaves a soft-deleted post tombstone.
+- **`watch_posts`** — a security-invoker ranking view. It returns relevance and
+  an engagement score; it never returns a hidden score.
+- Post photo and video buckets, block-aware post/media policies, and the
+  completed `post` branch of `assert_social_target`, `social_target_owner` and
+  `validate_report_target`.
+
+A deferred constraint trigger verifies at commit that a text post has no media,
+a photo post has 1–8 photos and no video, and a video post has exactly one
+video and no photos. Even a future writer that bypasses `create_post` cannot
+commit an orphaned video post.
+
+### Why an RPC instead of direct inserts
+
+A post and its media must be atomic. With three tables and a deferred media
+invariant, a direct PostgREST client could otherwise create a video post with
+no video row, or attach somebody else's storage path between two requests.
+`create_post` makes the ownership, quota and rate checks part of the same
+transaction as the insert. Clients have SELECT only on `posts`; no INSERT or
+DELETE grant exists. The author update grant is column-limited to caption,
+categories, property, neighborhood, city and `updated_at`.
+
+Tradeoff: editing media is not supported. A new photo or video means delete and
+repost. That keeps the media invariant simple and avoids an upload-replacement
+state machine in this milestone.
+
+### Video storage boundary
+
+`packages/core/src/types/video-provider.ts` defines `VideoProvider`:
+`upload`, `remove`, `playbackUrl`, `posterUrl`. The web implementation,
+`SupabaseVideoProvider`, uses Supabase Storage and an XHR upload so the create
+screen gets real progress and a working cancel button. A future Mux or
+Cloudflare Stream implementation can replace it without changing the post
+schema, Server Actions or player overlay.
+
+There is deliberately **no server-side transcoding** and no paid video service
+in this milestone. Browser support is checked by decoding the selected file in
+a `<video>` element, then rejecting unsupported type, over 30 seconds, over
+25 MB, or dimensions over 4096 px. The original bytes are uploaded unchanged.
+The database trusts the client-declared duration and dimensions after range
+checks; it cannot probe the file. That is a documented gap, not a verification
+claim.
+
+### Upload privacy
+
+Photo posts reuse the browser pipeline from property photos: resize to a 2000 px
+long edge, draw to canvas, and re-encode as WebP. The original file, including
+EXIF and GPS, is never uploaded.
+
+Videos are different. dwellr cannot yet strip video container metadata. The
+upload screen therefore shows a prominent notice: do not show house numbers,
+license plates, mail, or anything that identifies where someone lives, and the
+original file keeps what the camera recorded. This is a known gap.
+
+### Limits, quotas and abuse controls
+
+| Control | Limit | Enforced by |
+| --- | --- | --- |
+| Photos per post | 8 | Zod, RPC, `post_photos` trigger |
+| Photo size | 5 MB | Browser re-encode, bucket, table check |
+| Video duration | 30 s | Browser decode, input check, table check, RPC |
+| Video size | 25 MB | Browser, bucket, table check, RPC |
+| Video type | MP4 (H.264) or WebM | Input check, bucket MIME allowlist, table check |
+| Posts per user | 10 per rolling hour | `create_post` (database) |
+| Videos per user | 3 per rolling day | `create_post` (database) |
+| Photo storage | 200 MB per user | Quota table + trigger + RPC |
+| Video storage | 500 MB per user | Quota table + trigger + RPC |
+
+The PostgreSQL limits are authoritative. The UI repeats them with
+`canPublishPost` so people get an explanation before uploading, but a direct
+PostgREST call hits the same checks. Quotas are abuse ceilings, not capacity
+planning: 1,000 users at the full video allowance would be 500 GB, far beyond
+the current hosted plan.
+
+### Storage policies
+
+| Bucket | Public read | Size / types | Write policy |
+| --- | --- | --- | --- |
+| `post-photos` | yes | 5 MiB; JPEG, PNG, WebP | insert/update/delete only under `auth.uid()/…` |
+| `post-videos` | yes | 25 MiB; `video/mp4`, `video/webm` | insert/update/delete only under `auth.uid()/…` |
+
+Paths are server-generated as `<user-id>/<uuid>.<ext>`. The browser never
+supplies a filename. Three checks agree: the Storage prefix policy, the Server
+Action prefix check, and the database triggers/RPC. The public bucket means a
+person who already has an object URL can still fetch that object; blocking
+hides rows and app surfaces, not a previously copied CDN URL. Private buckets
+with signed URLs are the next step if strict block-level media secrecy is
+required.
+
+### Explainable ranking
+
+`watch_posts` is a security-invoker view over posts, follows and feed
+preferences. Relevance is:
+
+| Relevance | Meaning |
+| --- | --- |
+| 3 | followed author **and** chosen neighborhood/property style |
+| 2 | followed author |
+| 1 | chosen neighborhood or tagged-home style match |
+| 0 | everything else |
+
+Ordering is relevance descending, engagement descending
+(`likes + 2 × live comments`), then `created_at` and `post_id` descending. The
+cursor is the validated tuple `relevance|engagement|createdAt|postId`. It is
+keyset pagination, not offset paging, so new posts do not shift a page.
+
+No clicks, watch time, completion rate or inferred interests are collected.
+The watch overlay prints the relevance reason under each video. The ranking is
+SQL one can read and audit.
+
+### `/watch` behavior
+
+The player is a vertical scroll-snap feed on mobile and a centered player with
+a details card on desktop. `IntersectionObserver` at 60% visibility decides
+which video is active. Only the active video plays; videos are paused when
+they leave view, and only the current/next items preload metadata.
+
+- Autoplay is muted and is disabled under `prefers-reduced-motion` or when the
+  browser exposes `saveData`.
+- Tap the player to play/pause, use the Sound button to unmute, and the mute
+  choice persists in `localStorage` under `dwellr:watch:muted`.
+- Keyboard: Up/Down or PageUp/PageDown move between videos, Space/K toggles
+  play, M toggles mute. The feed container has an accessible instruction label.
+- The overlay includes author, caption, topics, like, comments, report, share,
+  optional collection save when a home is tagged, and a prominent View property
+  link.
+- The optional captions field is stored as plain text and shown as a
+  transcript. It is not a WebVTT track; timed captions are a future step.
+- Skeleton, empty, error and end-of-feed states are implemented. Cursor
+  pagination is used both for the first page and `/api/watch` "load more".
+
+### Create flow
+
+`/create` is a three-option hub: List a home (`/create/home`), Share a post
+(`/create/post`), Share a video (`/create/video`). The property form moved to
+`/create/home`; the hub is linked from the header, mobile navigation and account
+menu. Property tagging searches existing dwellr properties through a
+public-read route (`/api/properties/search`) and never requires a tag.
+
+### Trust, safety and moderation workflow
+
+- Likes, comments, reports and notifications use the Milestone 2 polymorphic
+  target tables with the `post` branch completed. There is no duplicate social
+  system.
+- Reports add `personal_information` ("Shows personal or identifying
+  information"). Reporters see only their own reports; status remains
+  server-side.
+- A block hides posts, their photos/videos and comments in both directions,
+  removes them from `watch_posts`, and prevents new likes/comments. Existing
+  direct public Storage URLs are the documented exception above.
+- Deleting a post removes its Storage objects first, then calls
+  `soft_delete_post`; media rows are deleted so quota is released. The post row
+  remains as a tombstone and its comments, likes, reports and notifications are
+  hidden/cleaned up.
+- Moderation today is manual: reports land in `reports` with status `open`, and
+  an operator reviews them through the Supabase dashboard/SQL using a
+  service-role process. There is no moderator screen, assignment, audit log or
+  status transition UI.
+
+Known gaps:
+
+- **No video scanning** — no NSFW, malware, CSAM or reverse-image detection.
+- **No metadata stripping** — video container metadata (including location, if
+  the camera wrote it) remains in the uploaded file.
+- **No transcoding** — files are not normalized, resized or stripped; an MP4
+  that claims H.264 but cannot decode will be rejected client-side, while a
+  direct PostgREST caller can still register range-valid metadata for bytes the
+  database cannot inspect.
+- **No admin tooling** — no queue, no takedown workflow, no appeals.
+- **Collections are property-only** — the watch overlay offers collection
+  saving only when the video tags a property. Untagged videos can be liked,
+  commented, shared and reported, but not added to a collection.
+- **Public buckets** — direct media URLs are not block-aware.
+- **No orphan sweep** — a failed publish removes the paths it knows about, but a
+  crash between upload and submit can leave an unreferenced object. A scheduled
+  storage reconciliation job is needed.
+- **Edit media** — not supported; delete and repost.
+- **Timed captions** — plain transcript only.
+
+### Capacity at 1,000 active users
+
+Assumptions: 1,000 monthly active people, 20% create a photo post per month
+with four 350 KB WebP images, 10% publish one 10 MB video per month, and 100
+people watch five videos on a given day. Real usage will vary; these are
+planning numbers, not measurements.
+
+Storage growth:
+
+- Photo posts: 200 × 4 × 350 KB ≈ **280 MB/month**.
+- Videos: 100 × 10 MB = **1 GB/month**.
+- Posters: ~100 × 150 KB ≈ **15 MB/month**.
+- Total: about **1.3 GB/month**, roughly **15.6 GB after a year** before
+  deletions.
+
+Bandwidth:
+
+- Video: 100 daily viewers × 5 videos × 10 MB ≈ **5 GB/day**, or
+  **150 GB/month** if every view fetches the full file. Mobile data-saver and
+  reduced-motion suppress autoplay but do not reduce an explicit play.
+- Photo feed: 500 daily sessions × 20 cards × 200 KB ≈ **2 GB/day**, though
+  `next/image` and HTTP caching reduce repeat transfer.
+
+The Supabase Free plan (checked November 2026) includes **1 GB file storage**
+and **5 GB egress plus 5 GB cached egress** per organization, with free
+projects paused after a week of inactivity. One month of the video estimate
+exceeds both storage and bandwidth. The Pro plan starts at $25/month with
+100 GB storage and 250 GB egress (250 GB cached egress), which fits this
+modest estimate but leaves little headroom for a successful video feed.
+
+The 200 MB/500 MB per-user quotas bound abuse, not total cost. The likely next
+architecture is direct-to-object-storage upload plus a video platform (Mux or
+Cloudflare Stream) for transcoding, adaptive bitrate, signed playback and
+per-minute delivery; `VideoProvider` exists so that swap does not touch the
+post model. That is a paid-service decision for a later milestone and has not
+been added now.

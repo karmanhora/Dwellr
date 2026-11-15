@@ -12,6 +12,7 @@ import {
   followUserAction,
   unfollowUserAction,
 } from "@/app/social/actions";
+import { PostCard } from "@/components/posts/post-card";
 import { PropertyCard } from "@/components/property/property-card";
 import { ReportButton } from "@/components/social/report-button";
 import { Avatar } from "@/components/ui/avatar";
@@ -19,6 +20,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getCurrentUser } from "@/lib/auth";
+import { getPostSummaries } from "@/lib/posts";
 import { getProfileByUsername, getPropertiesByCreator } from "@/lib/properties";
 import {
   getBlockState,
@@ -52,8 +54,9 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
   if (!profile) notFound();
 
   const user = await getCurrentUser();
-  const [posts, query, counts, following, followers, blocked] = await Promise.all([
+  const [homes, communityPage, query, counts, following, followers, blocked] = await Promise.all([
     getPropertiesByCreator(profile.id),
+    getPostSummaries({ authorId: profile.id, limit: 9 }),
     searchParams,
     getFollowCounts(profile.id),
     getFollowingProfiles(profile.id),
@@ -65,6 +68,8 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
   const isOwner = Boolean(user && user.id === profile.id);
   const updated = (Array.isArray(query.updated) ? query.updated[0] : query.updated) === "1";
   const followed = (Array.isArray(query.followed) ? query.followed[0] : query.followed) === "1";
+  const postDeleted =
+    (Array.isArray(query.postDeleted) ? query.postDeleted[0] : query.postDeleted) === "1";
 
   return (
     <Container className="py-10 sm:py-14">
@@ -83,6 +88,11 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
       {followed ? (
         <p role="status" className="mt-6 rounded-card bg-moss-soft px-4 py-3 text-body-sm text-moss">
           You are following {profile.displayName ?? profile.username}.
+        </p>
+      ) : null}
+      {postDeleted ? (
+        <p role="status" className="mt-6 rounded-card bg-moss-soft px-4 py-3 text-body-sm text-moss">
+          That post and its media were deleted.
         </p>
       ) : null}
 
@@ -117,11 +127,11 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
             Homes posted
           </h2>
           <span className="text-caption text-stone">
-            {posts.length} {posts.length === 1 ? "home" : "homes"}
+            {homes.length} {homes.length === 1 ? "home" : "homes"}
           </span>
         </div>
 
-        {posts.length === 0 ? (
+        {homes.length === 0 ? (
           <div className="mt-6">
             <EmptyState
               title={isOwner ? "You haven't posted a home yet." : "No homes posted yet."}
@@ -132,8 +142,8 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
               }
               action={
                 isOwner ? (
-                  <ButtonLink href="/create" size="sm">
-                    Post a home
+                  <ButtonLink href="/create/home" size="sm">
+                    List a home
                   </ButtonLink>
                 ) : undefined
               }
@@ -141,13 +151,55 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
           </div>
         ) : (
           <ul className="mt-8 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-            {posts.map((property, index) => (
+            {homes.map((property, index) => (
               <li key={property.id}>
                 <PropertyCard property={property} priority={index < 3} />
               </li>
             ))}
           </ul>
         )}
+      </section>
+
+      <section aria-labelledby="community-posts-heading" className="mt-14 border-t border-line pt-10">
+        <div className="flex items-baseline justify-between gap-4">
+          <h2 id="community-posts-heading" className="text-title font-medium">
+            Community posts
+          </h2>
+          <span className="text-caption text-stone">
+            {communityPage.items.length} {communityPage.items.length === 1 ? "post" : "posts"}
+          </span>
+        </div>
+        <p className="mt-1 text-caption text-stone">
+          Written by {getDisplayName(profile)}. Not verified property facts.
+        </p>
+
+        {communityPage.failed ? (
+          <p role="alert" className="mt-5 text-body-sm text-danger">
+            Community posts didn&rsquo;t load.
+          </p>
+        ) : communityPage.items.length === 0 ? (
+          <p className="mt-5 rounded-card border border-dashed border-line-strong bg-mist/40 px-4 py-6 text-body-sm text-stone">
+            {isOwner
+              ? "You haven't shared a post yet. Photos, notes, and short videos will appear here."
+              : "No community posts yet."}
+          </p>
+        ) : (
+          <ul className="mt-8 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+            {communityPage.items.map((post) => (
+              <li key={post.id}>
+                <PostCard post={post} />
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {isOwner ? (
+          <div className="mt-5">
+            <ButtonLink href="/create/post" variant="secondary" size="sm">
+              Share a post
+            </ButtonLink>
+          </div>
+        ) : null}
       </section>
 
       <div className="mt-14 grid gap-10 border-t border-line pt-10 sm:grid-cols-2">
@@ -211,7 +263,7 @@ function ProfileHeader({
               Edit profile
             </ButtonLink>
             <ButtonLink href="/create" size="sm">
-              Post a home
+              Create
             </ButtonLink>
           </div>
         ) : null}

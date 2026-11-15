@@ -72,6 +72,12 @@ export function AccountMenu({ name, username, avatarUrl }: AccountMenuProps) {
           <Link href="/feed" role="menuitem" className={itemClass} onClick={() => setOpen(false)}>
             Your feed
           </Link>
+          <Link href="/watch" role="menuitem" className={itemClass} onClick={() => setOpen(false)}>
+            Watch homes
+          </Link>
+          <Link href="/posts" role="menuitem" className={itemClass} onClick={() => setOpen(false)}>
+            Community posts
+          </Link>
           <Link href="/notifications" role="menuitem" className={itemClass} onClick={() => setOpen(false)}>
             Notifications
           </Link>
@@ -79,7 +85,7 @@ export function AccountMenu({ name, username, avatarUrl }: AccountMenuProps) {
             Saved homes
           </Link>
           <Link href="/create" role="menuitem" className={itemClass} onClick={() => setOpen(false)}>
-            Post a home
+            Create
           </Link>
           <Link
             href="/settings/profile"
