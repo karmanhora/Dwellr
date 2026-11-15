@@ -38,7 +38,8 @@ powershell -ExecutionPolicy Bypass -File scripts/generate-brand-assets.ps1
 
 The in-app logo (`src/components/brand/logo.tsx`) draws the supplied mark and
 wordmark as one inline SVG lockup, so it stays crisp and inherits `currentColor`.
-Its geometry lives in `logo-paths.ts` and must stay identical to the brand SVGs.
+Its outline geometry lives in `logo-paths.ts` and must stay identical to the
+outline in the brand SVGs.
 
 ### Provenance
 
@@ -49,7 +50,7 @@ earlier reconstruction from the brand description.
 ### Usage rules
 
 - **Clear space:** at least the height of the doorway on every side.
-- **Minimum sizes:** mark 16 px; wordmark 72 px wide; lockup 96 px wide.
+- **Minimum sizes:** mark 16 px; wordmark 72 px wide; lockup 90 px wide.
 - **Colour:** ink on white/`mist`, or paper (white) on ink. No other colours,
   no gradients, no shadows, no outlines.
 - **Don't:** stretch, rotate, outline, add effects, set the wordmark in another

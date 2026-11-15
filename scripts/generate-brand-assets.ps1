@@ -2,8 +2,7 @@
 # Windows PowerShell 5.1+ (.NET System.Drawing). Run from the repo root:
 #   powershell -ExecutionPolicy Bypass -File scripts/generate-brand-assets.ps1
 #
-# The mark geometry below is the house portion of
-# apps/web/public/brand/dwellr-mark.svg and must stay in sync with it.
+# The mark geometry is read from apps/web/public/brand/dwellr-mark.svg.
 
 Add-Type -AssemblyName System.Drawing
 
@@ -19,12 +18,19 @@ foreach ($dir in @($brandDir, $appDir)) {
 $ink = [System.Drawing.ColorTranslator]::FromHtml("#222926")
 $paper = [System.Drawing.Color]::White
 
-# House path from the supplied lockup, cropped to the mark viewBox.
-$markPath = "M430.18 398C430.35 399.03 430.52 400.06 430.69 401.08C430.7 428.73 430.7 456.39 430.71 484.04C430.55 485.36 430.39 486.68 430.24 488C428.4 492.95 426.76 497.62 422.38 500.92C415.04 506.45 392.97 506.19 384.14 504.5C388.41 497.11 390.99 490.42 392.22 481.86C392.38 480.57 392.54 479.29 392.7 478C392.89 475.67 393.09 473.33 393.29 471C393.45 469.33 393.61 467.67 393.76 466C393.76 457 393.76 448 393.75 439C393.6 438.01 393.44 437.03 393.29 436.04C391.65 418.33 381.05 412.88 367.93 403.54C362.12 399.4 356.52 394.9 350.53 391C344.06 386.78 337.73 380.86 329.5 381.21C322.36 381.51 315.79 386.82 309.96 390.47C299.33 397.12 288.77 403.94 278.2 410.71C273.36 413.82 267.47 416.72 263.81 421.29C257.8 428.78 259.13 438.51 259.1 447.5C259.06 459.5 259.09 471.5 259.13 483.5C259.15 490.45 259.7 497.63 258.72 504.5C249.71 506.02 230.01 506.42 223.58 498.89C217.57 491.84 219.71 480.04 219.75 471.5C219.83 454.17 219.81 436.83 219.75 419.5C219.71 411.06 218.22 400.72 221.21 392.69C224.11 384.89 230.24 380.82 236.61 376.07C245.59 369.37 254.68 362.83 263.81 356.33C276.05 347.63 288 338.4 300.4 329.91C307.03 325.38 313.15 319.75 321.5 319.03C334.26 317.94 343.34 326.57 353.08 333.44C368.32 344.19 383.42 355.09 398.58 365.95C407.81 372.57 420.51 379.01 426.59 388.9C428.34 391.74 428.98 394.93 430.18 398ZM318 418.82C319.33 418.8 320.67 418.77 322 418.75C331.7 422.01 350.56 433.11 355.02 442.53C358.19 449.24 357.1 457.29 357.1 464.5C357.09 477.68 358.18 491.41 356.78 504.5C342.85 504.5 328.91 504.5 314.98 504.5C314.21 496.91 314.71 489.14 314.7 481.5C314.67 467.83 314.63 454.17 314.68 440.5C314.7 434.06 312.39 423.16 318 418.82Z"
-$viewX = 214.0
-$viewY = 312.0
-$viewWidth = 224.0
-$viewHeight = 202.0
+# Read geometry from the canonical SVG so the exported assets cannot drift.
+$markSvg = Get-Content (Join-Path $brandDir "dwellr-mark.svg") -Raw
+$markMatch = [regex]::Match($markSvg, '<path[^>]*d="([^"]+)"')
+$viewBoxMatch = [regex]::Match($markSvg, 'viewBox="([^"]+)"')
+if (-not $markMatch.Success -or -not $viewBoxMatch.Success) {
+  throw "Could not read the mark path and viewBox from dwellr-mark.svg"
+}
+$markPath = $markMatch.Groups[1].Value
+$viewBox = $viewBoxMatch.Groups[1].Value.Split(" ")
+$viewX = [double]$viewBox[0]
+$viewY = [double]$viewBox[1]
+$viewWidth = [double]$viewBox[2]
+$viewHeight = [double]$viewBox[3]
 
 function New-MarkPath {
   param([double]$Scale, [double]$OffsetX, [double]$OffsetY)

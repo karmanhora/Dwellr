@@ -1,10 +1,6 @@
 import type { SVGProps } from "react";
 
-import {
-  DWELLR_LOCKUP_DETAIL_PATH,
-  DWELLR_LOCKUP_PATH,
-  DWELLR_MARK_PATH,
-} from "@/components/brand/logo-paths";
+import { DWELLR_LOCKUP_PATH, DWELLR_MARK_PATH } from "@/components/brand/logo-paths";
 
 /**
  * The house portion of public/brand/dwellr-mark.svg, drawn inline so it can
@@ -14,13 +10,12 @@ export function HouseMark({ className, ...props }: SVGProps<SVGSVGElement>) {
   return (
     <svg
       viewBox="214 312 224 202"
-      fill="none"
       aria-hidden="true"
       focusable="false"
       className={className}
       {...props}
     >
-      <path fill="currentColor" fillRule="evenodd" clipRule="evenodd" d={DWELLR_MARK_PATH} />
+      <path fill="currentColor" fillRule="evenodd" d={DWELLR_MARK_PATH} />
     </svg>
   );
 }
@@ -45,7 +40,6 @@ export function Logo({ size = "md", className = "" }: LogoProps) {
     <span className={`inline-flex items-center text-ink ${className}`}>
       <svg
         viewBox="214 312 914 202"
-        fill="none"
         aria-hidden="true"
         focusable="false"
         className={`w-auto shrink-0 ${sizes[size]}`}
@@ -53,14 +47,7 @@ export function Logo({ size = "md", className = "" }: LogoProps) {
         <path
           fill="currentColor"
           fillRule="evenodd"
-          clipRule="evenodd"
           d={DWELLR_LOCKUP_PATH}
-        />
-        <path
-          fill="currentColor"
-          fillRule="evenodd"
-          clipRule="evenodd"
-          d={DWELLR_LOCKUP_DETAIL_PATH}
         />
       </svg>
       <span className="sr-only">dwellr</span>
