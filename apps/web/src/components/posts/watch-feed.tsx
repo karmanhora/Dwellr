@@ -131,7 +131,7 @@ function WatchDetails({
           <form action={toggleLikeAction}>
             <input type="hidden" name="targetType" value="post" />
             <input type="hidden" name="targetId" value={post.id} />
-            <input type="hidden" name="next" value={`/posts/${post.id}`} />
+            <input type="hidden" name="next" value="/watch" />
             <Button
               type="submit"
               variant="ghost"

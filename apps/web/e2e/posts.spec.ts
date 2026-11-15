@@ -107,7 +107,7 @@ test("create photo and video posts, discover them, watch, like, comment and tag 
   await page.goto("/create/post");
   await page.locator("#post-photo-input").setInputFiles(fixture);
   await expect(page.getByText("1 of 1")).toBeVisible({ timeout: 45_000 });
-  await page.getByLabel("Caption").fill(photoCaption);
+  await page.getByRole("textbox", { name: "Caption", exact: true }).fill(photoCaption);
   await page.getByRole("button", { name: "Renovation" }).click();
   await tagHome(page);
   await page.getByRole("button", { name: "Publish post" }).click();
@@ -130,7 +130,7 @@ test("create photo and video posts, discover them, watch, like, comment and tag 
   await expect(page.getByText("Video uploaded. Add a caption and publish.")).toBeVisible({
     timeout: 90_000,
   });
-  await page.getByLabel("Caption", { exact: true }).fill(videoCaption);
+  await page.getByRole("textbox", { name: "Caption", exact: true }).fill(videoCaption);
   await page.getByRole("button", { name: "Walkthrough", exact: true }).click();
   await page.getByLabel("Captions or transcript").fill("A test walkthrough with no audio.");
   await tagHome(page);
@@ -150,17 +150,19 @@ test("create photo and video posts, discover them, watch, like, comment and tag 
   // The video appears in the vertical watch feed with its property tag.
   await page.goto("/watch");
   await expect(page.getByRole("heading", { name: "Homes in motion." })).toBeVisible();
-  const watchVideo = page.locator("video").first();
+  const watchArticle = page.getByRole("article", { name: new RegExp(videoCaption) });
+  await expect(watchArticle).toBeVisible();
+  const watchVideo = watchArticle.locator("video");
   await expect(watchVideo).toBeVisible();
   await expect(watchVideo).toHaveAttribute("src", /post-videos/);
-  await page.getByRole("button", { name: "Sound off" }).last().click();
-  await expect(page.getByRole("button", { name: "Sound on" }).last()).toBeVisible();
-  await page.getByRole("button", { name: "Tap to play or pause" }).last().click();
-  await page.getByRole("button", { name: "Like video" }).last().click();
-  await expect(page.getByRole("button", { name: "Unlike video" }).last()).toBeVisible();
+  await watchArticle.getByRole("button", { name: "Sound off" }).click();
+  await expect(watchArticle.getByRole("button", { name: "Sound on" })).toBeVisible();
+  await watchArticle.getByRole("button", { name: "Tap to play or pause" }).click();
+  await watchArticle.getByRole("button", { name: "Like video" }).click();
+  await expect(watchArticle.getByRole("button", { name: "Unlike video" })).toBeVisible();
 
   // Comment from the watch overlay, which lands on the post.
-  await page.getByRole("link", { name: "Comment", exact: true }).last().click();
+  await watchArticle.getByRole("link", { name: "Comment", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/posts/${videoPostId}#comments`));
   await page.getByLabel("Add a comment").fill(comment);
   await page.getByRole("button", { name: "Post comment" }).click();
@@ -174,7 +176,7 @@ test("create photo and video posts, discover them, watch, like, comment and tag 
   // Author edit and delete.
   await page.goto(photoPostUrl);
   await page.getByRole("link", { name: "Edit" }).click();
-  await page.getByLabel("Caption", { exact: true }).fill(`${photoCaption} edited`);
+  await page.getByRole("textbox", { name: "Caption", exact: true }).fill(`${photoCaption} edited`);
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText(`${photoCaption} edited`)).toBeVisible();
 

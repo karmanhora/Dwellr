@@ -29,10 +29,10 @@ async function signUp(page: Page, email: string, username: string, displayName: 
 }
 
 async function postHome(page: Page, title: string, price: string) {
-  await page.goto("/create");
+  await page.goto("/create/home");
   // Wait for hydration before handing the file to the controlled input.
   await page.getByRole("button", { name: "Account menu" }).click();
-  await expect(page.getByRole("menuitem", { name: "Post a home" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Create", exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
 
   await page.locator("#photo-input").setInputFiles(fixture);

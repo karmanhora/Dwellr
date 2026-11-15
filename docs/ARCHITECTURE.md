@@ -925,6 +925,11 @@ No clicks, watch time, completion rate or inferred interests are collected.
 The watch overlay prints the relevance reason under each video. The ranking is
 SQL one can read and audit.
 
+Signed-out viewers get a recency-only page read directly from `posts`. The
+ranking view joins follow and preference tables that anonymous callers have no
+privilege on; a public fallback avoids widening those table grants just to
+render `/watch` without a session.
+
 ### `/watch` behavior
 
 The player is a vertical scroll-snap feed on mobile and a centered player with

@@ -61,6 +61,7 @@ let firstCommentId = null;
 let photoPath = null;
 let avatarPath = null;
 let postId = null;
+let photoPostId = null;
 let videoPostId = null;
 let postPhotoPath = null;
 let posterPath = null;
@@ -1409,6 +1410,7 @@ try {
     p_video: null,
   });
   check("an author publishes a photo post", !photoPost.error, photoPost.error?.message);
+  photoPostId = photoPost.data;
 
   const directPhotoRow = await owner.from("post_photos").insert({
     post_id: photoPost.data ?? uuid(),
@@ -1657,6 +1659,19 @@ try {
     .eq("target_id", postId);
   check("comments on a soft-deleted post are hidden", deletedPostComments.data?.length === 0);
 
+  const ownerDeletePhotoPost = await owner.rpc("soft_delete_post", { p_post_id: photoPostId });
+  check("an author deletes a photo post", !ownerDeletePhotoPost.error, ownerDeletePhotoPost.error?.message);
+
+  const retainedPostReport = await stranger
+    .from("reports")
+    .select("id, target_type")
+    .eq("target_id", postId);
+  check(
+    "a report survives a soft-deleted post for moderation",
+    retainedPostReport.data?.length === 1,
+    JSON.stringify(retainedPostReport.data),
+  );
+
   const ownerDeleteVideo = await owner.rpc("soft_delete_post", { p_post_id: videoPostId });
   check("an author deletes a video post", !ownerDeleteVideo.error, ownerDeleteVideo.error?.message);
   const deletedVideoRead = await anon.from("videos").select("id").eq("post_id", videoPostId);
@@ -1720,8 +1735,14 @@ try {
     .eq("target_id", property.data.id);
   check("notifications are cleaned up with the property", socialNotificationsAfterDelete.data?.length === 0);
 
-  const commentReportsAfterDelete = await stranger.from("reports").select("id");
-  check("reports are cleaned up when their target is deleted", commentReportsAfterDelete.data?.length === 0);
+  const commentReportsAfterDelete = await stranger
+    .from("reports")
+    .select("id")
+    .eq("target_id", property.data.id);
+  check(
+    "reports are cleaned up when their property target is deleted",
+    commentReportsAfterDelete.data?.length === 0,
+  );
 
   const confirmationsAfterDelete = await anon
     .from("property_confirmations")
@@ -1755,6 +1776,7 @@ try {
   if (propertyId) await owner.from("properties").delete().eq("id", propertyId);
   if (strangerPostId) await stranger.rpc("soft_delete_post", { p_post_id: strangerPostId });
   if (postId) await owner.rpc("soft_delete_post", { p_post_id: postId });
+  if (photoPostId) await owner.rpc("soft_delete_post", { p_post_id: photoPostId });
   if (videoPostId) await owner.rpc("soft_delete_post", { p_post_id: videoPostId });
   if (photoPath) await owner.storage.from(photoBucket).remove([photoPath]);
   if (avatarPath) await owner.storage.from(avatarBucket).remove([avatarPath]);

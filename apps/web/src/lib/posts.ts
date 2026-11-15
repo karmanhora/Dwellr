@@ -233,11 +233,80 @@ export async function getWatchPage({
   limit?: number;
 } = {}): Promise<WatchPage> {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const decoded = decodeWatchCursor(cursor);
+
+  // The ranking view joins follow/preference tables that anon has no table
+  // privilege on. Signed-out viewers get a public, recency-only feed rather
+  // than widening those table grants.
+  if (!user) {
+    let recent = supabase
+      .from("posts")
+      .select("id, created_at")
+      .is("deleted_at", null)
+      .eq("kind", "video");
+
+    if (decoded) {
+      recent = recent.or(
+        `created_at.lt."${decoded.createdAt}",and(created_at.eq."${decoded.createdAt}",id.lt.${decoded.id})`,
+      );
+    }
+
+    const { data, error } = await recent
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(limit + 1);
+
+    if (error) {
+      console.error("[posts] public watch query failed:", error.message);
+      return { items: [], nextCursor: null, failed: true };
+    }
+
+    const rows = (data ?? []) as { id: string; created_at: string }[];
+    const page = rows.slice(0, limit);
+    const postIds = page.map((row) => row.id);
+    const [posts, likes, commentCounts] = await Promise.all([
+      getPostsByIds(postIds),
+      getPostLikeSummaries(postIds, null),
+      getPostCommentCounts(postIds),
+    ]);
+    const last = page[page.length - 1];
+
+    return {
+      items: page.flatMap((row) => {
+        const post = posts.get(row.id);
+        if (!post) return [];
+        const like = likes.get(row.id) ?? { count: 0, likedByMe: false };
+        return [
+          {
+            post,
+            relevance: 0,
+            engagementScore: 0,
+            likeCount: like.count,
+            commentCount: commentCounts.get(row.id) ?? 0,
+            likedByMe: false,
+          },
+        ];
+      }),
+      nextCursor:
+        rows.length > limit && last
+          ? encodeWatchCursor({
+              relevance: 0,
+              engagementScore: 0,
+              createdAt: last.created_at,
+              id: last.id,
+            })
+          : null,
+      failed: false,
+    };
+  }
+
   let request = supabase
     .from("watch_posts")
     .select("post_id, relevance, engagement_score, created_at");
 
-  const decoded = decodeWatchCursor(cursor);
   if (decoded) {
     request = request.or(
       `relevance.lt.${decoded.relevance},and(relevance.eq.${decoded.relevance},engagement_score.lt.${decoded.engagementScore}),and(relevance.eq.${decoded.relevance},engagement_score.eq.${decoded.engagementScore},created_at.lt."${decoded.createdAt}"),and(relevance.eq.${decoded.relevance},engagement_score.eq.${decoded.engagementScore},created_at.eq."${decoded.createdAt}",post_id.lt.${decoded.id})`,
@@ -266,7 +335,7 @@ export async function getWatchPage({
   const postIds = page.map((row) => row.post_id);
   const [posts, likes, commentCounts] = await Promise.all([
     getPostsByIds(postIds),
-    getPostLikeSummaries(postIds, (await supabase.auth.getUser()).data.user?.id ?? null),
+    getPostLikeSummaries(postIds, user.id),
     getPostCommentCounts(postIds),
   ]);
 

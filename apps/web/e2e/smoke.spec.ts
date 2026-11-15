@@ -26,9 +26,9 @@ test("sign up, post, save into a public collection, share it, then clean up", as
   // policy allows the owner's prefix and that compression produced a file.
   // Wait for hydration (the account menu only opens with JS) before handing
   // files to a controlled input, otherwise the change event is lost.
-  await page.goto("/create");
+  await page.goto("/create/home");
   await page.getByRole("button", { name: "Account menu" }).click();
-  await expect(page.getByRole("menuitem", { name: "Post a home" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Create", exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
 
   await page.locator("#photo-input").setInputFiles(fixture);

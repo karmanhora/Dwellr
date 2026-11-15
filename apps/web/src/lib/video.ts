@@ -26,7 +26,11 @@ function waitFor(
   target: HTMLVideoElement,
   event: "loadedmetadata" | "loadeddata" | "seeked",
 ): Promise<void> {
+  if (event === "loadedmetadata" && target.readyState >= 1) return Promise.resolve();
+  if (event === "loadeddata" && target.readyState >= 2) return Promise.resolve();
+
   return new Promise((resolve, reject) => {
+    let poll: number | undefined;
     const timeout = window.setTimeout(() => {
       cleanup();
       reject(new Error("That video took too long to read. Try a smaller clip."));
@@ -34,6 +38,7 @@ function waitFor(
 
     function cleanup() {
       window.clearTimeout(timeout);
+      if (poll !== undefined) window.clearInterval(poll);
       target.removeEventListener(event, onEvent);
       target.removeEventListener("error", onError);
     }
@@ -48,6 +53,17 @@ function waitFor(
 
     target.addEventListener(event, onEvent, { once: true });
     target.addEventListener("error", onError, { once: true });
+
+    // A tiny local file can advance readyState in the gap between the check
+    // above and listener attachment, losing the event entirely.
+    if (event !== "seeked") {
+      const required = event === "loadedmetadata" ? 1 : 2;
+      poll = window.setInterval(() => {
+        if (target.readyState < required) return;
+        cleanup();
+        resolve();
+      }, 50);
+    }
   });
 }
 
@@ -83,6 +99,16 @@ export async function inspectVideo(file: File): Promise<VideoInspection> {
   video.muted = true;
   video.playsInline = true;
   video.src = previewUrl;
+  // Chromium does not reliably load metadata for a detached media element.
+  // Keep it out of layout but in the document while it decodes.
+  video.style.position = "fixed";
+  video.style.width = "1px";
+  video.style.height = "1px";
+  video.style.opacity = "0";
+  video.style.pointerEvents = "none";
+  video.setAttribute("aria-hidden", "true");
+  document.body.appendChild(video);
+  video.load();
 
   try {
     await waitFor(video, "loadedmetadata");
@@ -92,17 +118,22 @@ export async function inspectVideo(file: File): Promise<VideoInspection> {
     if (!Number.isFinite(video.duration)) {
       await new Promise<void>((resolve, reject) => {
         const timeout = window.setTimeout(() => {
-          video.removeEventListener("timeupdate", onTimeUpdate);
+          cleanup();
           reject(new Error("That video has no readable length."));
         }, 6_000);
-        function onTimeUpdate() {
-          if (!Number.isFinite(video.duration)) return;
+        function cleanup() {
           window.clearTimeout(timeout);
           video.removeEventListener("timeupdate", onTimeUpdate);
+          video.removeEventListener("durationchange", onTimeUpdate);
+        }
+        function onTimeUpdate() {
+          if (!Number.isFinite(video.duration)) return;
+          cleanup();
           video.currentTime = 0;
           resolve();
         }
         video.addEventListener("timeupdate", onTimeUpdate);
+        video.addEventListener("durationchange", onTimeUpdate);
         video.currentTime = 1e101;
       });
     }
@@ -152,6 +183,7 @@ export async function inspectVideo(file: File): Promise<VideoInspection> {
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     const posterBlob = await canvasToBlob(canvas);
+    video.remove();
     return {
       durationSeconds: Math.round(durationSeconds * 10) / 10,
       width,
@@ -163,6 +195,7 @@ export async function inspectVideo(file: File): Promise<VideoInspection> {
       posterPreviewUrl: URL.createObjectURL(posterBlob),
     };
   } catch (error) {
+    video.remove();
     URL.revokeObjectURL(previewUrl);
     throw error;
   }
