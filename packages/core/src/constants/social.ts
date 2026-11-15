@@ -11,6 +11,7 @@ export const REPORT_REASONS = [
   "harassment",
   "false_information",
   "inappropriate",
+  "personal_information",
   "other",
 ] as const;
 
@@ -19,6 +20,7 @@ export const REPORT_REASON_LABELS: Record<(typeof REPORT_REASONS)[number], strin
   harassment: "Harassment or hate",
   false_information: "False property information",
   inappropriate: "Inappropriate content",
+  personal_information: "Shows personal or identifying information",
   other: "Something else",
 };
 

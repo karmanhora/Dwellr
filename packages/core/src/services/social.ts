@@ -55,7 +55,10 @@ export function reportReasonLabel(reason: ReportRow["reason"]): string {
 }
 
 export function notificationLabel(
-  notification: Pick<Notification, "type" | "actorName" | "actorCount" | "propertyTitle">,
+  notification: Pick<Notification, "type" | "actorName" | "actorCount" | "propertyTitle"> & {
+    postCaption?: string | null;
+    targetType?: Notification["targetType"];
+  },
 ): string {
   const others = notification.actorCount - 1;
   const actor =
@@ -63,13 +66,17 @@ export function notificationLabel(
       ? `${notification.actorName} and ${others} ${others === 1 ? "other" : "others"}`
       : notification.actorName;
 
-  const home = notification.propertyTitle ? ` ${notification.propertyTitle}` : " your home";
+  const subject = notification.propertyTitle
+    ? ` ${notification.propertyTitle}`
+    : notification.targetType === "post"
+      ? " your post"
+      : " your home";
 
   switch (notification.type) {
     case "like":
-      return `${actor} liked${home}`;
+      return `${actor} liked${subject}`;
     case "comment":
-      return `${actor} commented on${home}`;
+      return `${actor} commented on${subject}`;
     case "follow":
       return `${notification.actorName} started following you`;
     case "collection_invite":
@@ -91,6 +98,9 @@ export function notificationHref(
   }
   if (notification.targetType === "property" && notification.targetId) {
     return `/p/${notification.targetId}${notification.commentId ? `#comment-${notification.commentId}` : ""}`;
+  }
+  if (notification.targetType === "post" && notification.targetId) {
+    return `/posts/${notification.targetId}${notification.commentId ? `#comment-${notification.commentId}` : ""}`;
   }
   return "/notifications";
 }

@@ -78,6 +78,7 @@ export interface Notification {
   collectionId: string | null;
   collectionSlug: string | null;
   propertyTitle: string | null;
+  postCaption: string | null;
   readAt: string | null;
   createdAt: string;
 }
@@ -87,7 +88,13 @@ export interface ReportRow {
   reporter_id: string;
   target_type: "property" | "post" | "comment" | "profile";
   target_id: string;
-  reason: "spam" | "harassment" | "false_information" | "inappropriate" | "other";
+  reason:
+    | "spam"
+    | "harassment"
+    | "false_information"
+    | "inappropriate"
+    | "personal_information"
+    | "other";
   details: string | null;
   status: "open" | "reviewing" | "resolved" | "dismissed";
   created_at: string;
