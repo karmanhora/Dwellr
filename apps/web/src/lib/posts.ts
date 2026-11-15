@@ -225,6 +225,56 @@ export async function getPostSummaries({
   };
 }
 
+type WatchCandidate = {
+  postId: string;
+  relevance: number;
+  engagementScore: number;
+  createdAt: string;
+};
+
+async function hydrateWatchPage(
+  rows: WatchCandidate[],
+  viewerId: string | null,
+  limit: number,
+): Promise<WatchPage> {
+  const page = rows.slice(0, limit);
+  const postIds = page.map((row) => row.postId);
+  const [posts, likes, commentCounts] = await Promise.all([
+    getPostsByIds(postIds),
+    getPostLikeSummaries(postIds, viewerId),
+    getPostCommentCounts(postIds),
+  ]);
+  const last = page[page.length - 1];
+
+  return {
+    items: page.flatMap((row) => {
+      const post = posts.get(row.postId);
+      if (!post) return [];
+      const like = likes.get(row.postId) ?? { count: 0, likedByMe: false };
+      return [
+        {
+          post,
+          relevance: row.relevance,
+          engagementScore: row.engagementScore,
+          likeCount: like.count,
+          commentCount: commentCounts.get(row.postId) ?? 0,
+          likedByMe: like.likedByMe,
+        },
+      ];
+    }),
+    nextCursor:
+      rows.length > limit && last
+        ? encodeWatchCursor({
+            relevance: last.relevance,
+            engagementScore: last.engagementScore,
+            createdAt: last.createdAt,
+            id: last.postId,
+          })
+        : null,
+    failed: false,
+  };
+}
+
 export async function getWatchPage({
   cursor,
   limit = 6,
@@ -264,43 +314,16 @@ export async function getWatchPage({
       return { items: [], nextCursor: null, failed: true };
     }
 
-    const rows = (data ?? []) as { id: string; created_at: string }[];
-    const page = rows.slice(0, limit);
-    const postIds = page.map((row) => row.id);
-    const [posts, likes, commentCounts] = await Promise.all([
-      getPostsByIds(postIds),
-      getPostLikeSummaries(postIds, null),
-      getPostCommentCounts(postIds),
-    ]);
-    const last = page[page.length - 1];
-
-    return {
-      items: page.flatMap((row) => {
-        const post = posts.get(row.id);
-        if (!post) return [];
-        const like = likes.get(row.id) ?? { count: 0, likedByMe: false };
-        return [
-          {
-            post,
-            relevance: 0,
-            engagementScore: 0,
-            likeCount: like.count,
-            commentCount: commentCounts.get(row.id) ?? 0,
-            likedByMe: false,
-          },
-        ];
-      }),
-      nextCursor:
-        rows.length > limit && last
-          ? encodeWatchCursor({
-              relevance: 0,
-              engagementScore: 0,
-              createdAt: last.created_at,
-              id: last.id,
-            })
-          : null,
-      failed: false,
-    };
+    return hydrateWatchPage(
+      (data ?? []).map((row) => ({
+        postId: row.id,
+        relevance: 0,
+        engagementScore: 0,
+        createdAt: row.created_at,
+      })),
+      null,
+      limit,
+    );
   }
 
   let request = supabase
@@ -331,44 +354,17 @@ export async function getWatchPage({
     engagement_score: number;
     created_at: string;
   }[];
-  const page = rows.slice(0, limit);
-  const postIds = page.map((row) => row.post_id);
-  const [posts, likes, commentCounts] = await Promise.all([
-    getPostsByIds(postIds),
-    getPostLikeSummaries(postIds, user.id),
-    getPostCommentCounts(postIds),
-  ]);
 
-  const items = page.flatMap((row) => {
-    const post = posts.get(row.post_id);
-    if (!post) return [];
-    const like = likes.get(row.post_id) ?? { count: 0, likedByMe: false };
-    return [
-      {
-        post,
-        relevance: row.relevance,
-        engagementScore: row.engagement_score,
-        likeCount: like.count,
-        commentCount: commentCounts.get(row.post_id) ?? 0,
-        likedByMe: like.likedByMe,
-      },
-    ];
-  });
-
-  const last = page[page.length - 1];
-  return {
-    items,
-    nextCursor:
-      rows.length > limit && last
-        ? encodeWatchCursor({
-            relevance: last.relevance,
-            engagementScore: last.engagement_score,
-            createdAt: last.created_at,
-            id: last.post_id,
-          })
-        : null,
-    failed: false,
-  };
+  return hydrateWatchPage(
+    rows.map((row) => ({
+      postId: row.post_id,
+      relevance: row.relevance,
+      engagementScore: row.engagement_score,
+      createdAt: row.created_at,
+    })),
+    user.id,
+    limit,
+  );
 }
 
 export async function getPostLikeSummaries(
