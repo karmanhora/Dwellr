@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { HouseMark } from "@/components/brand/logo";
+import { WaitlistLanding } from "@/components/waitlist/waitlist-landing";
 import { getCurrentUser } from "@/lib/auth";
+import { isWaitlistOnly, SITE_DESCRIPTION } from "@/lib/site";
 
 const steps = [
   {
@@ -34,7 +37,42 @@ const detailRules = [
   },
 ];
 
+export async function generateMetadata(): Promise<Metadata> {
+  if (!isWaitlistOnly()) return {};
+
+  return {
+    title: "Find a home together",
+    description: SITE_DESCRIPTION,
+    alternates: { canonical: "/" },
+    openGraph: {
+      type: "website",
+      url: "/",
+      siteName: "dwellr",
+      title: "dwellr — find a home together",
+      description: SITE_DESCRIPTION,
+      images: [
+        {
+          url: "/opengraph-image",
+          width: 1200,
+          height: 630,
+          alt: "dwellr — find a home together",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "dwellr — find a home together",
+      description: SITE_DESCRIPTION,
+      images: ["/opengraph-image"],
+    },
+  };
+}
+
 export default async function HomePage() {
+  if (isWaitlistOnly()) {
+    return <WaitlistLanding />;
+  }
+
   // Auth-aware CTAs; the header already reads the user, and React cache()
   // keeps this to a single Supabase call per request.
   const user = await getCurrentUser();

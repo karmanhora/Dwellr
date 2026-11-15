@@ -18,6 +18,72 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      waitlist_signups: {
+        Row: {
+          id: string;
+          email: string;
+          role:
+            | "planning_next_12_months"
+            | "actively_looking"
+            | "just_browsing"
+            | "agent_or_broker"
+            | "creator"
+            | null;
+          searching_with: "on_my_own" | "partner" | "family_or_friends" | null;
+          region: string | null;
+          utm_source: string | null;
+          utm_medium: string | null;
+          utm_campaign: string | null;
+          referrer: string | null;
+          referral_code: string;
+          referred_by: string | null;
+          email_confirmed_at: string | null;
+          unsubscribed_at: string | null;
+          last_notified_at: string | null;
+          unsubscribe_token_hash: string | null;
+          ip_hash: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          role?:
+            | "planning_next_12_months"
+            | "actively_looking"
+            | "just_browsing"
+            | "agent_or_broker"
+            | "creator"
+            | null;
+          searching_with?: "on_my_own" | "partner" | "family_or_friends" | null;
+          region?: string | null;
+          utm_source?: string | null;
+          utm_medium?: string | null;
+          utm_campaign?: string | null;
+          referrer?: string | null;
+          referral_code: string;
+          referred_by?: string | null;
+          email_confirmed_at?: string | null;
+          unsubscribed_at?: string | null;
+          last_notified_at?: string | null;
+          unsubscribe_token_hash?: string | null;
+          ip_hash: string;
+          created_at?: string;
+        };
+        Update: {
+          email_confirmed_at?: string | null;
+          unsubscribed_at?: string | null;
+          last_notified_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "waitlist_signups_referred_by_fkey";
+            columns: ["referred_by"];
+            isOneRelation: true;
+            referencedRelation: "waitlist_signups";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       profiles: {
         Row: {
           id: string;
@@ -836,6 +902,34 @@ export type Database = {
       };
     };
     Functions: {
+      join_waitlist: {
+        Args: {
+          p_email: string;
+          p_role?: string | null;
+          p_searching_with?: string | null;
+          p_region?: string | null;
+          p_utm_source?: string | null;
+          p_utm_medium?: string | null;
+          p_utm_campaign?: string | null;
+          p_referrer?: string | null;
+          p_referral_code?: string | null;
+          p_ip_hash: string;
+          p_unsubscribe_token_hash?: string | null;
+        };
+        Returns: Json;
+      };
+      waitlist_signup_count: {
+        Args: Record<string, never>;
+        Returns: number;
+      };
+      unsubscribe_waitlist: {
+        Args: { p_token_hash: string };
+        Returns: boolean;
+      };
+      claim_waitlist_notification: {
+        Args: { p_token_hash: string };
+        Returns: boolean;
+      };
       accept_collection_invite: {
         Args: { p_token_hash: string };
         Returns: string;

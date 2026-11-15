@@ -109,7 +109,7 @@ export function UserIcon(props: IconProps) {
 export function CheckIcon(props: IconProps) {
   return (
     <Icon {...props}>
-      <path d="m5 12.5 9 9 5-5" transform="translate(0 -4)" />
+      <path d="m5 12.5 4.5 4.5L19 7" />
     </Icon>
   );
 }

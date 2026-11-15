@@ -1689,6 +1689,174 @@ try {
     JSON.stringify(usageAfterDelete.data),
   );
 
+  // --- waitlist ------------------------------------------------------------
+  // Waitlist rows are intentionally append-only through the public API. These
+  // disposable local rows have no cleanup path, which is part of the design.
+  const waitlistEmail = `dwellr.waitlist.${runId}@gmail.com`;
+  const waitlistIp = tokenHash(`waitlist-ip-${runId}`);
+  const waitlistToken = `waitlist-token-${uuid()}`;
+  const waitlistTokenHash = tokenHash(waitlistToken);
+
+  const anonWaitlistRead = await anon.from("waitlist_signups").select("id, email");
+  check(
+    "anon cannot read waitlist rows",
+    Boolean(anonWaitlistRead.error) || anonWaitlistRead.data?.length === 0,
+    anonWaitlistRead.error?.message,
+  );
+
+  const anonWaitlistUpdate = await anon
+    .from("waitlist_signups")
+    .update({ region: "Changed" })
+    .eq("email", waitlistEmail);
+  check(
+    "anon cannot update waitlist rows",
+    Boolean(anonWaitlistUpdate.error),
+    anonWaitlistUpdate.error?.message,
+  );
+
+  const anonWaitlistDelete = await anon
+    .from("waitlist_signups")
+    .delete()
+    .eq("email", waitlistEmail);
+  check(
+    "anon cannot delete waitlist rows",
+    Boolean(anonWaitlistDelete.error),
+    anonWaitlistDelete.error?.message,
+  );
+
+  const waitlistCount = await anon.rpc("waitlist_signup_count");
+  check(
+    "the public waitlist count is a number",
+    !waitlistCount.error && typeof waitlistCount.data === "number",
+    waitlistCount.error?.message,
+  );
+
+  const waitlistJoin = await anon.rpc("join_waitlist", {
+    p_email: waitlistEmail,
+    p_role: "actively_looking",
+    p_searching_with: "partner",
+    p_region: "Seattle",
+    p_utm_source: "security-suite",
+    p_utm_medium: "test",
+    p_utm_campaign: "access",
+    p_referrer: "https://example.com/security",
+    p_referral_code: null,
+    p_ip_hash: waitlistIp,
+    p_unsubscribe_token_hash: waitlistTokenHash,
+  });
+  check(
+    "anon can join the waitlist through join_waitlist",
+    !waitlistJoin.error &&
+      waitlistJoin.data?.ok === true &&
+      /^[a-z0-9]{10}$/.test(waitlistJoin.data?.referral_code ?? ""),
+    waitlistJoin.error?.message,
+  );
+
+  const duplicateJoin = await anon.rpc("join_waitlist", {
+    p_email: `  ${waitlistEmail.toUpperCase()}  `,
+    p_role: "just_browsing",
+    p_ip_hash: tokenHash(`waitlist-duplicate-ip-${runId}`),
+    p_unsubscribe_token_hash: tokenHash(`waitlist-duplicate-token-${runId}`),
+  });
+  check(
+    "a duplicate email returns the same shape as a new signup",
+    !duplicateJoin.error &&
+      JSON.stringify(duplicateJoin.data) === JSON.stringify(waitlistJoin.data),
+    duplicateJoin.error?.message,
+  );
+
+  const malformedWaitlistEmail = await anon.rpc("join_waitlist", {
+    p_email: "not-an-email",
+    p_ip_hash: tokenHash(`waitlist-bad-email-${runId}`),
+  });
+  check(
+    "the waitlist rejects a malformed email",
+    Boolean(malformedWaitlistEmail.error) &&
+      /invalid_input/i.test(malformedWaitlistEmail.error.message),
+    malformedWaitlistEmail.error?.message,
+  );
+
+  const oversizedWaitlistEmail = await anon.rpc("join_waitlist", {
+    p_email: `${"x".repeat(250)}@gmail.com`,
+    p_ip_hash: tokenHash(`waitlist-long-email-${runId}`),
+  });
+  check("the waitlist rejects an oversized email", Boolean(oversizedWaitlistEmail.error));
+
+  const invalidWaitlistRole = await anon.rpc("join_waitlist", {
+    p_email: `dwellr.waitlist.role.${runId}@gmail.com`,
+    p_role: "landlord",
+    p_ip_hash: tokenHash(`waitlist-bad-role-${runId}`),
+  });
+  check("the waitlist rejects an unknown role", Boolean(invalidWaitlistRole.error));
+
+  const oversizedWaitlistRegion = await anon.rpc("join_waitlist", {
+    p_email: `dwellr.waitlist.region.${runId}@gmail.com`,
+    p_region: "x".repeat(81),
+    p_ip_hash: tokenHash(`waitlist-bad-region-${runId}`),
+  });
+  check("the waitlist rejects an oversized region", Boolean(oversizedWaitlistRegion.error));
+
+  const missingWaitlistIp = await anon.rpc("join_waitlist", {
+    p_email: `dwellr.waitlist.ip.${runId}@gmail.com`,
+    p_ip_hash: null,
+  });
+  check("the waitlist requires a hashed IP for rate limiting", Boolean(missingWaitlistIp.error));
+
+  const rateLimitIp = tokenHash(`waitlist-rate-ip-${runId}`);
+  let waitlistRateError = null;
+  for (let index = 0; index < 6; index += 1) {
+    const result = await anon.rpc("join_waitlist", {
+      p_email: `dwellr.waitlist.rate.${index}.${runId}@gmail.com`,
+      p_ip_hash: rateLimitIp,
+    });
+    if (result.error) {
+      waitlistRateError = result.error;
+      break;
+    }
+  }
+  check(
+    "the waitlist rate limit triggers after five signups from one IP hash",
+    Boolean(waitlistRateError) && /rate_limited/i.test(waitlistRateError.message),
+    waitlistRateError?.message,
+  );
+
+  const countBeforeUnsubscribe = await anon.rpc("waitlist_signup_count");
+  const unsubscribeResult = await anon.rpc("unsubscribe_waitlist", {
+    p_token_hash: waitlistTokenHash,
+  });
+  const countAfterUnsubscribe = await anon.rpc("waitlist_signup_count");
+  check(
+    "a valid unsubscribe token removes the address from the public count",
+    !unsubscribeResult.error &&
+      unsubscribeResult.data === true &&
+      typeof countBeforeUnsubscribe.data === "number" &&
+      countAfterUnsubscribe.data === countBeforeUnsubscribe.data - 1,
+    unsubscribeResult.error?.message,
+  );
+
+  const secondUnsubscribe = await anon.rpc("unsubscribe_waitlist", {
+    p_token_hash: waitlistTokenHash,
+  });
+  check("unsubscribing twice is safe", !secondUnsubscribe.error);
+
+  const notificationTokenHash = tokenHash(`waitlist-notification-token-${runId}`);
+  await anon.rpc("join_waitlist", {
+    p_email: `dwellr.waitlist.notify.${runId}@gmail.com`,
+    p_ip_hash: tokenHash(`waitlist-notify-ip-${runId}`),
+    p_unsubscribe_token_hash: notificationTokenHash,
+  });
+  const firstClaim = await anon.rpc("claim_waitlist_notification", {
+    p_token_hash: notificationTokenHash,
+  });
+  const secondClaim = await anon.rpc("claim_waitlist_notification", {
+    p_token_hash: notificationTokenHash,
+  });
+  check(
+    "a welcome notification can be claimed only once",
+    !firstClaim.error && firstClaim.data === true && !secondClaim.error && secondClaim.data === false,
+    firstClaim.error?.message ?? secondClaim.error?.message,
+  );
+
   // --- cascades ------------------------------------------------------------
   const deleteStrangerProperty = await stranger
     .from("properties")
