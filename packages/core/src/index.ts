@@ -377,6 +377,14 @@ export {
   type WaitlistQueueEntry,
   type WaitlistReferralContext,
 } from "./services/waitlist-position";
+export { ACCOUNT_STORAGE_BUCKETS, removeUserStorageObjects } from "./services/account-deletion";
+export type {
+  AccountStorageBucket,
+  AccountStorageClient,
+  AccountStorageEntry,
+  AccountStorageError,
+  AccountStorageListOptions,
+} from "./services/account-deletion";
 export { safeRedirectPath } from "./services/redirect";
 export { getFieldErrors } from "./services/validation";
 export {

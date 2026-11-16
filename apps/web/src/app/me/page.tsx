@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { signOutAction } from "@/app/me/actions";
+import { DeleteAccountForm } from "@/components/account/delete-account-form";
 import { Avatar } from "@/components/ui/avatar";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
@@ -136,6 +137,23 @@ export default async function MePage() {
           </div>
         </form>
       </div>
+
+      <section
+        aria-labelledby="delete-account-heading"
+        className="mt-8 rounded-panel border border-danger/30 bg-danger-soft/40 p-6 sm:p-8"
+      >
+        <p className="text-eyebrow text-danger uppercase">Danger zone</p>
+        <h2 id="delete-account-heading" className="mt-2 text-title font-medium">
+          Delete your account
+        </h2>
+        <p className="mt-2 max-w-prose text-body-sm leading-relaxed text-stone">
+          This permanently removes your profile, posts, collections, comments, saves, and every
+          uploaded photo or video. It cannot be undone.
+        </p>
+        <div className="mt-5">
+          <DeleteAccountForm email={user.email ?? ""} />
+        </div>
+      </section>
     </Container>
   );
 }

@@ -104,10 +104,10 @@ as $$
   ordered as (
     select
       id,
-      row_number() over (order by effective_rank, queue_order) as position
+      row_number() over (order by effective_rank, queue_order) as "position"
       from ranked
   )
-  select position
+  select "position"
     from ordered
    where id = p_signup_id;
 $$;
@@ -148,7 +148,7 @@ revoke all on function public.waitlist_status_allowed(text) from public, anon, a
 
 create or replace function public.get_waitlist_status(p_code text)
 returns table (
-  position bigint,
+  "position" bigint,
   total bigint,
   referral_count integer,
   tier text
@@ -613,7 +613,7 @@ ranked as (
     from confirmed
 )
 select
-  row_number() over (order by effective_rank, queue_order) as position,
+  row_number() over (order by effective_rank, queue_order) as "position",
   email,
   email_confirmed_at,
   queue_order,

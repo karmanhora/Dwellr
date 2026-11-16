@@ -1011,6 +1011,10 @@ export type Database = {
         Args: { p_post_id: string };
         Returns: undefined;
       };
+      delete_my_account: {
+        Args: Record<string, never>;
+        Returns: undefined;
+      };
       get_my_pending_invites: {
         Args: Record<string, never>;
         Returns: {
