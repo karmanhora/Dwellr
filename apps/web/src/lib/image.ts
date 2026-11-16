@@ -1,4 +1,4 @@
-import { PROPERTY_PHOTO_MAX_BYTES } from "@dwellr/core";
+import { PROPERTY_PHOTO_MAX_BYTES } from "@hauscrawl/core";
 
 const ALLOWED = ["image/jpeg", "image/png", "image/webp"];
 const MAX_SOURCE_BYTES = 25 * 1024 * 1024;

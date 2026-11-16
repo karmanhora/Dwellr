@@ -1,4 +1,4 @@
-import { toPriceCut, type PriceCut } from "@dwellr/core";
+import { toPriceCut, type PriceCut } from "@hauscrawl/core";
 
 import { createClient } from "@/lib/supabase/server";
 

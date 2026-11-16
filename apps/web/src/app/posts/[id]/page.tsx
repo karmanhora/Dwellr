@@ -3,7 +3,7 @@ import {
   formatVideoDuration,
   postCategoryLabel,
   type PostCategory,
-} from "@dwellr/core";
+} from "@hauscrawl/core";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";

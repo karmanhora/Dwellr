@@ -8,7 +8,7 @@ import {
   getFieldErrors,
   isUuid,
   parseTagList,
-} from "@dwellr/core";
+} from "@hauscrawl/core";
 import { createHash, randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";

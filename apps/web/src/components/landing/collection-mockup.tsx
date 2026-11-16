@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { formatCount, summarizeCollectionComparison } from "@dwellr/core";
+import { formatCount, summarizeCollectionComparison } from "@hauscrawl/core";
 
 import { Badge, ProvenanceBadge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";

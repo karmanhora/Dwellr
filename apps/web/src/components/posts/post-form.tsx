@@ -11,7 +11,7 @@ import {
   POST_PHOTO_MAX_EDGE,
   POST_PHOTOS_BUCKET,
   type PostCategory,
-} from "@dwellr/core";
+} from "@hauscrawl/core";
 import Image from "next/image";
 import Link from "next/link";
 import {

@@ -1,4 +1,4 @@
-import { WAITLIST_REFERRAL_CODE_PATTERN, WAITLIST_STATUS_CODE_PATTERN } from "@dwellr/core";
+import { WAITLIST_REFERRAL_CODE_PATTERN, WAITLIST_STATUS_CODE_PATTERN } from "@hauscrawl/core";
 
 import { createWaitlistAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";

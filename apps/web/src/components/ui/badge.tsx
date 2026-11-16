@@ -1,4 +1,4 @@
-import { LISTING_STATUS_LABELS, type ListingStatus, type Provenance } from "@dwellr/core";
+import { LISTING_STATUS_LABELS, type ListingStatus, type Provenance } from "@hauscrawl/core";
 import type { ReactNode } from "react";
 
 type Tone = "verified" | "community" | "neutral" | "positive" | "quiet" | "danger";

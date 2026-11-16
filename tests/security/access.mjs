@@ -1,5 +1,5 @@
 /**
- * Anon / owner / stranger access suite for dwellr's Supabase schema.
+ * Anon / owner / stranger access suite for HausCrawl's Supabase schema.
  *
  * It runs against a disposable database (local Supabase in CI) using the
  * public anon key for the access checks: every check goes through PostgREST,
@@ -26,7 +26,7 @@ if (!url || !anonKey) {
 }
 
 const runId = Date.now().toString().slice(-9);
-const password = "DwellrSecurity42";
+const password = "HausCrawlSecurity42";
 const photoBucket = "property-photos";
 const avatarBucket = "avatars";
 const postPhotoBucket = "post-photos";
@@ -114,7 +114,7 @@ async function createInvite({
 }
 
 async function signUp(client, label) {
-  const email = `dwellr.security.${label}.${runId}@gmail.com`;
+  const email = `hauscrawl.security.${label}.${runId}@gmail.com`;
   const username = `sec${label}${runId.slice(-8)}`;
   const { data, error } = await client.auth.signUp({
     email,
@@ -1783,7 +1783,7 @@ try {
   // --- waitlist ------------------------------------------------------------
   // Waitlist rows are intentionally append-only through the public API. These
   // disposable local rows have no cleanup path, which is part of the design.
-  const waitlistEmail = `dwellr.waitlist.${runId}@gmail.com`;
+  const waitlistEmail = `hauscrawl.waitlist.${runId}@gmail.com`;
   const waitlistIp = tokenHash(`waitlist-ip-${runId}`);
   const waitlistToken = `waitlist-token-${uuid()}`;
   const waitlistTokenHash = tokenHash(waitlistToken);
@@ -1855,7 +1855,7 @@ try {
   );
 
   const anonAdminJoin = await anon.rpc("join_waitlist_admin", {
-    p_email: `dwellr.waitlist.admin.${runId}@gmail.com`,
+    p_email: `hauscrawl.waitlist.admin.${runId}@gmail.com`,
     p_ip_hash: tokenHash(`waitlist-admin-ip-${runId}`),
   });
   check("anon cannot call the service-only signup function", Boolean(anonAdminJoin.error));
@@ -1907,7 +1907,7 @@ try {
   );
 
   if (service) {
-    const adminEmail = `dwellr.waitlist.valid.${runId}@gmail.com`;
+    const adminEmail = `hauscrawl.waitlist.valid.${runId}@gmail.com`;
     const adminJoin = await service.rpc("join_waitlist_admin", {
       p_email: adminEmail,
       p_ip_hash: tokenHash(`waitlist-valid-ip-${runId}`),
@@ -1963,7 +1963,7 @@ try {
       );
 
       const rateJoin = await service.rpc("join_waitlist_admin", {
-        p_email: `dwellr.waitlist.rate-status.${runId}@gmail.com`,
+        p_email: `hauscrawl.waitlist.rate-status.${runId}@gmail.com`,
         p_ip_hash: tokenHash(`waitlist-status-rate-ip-${runId}`),
       });
       if (rateJoin.data?.signup_id && rateJoin.data?.status_code) {
@@ -2023,21 +2023,21 @@ try {
   check("the waitlist rejects an oversized email", Boolean(oversizedWaitlistEmail.error));
 
   const invalidWaitlistRole = await anon.rpc("join_waitlist", {
-    p_email: `dwellr.waitlist.role.${runId}@gmail.com`,
+    p_email: `hauscrawl.waitlist.role.${runId}@gmail.com`,
     p_role: "landlord",
     p_ip_hash: tokenHash(`waitlist-bad-role-${runId}`),
   });
   check("the waitlist rejects an unknown role", Boolean(invalidWaitlistRole.error));
 
   const oversizedWaitlistRegion = await anon.rpc("join_waitlist", {
-    p_email: `dwellr.waitlist.region.${runId}@gmail.com`,
+    p_email: `hauscrawl.waitlist.region.${runId}@gmail.com`,
     p_region: "x".repeat(81),
     p_ip_hash: tokenHash(`waitlist-bad-region-${runId}`),
   });
   check("the waitlist rejects an oversized region", Boolean(oversizedWaitlistRegion.error));
 
   const missingWaitlistIp = await anon.rpc("join_waitlist", {
-    p_email: `dwellr.waitlist.ip.${runId}@gmail.com`,
+    p_email: `hauscrawl.waitlist.ip.${runId}@gmail.com`,
     p_ip_hash: null,
   });
   check("the waitlist requires a hashed IP for rate limiting", Boolean(missingWaitlistIp.error));
@@ -2046,7 +2046,7 @@ try {
   let waitlistRateError = null;
   for (let index = 0; index < 6; index += 1) {
     const result = await anon.rpc("join_waitlist", {
-      p_email: `dwellr.waitlist.rate.${index}.${runId}@gmail.com`,
+      p_email: `hauscrawl.waitlist.rate.${index}.${runId}@gmail.com`,
       p_ip_hash: rateLimitIp,
     });
     if (result.error) {
@@ -2081,7 +2081,7 @@ try {
 
   const notificationTokenHash = tokenHash(`waitlist-notification-token-${runId}`);
   await anon.rpc("join_waitlist", {
-    p_email: `dwellr.waitlist.notify.${runId}@gmail.com`,
+    p_email: `hauscrawl.waitlist.notify.${runId}@gmail.com`,
     p_ip_hash: tokenHash(`waitlist-notify-ip-${runId}`),
     p_unsubscribe_token_hash: notificationTokenHash,
   });

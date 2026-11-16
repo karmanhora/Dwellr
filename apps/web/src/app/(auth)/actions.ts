@@ -1,6 +1,6 @@
 "use server";
 
-import { getFieldErrors, safeRedirectPath, signInSchema, signUpSchema } from "@dwellr/core";
+import { getFieldErrors, safeRedirectPath, signInSchema, signUpSchema } from "@hauscrawl/core";
 import type { AuthError } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 

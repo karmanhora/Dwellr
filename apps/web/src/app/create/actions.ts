@@ -1,6 +1,6 @@
 "use server";
 
-import { createPropertySchema, getFieldErrors } from "@dwellr/core";
+import { createPropertySchema, getFieldErrors } from "@hauscrawl/core";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 

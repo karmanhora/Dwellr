@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { WAITLIST_STATUS_CODE_PATTERN } from "@dwellr/core";
+import { WAITLIST_STATUS_CODE_PATTERN } from "@hauscrawl/core";
 
 import { Container } from "@/components/ui/container";
 import { createWaitlistAdminClient } from "@/lib/supabase/admin";

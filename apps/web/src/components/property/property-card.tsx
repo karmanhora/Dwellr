@@ -3,7 +3,7 @@ import {
   formatPrice,
   LISTING_STATUS_LABELS,
   type PropertySummary,
-} from "@dwellr/core";
+} from "@hauscrawl/core";
 import Image from "next/image";
 import Link from "next/link";
 

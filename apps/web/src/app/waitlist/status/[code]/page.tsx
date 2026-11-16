@@ -8,7 +8,7 @@ import {
   waitlistShareUrl,
   waitlistSpotsGained,
   waitlistTier,
-} from "@dwellr/core";
+} from "@hauscrawl/core";
 
 import { Container } from "@/components/ui/container";
 import { WaitlistShare } from "@/components/waitlist/waitlist-share";

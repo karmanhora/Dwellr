@@ -4,7 +4,7 @@ import {
   getDisplayName,
   summarizeCollectionComparison,
   type CollectionEvaluation,
-} from "@dwellr/core";
+} from "@hauscrawl/core";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";

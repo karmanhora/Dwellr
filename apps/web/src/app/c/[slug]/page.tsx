@@ -8,7 +8,7 @@ import {
   getDisplayName,
   summarizeCollectionComparison,
   type CollectionEvaluation,
-} from "@dwellr/core";
+} from "@hauscrawl/core";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";

@@ -9,7 +9,7 @@ import {
   WATCH_MUTE_STORAGE_KEY,
   type Collection,
   type WatchItem,
-} from "@dwellr/core";
+} from "@hauscrawl/core";
 import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 

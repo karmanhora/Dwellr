@@ -3,7 +3,7 @@ import {
   WAITLIST_IP_HASH_PATTERN,
   WAITLIST_STATUS_CODE_PATTERN,
   waitlistSignupSchema,
-} from "@dwellr/core";
+} from "@hauscrawl/core";
 import { NextResponse } from "next/server";
 
 import { createWaitlistAdminClient } from "@/lib/supabase/admin";

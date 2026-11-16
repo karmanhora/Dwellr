@@ -2,7 +2,7 @@ import {
   LISTING_STATUSES,
   LISTING_STATUS_LABELS,
   type ListingStatus,
-} from "@dwellr/core";
+} from "@hauscrawl/core";
 import type { Metadata } from "next";
 import Link from "next/link";
 

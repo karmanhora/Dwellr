@@ -6,7 +6,7 @@ import {
   POST_CATEGORY_LABELS,
   POST_CATEGORY_MAX,
   type PostCategory,
-} from "@dwellr/core";
+} from "@hauscrawl/core";
 import Link from "next/link";
 import { useActionState, useState } from "react";
 

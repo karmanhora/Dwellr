@@ -9,7 +9,7 @@ import {
   PROPERTY_TYPE_LABELS,
   type Comment,
   type PropertyField,
-} from "@dwellr/core";
+} from "@hauscrawl/core";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";

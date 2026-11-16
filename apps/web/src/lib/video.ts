@@ -6,7 +6,7 @@ import {
   VIDEO_MAX_DURATION_SECONDS,
   VIDEO_MIME_TYPES,
   type VideoMimeType,
-} from "@dwellr/core";
+} from "@hauscrawl/core";
 
 export type VideoMetadata = {
   durationSeconds: number;

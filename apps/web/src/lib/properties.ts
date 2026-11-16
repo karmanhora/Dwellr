@@ -14,7 +14,7 @@ import {
   type PropertyProvenanceRow,
   type PropertyRow,
   type PropertySummary,
-} from "@dwellr/core";
+} from "@hauscrawl/core";
 
 import { getLatestPriceCuts } from "@/lib/price-history";
 import { createClient } from "@/lib/supabase/server";

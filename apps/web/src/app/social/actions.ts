@@ -7,7 +7,7 @@ import {
   isUuid,
   reportSchema,
   safeRedirectPath,
-} from "@dwellr/core";
+} from "@hauscrawl/core";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 

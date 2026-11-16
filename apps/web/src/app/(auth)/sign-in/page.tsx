@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 import { AuthShell } from "@/components/auth/auth-shell";
 import { SignInForm } from "@/components/auth/sign-in-form";
-import { safeRedirectPath } from "@dwellr/core";
+import { safeRedirectPath } from "@hauscrawl/core";
 import { getCurrentUser } from "@/lib/auth";
 
 export const metadata: Metadata = {

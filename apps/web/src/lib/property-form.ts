@@ -1,4 +1,4 @@
-import { dollarsToCents, parseOptionalNumber } from "@dwellr/core";
+import { dollarsToCents, parseOptionalNumber } from "@hauscrawl/core";
 
 export type PropertyFormState = {
   status: "idle" | "error" | "notice";

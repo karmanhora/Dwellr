@@ -1,4 +1,4 @@
-import { getDisplayName } from "@dwellr/core";
+import { getDisplayName } from "@hauscrawl/core";
 import Link from "next/link";
 
 import { AccountMenu } from "@/components/account-menu";

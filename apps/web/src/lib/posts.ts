@@ -12,7 +12,7 @@ import {
   type PostSummary,
   type Video,
   type WatchPage,
-} from "@dwellr/core";
+} from "@hauscrawl/core";
 
 import { getPropertiesByIds } from "@/lib/properties";
 import { createClient } from "@/lib/supabase/server";

@@ -4,7 +4,7 @@ import {
   collectionVisibilityLabel,
   formatCollectionCount,
   type Collection,
-} from "@dwellr/core";
+} from "@hauscrawl/core";
 import { useActionState, useState } from "react";
 
 import { addToCollectionAction, createCollectionAction } from "@/app/saved/actions";

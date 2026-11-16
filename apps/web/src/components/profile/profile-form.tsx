@@ -1,6 +1,6 @@
 "use client";
 
-import { AVATAR_BUCKET, BIO_MAX_LENGTH, DISPLAY_NAME_MAX_LENGTH } from "@dwellr/core";
+import { AVATAR_BUCKET, BIO_MAX_LENGTH, DISPLAY_NAME_MAX_LENGTH } from "@hauscrawl/core";
 import Image from "next/image";
 import { useActionState, useRef, useState, type ChangeEvent } from "react";
 

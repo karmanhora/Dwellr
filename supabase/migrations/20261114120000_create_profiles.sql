@@ -75,7 +75,7 @@ begin
   );
 
   if length(base_username) < 3 then
-    base_username := 'dwellr';
+    base_username := 'hauscrawl';
   end if;
 
   base_username := left(base_username, 20);

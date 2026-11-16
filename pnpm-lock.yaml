@@ -187,7 +187,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@dwellr/core':
+      '@hauscrawl/core':
         specifier: workspace:*
         version: link:../../packages/core
       '@supabase/ssr':

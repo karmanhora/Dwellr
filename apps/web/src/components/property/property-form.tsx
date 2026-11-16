@@ -14,7 +14,7 @@ import {
   PROPERTY_TYPE_LABELS,
   type ListingStatus,
   type PropertyType,
-} from "@dwellr/core";
+} from "@hauscrawl/core";
 import Image from "next/image";
 import Link from "next/link";
 import { useActionState, useRef, useState, type ChangeEvent } from "react";

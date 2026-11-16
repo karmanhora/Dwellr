@@ -224,7 +224,7 @@ create table public.videos (
 );
 
 comment on table public.videos is
-  'One short video per video post. Metadata is client-declared and checked against hard limits; dwellr does not probe or transcode the file yet.';
+  'One short video per video post. Metadata is client-declared and checked against hard limits; HausCrawl does not probe or transcode the file yet.';
 
 create index videos_author_idx on public.videos (author_id, created_at desc);
 

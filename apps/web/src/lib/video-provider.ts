@@ -6,7 +6,7 @@ import {
   type VideoProvider,
   type VideoUploadInput,
   type VideoUploadResult,
-} from "@dwellr/core";
+} from "@hauscrawl/core";
 
 import { getPublicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/client";

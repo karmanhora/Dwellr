@@ -1,4 +1,4 @@
-import type { CollectionEvaluation, PropertySummary } from "@dwellr/core";
+import type { CollectionEvaluation, PropertySummary } from "@hauscrawl/core";
 
 export type MockupIllustration = "gable" | "courtyard" | "tower";
 

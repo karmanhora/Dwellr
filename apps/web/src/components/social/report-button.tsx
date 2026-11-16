@@ -1,6 +1,6 @@
 "use client";
 
-import { REPORT_REASONS, REPORT_REASON_LABELS } from "@dwellr/core";
+import { REPORT_REASONS, REPORT_REASON_LABELS } from "@hauscrawl/core";
 import { useActionState, useState } from "react";
 
 import { createReportAction } from "@/app/social/actions";

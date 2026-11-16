@@ -6,8 +6,8 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@dwellr/core": ["./src/index.ts"],
-      "@dwellr/core/*": ["./src/*"]
+      "@hauscrawl/core": ["./src/index.ts"],
+      "@hauscrawl/core/*": ["./src/*"]
     }
   },
   "include": ["src/**/*.ts", "vitest.config.ts"]

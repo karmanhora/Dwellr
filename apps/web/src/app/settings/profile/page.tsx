@@ -1,4 +1,4 @@
-import { getDisplayName } from "@dwellr/core";
+import { getDisplayName } from "@hauscrawl/core";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 

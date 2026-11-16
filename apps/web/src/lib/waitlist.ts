@@ -1,4 +1,4 @@
-import { WAITLIST_COUNT_VISIBILITY_THRESHOLD } from "@dwellr/core";
+import { WAITLIST_COUNT_VISIBILITY_THRESHOLD } from "@hauscrawl/core";
 
 import { createClient } from "@/lib/supabase/server";
 

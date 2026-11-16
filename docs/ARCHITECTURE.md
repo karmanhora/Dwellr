@@ -59,12 +59,12 @@ HausCrawl/
 ### Monorepo with pnpm workspaces
 
 One repository, one lockfile, and explicit package boundaries. `apps/web`
-consumes `@dwellr/core` through `workspace:*`. When the Expo app arrives it
+consumes `@hauscrawl/core` through `workspace:*`. When the Expo app arrives it
 becomes `apps/mobile` and imports the same package.
 
 ### `packages/core` ships TypeScript source
 
-`@dwellr/core` has no build step: Next.js compiles it via
+`@hauscrawl/core` has no build step: Next.js compiles it via
 `transpilePackages`, and Metro (Expo) can consume TypeScript directly. This
 keeps the inner loop fast and removes a stale-`dist` failure mode. If core ever
 needs to be published, add a build then.
@@ -158,7 +158,7 @@ Sign-out runs as a Server Action and redirects home.
 `apps/mobile` imports the same package:
 
 ```ts
-import { signUpSchema, getFieldErrors, toProfile } from "@dwellr/core";
+import { signUpSchema, getFieldErrors, toProfile } from "@hauscrawl/core";
 ```
 
 - **Validation and types**: identical rules on both platforms, one place to
@@ -656,7 +656,7 @@ security-invoker view over properties, follows and preferences:
 
 Ordering is relevance descending, then `created_at` descending, then `id`
 descending. The cursor is the same opaque `relevance|createdAt|id` tuple used
-by the UI, validated before use. No clicks, dwell time or other hidden signals
+by the UI, validated before use. No clicks, time on page or other hidden signals
 are collected; the preferences are explicit and the ranking is explainable.
 
 ### Product surface

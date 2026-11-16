@@ -1,6 +1,6 @@
 "use server";
 
-import { getFieldErrors, isUuid, PROPERTY_BUCKET, updatePropertySchema } from "@dwellr/core";
+import { getFieldErrors, isUuid, PROPERTY_BUCKET, updatePropertySchema } from "@hauscrawl/core";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 

@@ -1,4 +1,4 @@
-import { removeUserStorageObjects } from "@dwellr/core";
+import { removeUserStorageObjects } from "@hauscrawl/core";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/lib/supabase/database.types";

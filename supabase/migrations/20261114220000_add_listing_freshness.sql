@@ -3,7 +3,7 @@
 -- Design notes:
 --   * History is written only by a trigger that observes real property writes.
 --     Clients can read it but cannot insert, edit or delete entries, so a
---     price-cut badge can only reflect a change dwellr actually saw.
+--     price-cut badge can only reflect a change HausCrawl actually saw.
 --   * Confirmations are self-reported freshness signals, not verification.
 --     They live in their own table and never touch property_field_provenance;
 --     provenance rules stay exactly as they were.

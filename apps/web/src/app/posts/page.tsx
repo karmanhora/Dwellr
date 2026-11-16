@@ -1,4 +1,4 @@
-import { POST_CATEGORIES, POST_CATEGORY_LABELS } from "@dwellr/core";
+import { POST_CATEGORIES, POST_CATEGORY_LABELS } from "@hauscrawl/core";
 import type { Metadata } from "next";
 import Link from "next/link";
 

@@ -3,7 +3,7 @@ import {
   collectionSharePath,
   collectionVisibilityLabel,
   formatCollectionCount,
-} from "@dwellr/core";
+} from "@hauscrawl/core";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";

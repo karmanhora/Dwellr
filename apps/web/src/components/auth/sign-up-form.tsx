@@ -1,6 +1,6 @@
 "use client";
 
-import { DISPLAY_NAME_MAX_LENGTH, PASSWORD_MIN_LENGTH, USERNAME_MAX_LENGTH } from "@dwellr/core";
+import { DISPLAY_NAME_MAX_LENGTH, PASSWORD_MIN_LENGTH, USERNAME_MAX_LENGTH } from "@hauscrawl/core";
 import { useActionState } from "react";
 
 import { signUpAction } from "@/app/(auth)/actions";

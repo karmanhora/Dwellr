@@ -1,4 +1,4 @@
-import { getInitials } from "@dwellr/core";
+import { getInitials } from "@hauscrawl/core";
 import Image from "next/image";
 
 const sizes = {

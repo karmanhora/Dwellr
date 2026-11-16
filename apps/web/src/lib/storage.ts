@@ -4,7 +4,7 @@ import {
   POST_PHOTOS_BUCKET,
   POST_VIDEOS_BUCKET,
   PROPERTY_BUCKET,
-} from "@dwellr/core";
+} from "@hauscrawl/core";
 
 import { getPublicEnv } from "@/lib/env";
 

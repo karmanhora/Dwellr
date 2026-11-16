@@ -8,7 +8,7 @@ confirmation, a private status page, and a referral link.
 
 1. The browser posts to `POST /api/waitlist` with the email, optional fields,
    UTM/referrer data, a referral code from `?ref=`, and a hidden honeypot field.
-2. The route validates with `waitlistSignupSchema` from `@dwellr/core`, rejects
+2. The route validates with `waitlistSignupSchema` from `@hauscrawl/core`, rejects
    obvious bots, hashes the request IP with `WAITLIST_IP_SALT`, and calls
    `join_waitlist_admin` with the **server-only** service role.
 3. `join_waitlist_admin` serializes same-email requests and calls the internal

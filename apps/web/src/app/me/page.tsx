@@ -1,4 +1,4 @@
-import { formatMemberSince, getDisplayName } from "@dwellr/core";
+import { formatMemberSince, getDisplayName } from "@hauscrawl/core";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";

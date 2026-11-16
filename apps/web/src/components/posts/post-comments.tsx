@@ -1,4 +1,4 @@
-import { authorName as displayAuthorName, type Comment } from "@dwellr/core";
+import { authorName as displayAuthorName, type Comment } from "@hauscrawl/core";
 import Link from "next/link";
 
 import { createCommentAction, deleteCommentAction } from "@/app/social/actions";

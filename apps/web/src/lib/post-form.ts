@@ -1,4 +1,4 @@
-import type { PostPhotoInput, PostVideoInput } from "@dwellr/core";
+import type { PostPhotoInput, PostVideoInput } from "@hauscrawl/core";
 
 export type PostFormState = {
   status: "idle" | "error";

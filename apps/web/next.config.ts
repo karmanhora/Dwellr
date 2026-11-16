@@ -2,8 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  // @dwellr/core ships TypeScript source so web and (later) Expo share one implementation.
-  transpilePackages: ["@dwellr/core"],
+  // @hauscrawl/core ships TypeScript source so web and (later) Expo share one implementation.
+  transpilePackages: ["@hauscrawl/core"],
   poweredByHeader: false,
   // Playwright and the preview panel load the dev server over 127.0.0.1 rather
   // than localhost; without this, Next blocks its own HMR resources.

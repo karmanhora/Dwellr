@@ -1,3 +1,3 @@
--- dwellr intentionally ships no seed data: property posts must never be
+-- HausCrawl intentionally ships no seed data: property posts must never be
 -- fabricated. Local development starts empty; the security suite creates its
 -- own throwaway accounts and rows and removes them again.

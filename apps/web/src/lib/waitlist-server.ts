@@ -1,6 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
-import { isUuid, WAITLIST_CONFIRMATION_TTL_SECONDS } from "@dwellr/core";
+import { isUuid, WAITLIST_CONFIRMATION_TTL_SECONDS } from "@hauscrawl/core";
 
 import { getContactEmail } from "@/lib/site";
 

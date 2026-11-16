@@ -5,7 +5,7 @@ import {
   WAITLIST_ROLES,
   WAITLIST_SEARCHING_WITH,
   WAITLIST_SEARCHING_WITH_LABELS,
-} from "@dwellr/core/waitlist";
+} from "@hauscrawl/core/waitlist";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
