@@ -103,4 +103,28 @@ describe("summarizeCollectionComparison", () => {
     );
     expect(result.homes[0]?.disagreement).toBe(false);
   });
+
+  it("counts shared likes across several homes and ignores ties and missing ratings", () => {
+    const homes = [
+      { id: "home-1", ratings: [4, 5] },
+      { id: "home-2", ratings: [5, 2] },
+      { id: "home-3", ratings: [4, 4] },
+      { id: "home-4", ratings: [3, 3] },
+      { id: "home-5", ratings: [5] },
+    ].map(({ id, ratings }) => ({
+      property: { ...home, id },
+      evaluations: ratings.map((rating, index) => ({
+        ...evaluation(index === 0 ? "a" : "b", rating),
+        propertyId: id,
+      })),
+    }));
+
+    const result = summarizeCollectionComparison(homes, ["a", "b"]);
+
+    expect(result.everyoneLikesCount).toBe(2);
+    expect(result.disagreementCount).toBe(1);
+    expect(result.homes[3]?.everyoneLikes).toBe(false);
+    expect(result.homes[3]?.disagreement).toBe(false);
+    expect(result.homes[4]?.everyoneLikes).toBe(false);
+  });
 });

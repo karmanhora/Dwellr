@@ -147,6 +147,7 @@ is 400. Labels are 500.
 | `shadow-lift` | 6 px + 48 px ambient | `shadow-lift` — modals, account menu |
 | `spacing-gutter` | 1.25rem | `p-gutter` etc. |
 | `spacing-section` | 5rem | `py-section` etc. |
+| `spacing-phone-frame` | 43.25rem | `h-phone-frame` — reserved landing mockup height |
 | `ease-soft` | `cubic-bezier(0.22, 1, 0.36, 1)` | `--ease-soft` in custom animations |
 | `duration-fast` / `base` / `slow` | 150 / 240 / 700 ms | Hover / fade / entrance |
 
@@ -193,6 +194,28 @@ preference.
 Calm, direct, specific. Short sentences. No hype ("dream home", "once in a
 lifetime"), no fake urgency, no exclamation marks. Say what dwellr does and
 what it does not know.
+
+## Landing collection mockup
+
+The waitlist hero includes one presentational phone mockup, `CollectionMockup`
+in `apps/web/src/components/landing/`. Its fictional homes and ratings live in
+`mockup-fixtures.ts`; the summary is computed with the real collection comparison
+logic, never queried from the database.
+
+- The mockup shows only features that exist: per-member ratings, notes, the
+  collection comparison labels (`Everyone likes`, `Split opinion`, `Still
+  deciding`), and provenance labels.
+- It uses inline, flat SVG house illustrations derived from the brand mark. No
+  raster images, stock homes, invented addresses, or prices.
+- The phone is a generic rounded frame. It is not an Apple or Android product
+  likeness and has no notch or platform logo.
+- The phone container is exposed as one image with a concise label; its inner
+  UI is decorative and hidden from assistive technology. The illustrative
+  caption is real, visible text beneath it.
+- The frame uses the `spacing-phone-frame` token so its height is reserved before
+  fonts load and cannot shift the hero. If fixture content changes, recheck that
+  the frame still fits and update the explicit-height Playwright check.
+- Keep the single entrance animation and its reduced-motion fallback.
 
 ## Imagery
 

@@ -1,4 +1,5 @@
 import { HouseMark } from "@/components/brand/logo";
+import { CollectionMockup } from "@/components/landing/collection-mockup";
 import { WaitlistForm } from "@/components/waitlist/waitlist-form";
 import { Container } from "@/components/ui/container";
 import { CheckIcon, HomeIcon, MapPinIcon, StarIcon, UserIcon } from "@/components/ui/icons";
@@ -157,24 +158,40 @@ export async function WaitlistLanding() {
       <section className="relative overflow-hidden border-b border-line">
         <HouseMark className="pointer-events-none absolute -top-16 -right-20 h-[26rem] w-[26rem] text-ink/[0.035] sm:-right-10 lg:top-10 lg:right-[-4rem] lg:h-[34rem] lg:w-[34rem]" />
 
-        <Container className="relative grid gap-12 py-14 sm:py-20 lg:grid-cols-[1.05fr_0.95fr] lg:items-start lg:gap-20 lg:py-24">
-          <div>
+        <Container className="relative grid gap-10 pt-6 pb-12 sm:py-16 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start lg:gap-16 lg:py-20">
+          <div className="lg:col-start-1 lg:row-start-1">
             <p className="flex items-center gap-3 text-[11px] font-medium tracking-[0.22em] text-stone uppercase">
-              <span aria-hidden="true" className="h-px w-8 bg-ink/30" />
-              A social network for home hunting · Seattle / King County
+              <span aria-hidden="true" className="h-px w-8 bg-ink/30" />A social network for home
+              hunting · Seattle / King County
             </p>
 
-            <h1 className="mt-7 text-[3rem] leading-[0.95] font-medium tracking-[-0.05em] text-ink sm:text-6xl lg:text-[5.25rem]">
+            <h1 className="mt-5 text-[3rem] leading-[0.95] font-medium tracking-[-0.05em] text-ink sm:mt-7 sm:text-6xl lg:text-[5.25rem]">
               Find a home
               <br />
               together.
             </h1>
 
-            <p className="mt-7 max-w-xl text-lg leading-relaxed text-stone sm:text-xl">
-              dwellr is a social network for home hunting. Follow people whose taste you trust, save and react to the homes you are considering, and make the decision together in one private place.
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-stone sm:mt-7 sm:text-lg lg:text-xl">
+              dwellr is a social network for home hunting. Follow people whose taste you trust, save
+              and react to the homes you are considering, and make the decision together in one
+              private place.
             </p>
 
-            <ul className="mt-9 space-y-3">
+            <div id="join" className="mt-6 max-w-xl scroll-mt-24 sm:mt-8">
+              <WaitlistForm idPrefix="hero" eyebrow="Be first in line" trackPageView />
+              <p className="mt-4 px-1 text-caption leading-relaxed text-stone">
+                Early access is starting in the Seattle area. Join the list and we&apos;ll email you
+                when it opens.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-center lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:justify-end">
+            <CollectionMockup />
+          </div>
+
+          <div className="lg:col-start-1 lg:row-start-2">
+            <ul className="grid gap-3 border-t border-line pt-6 sm:grid-cols-2 lg:max-w-xl">
               {promises.map((promise) => (
                 <li key={promise} className="flex items-start gap-3 text-body-sm text-ink/85">
                   <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-mist text-ink">
@@ -186,19 +203,11 @@ export async function WaitlistLanding() {
             </ul>
 
             {count !== null ? (
-              <p className="mt-8 inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-body-sm text-ink">
+              <p className="mt-6 inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-body-sm text-ink">
                 <span className="h-1.5 w-1.5 rounded-full bg-moss" aria-hidden="true" />
                 {count.toLocaleString("en-US")} people have joined the waitlist
               </p>
             ) : null}
-          </div>
-
-          <div id="join" className="scroll-mt-24 lg:pt-8">
-            <WaitlistForm idPrefix="hero" eyebrow="Be first in line" trackPageView />
-            <p className="mt-4 px-1 text-caption leading-relaxed text-stone">
-              Early access is starting in the Seattle area. Join the list and we&apos;ll email you
-              when it opens.
-            </p>
           </div>
         </Container>
       </section>
@@ -274,8 +283,8 @@ export async function WaitlistLanding() {
                 Built for a decision you make together.
               </h2>
               <p className="mt-5 max-w-md text-[15px] leading-relaxed text-stone">
-                Home hunting is rarely a solo project. dwellr is designed around the people who
-                will live with the choice.
+                Home hunting is rarely a solo project. dwellr is designed around the people who will
+                live with the choice.
               </p>
             </div>
 
@@ -289,7 +298,9 @@ export async function WaitlistLanding() {
                     </span>
                     <div>
                       <h3 className="text-base font-medium text-ink">{reason.title}</h3>
-                      <p className="mt-1.5 text-body-sm leading-relaxed text-stone">{reason.body}</p>
+                      <p className="mt-1.5 text-body-sm leading-relaxed text-stone">
+                        {reason.body}
+                      </p>
                     </div>
                   </div>
                 );
@@ -310,8 +321,8 @@ export async function WaitlistLanding() {
                 The shortlist, with everyone&apos;s point of view.
               </h2>
               <p className="mt-4 max-w-md text-[15px] leading-relaxed text-stone">
-                A shared card like this keeps the homes, reactions, and notes in one place. It is
-                an example of the interface, not a real listing.
+                A shared card like this keeps the homes, reactions, and notes in one place. It is an
+                example of the interface, not a real listing.
               </p>
               <ul className="mt-6 space-y-2 text-body-sm text-stone">
                 <li>Neighborhood-level location only</li>
@@ -399,8 +410,8 @@ export async function WaitlistLanding() {
               Start with a better shortlist.
             </h2>
             <p className="mt-4 max-w-md text-[15px] leading-relaxed text-paper/65">
-              We are opening early access in Seattle / King County first. Add your email and we
-              will tell you when it is ready.
+              We are opening early access in Seattle / King County first. Add your email and we will
+              tell you when it is ready.
             </p>
           </div>
 
