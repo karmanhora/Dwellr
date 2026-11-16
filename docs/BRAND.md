@@ -10,29 +10,30 @@ Tagline (product-facing): **Find a home. Together.**
 
 ## Logo
 
-The supplied logo is an ink field containing the outlined house mark and the
-HausCrawl wordmark. The header and social image use the full lockup; the app
-icons use a square crop of the same house mark.
+The supplied logo is the dark house mark and HausCrawl wordmark on a white
+field. The header, footer and auth use the trimmed lockup; the social image
+uses the supplied artwork, and the app icons use a square white-background
+crop of the same house mark.
 
 ### Files
 
 | File | Use |
 | --- | --- |
-| `apps/web/public/brand/hauscrawl-logo.svg` | Supplied artwork, stored verbatim. |
-| `apps/web/public/brand/hauscrawl-lockup.svg` | The supplied artwork trimmed to its content for header, footer, auth and social use. |
+| `apps/web/public/brand/hauscrawl-logo.svg` | Supplied white-background artwork, stored verbatim. |
+| `apps/web/public/brand/hauscrawl-lockup.svg` | The supplied artwork trimmed to its content for header, footer and auth use. |
 | `apps/web/public/brand/hauscrawl-mark.png` | Square house-mark crop for decorative surfaces and icons. |
 | `apps/web/src/app/icon.png` | 512 px app icon (Next.js metadata). |
 | `apps/web/src/app/apple-icon.png` | 180 px app icon (iOS masks it). |
 | `apps/web/src/app/favicon.ico` | 48 px favicon. |
 
-The in-app logo (`src/components/brand/logo.tsx`) points at the supplied SVG;
+The in-app logo (`src/components/brand/logo.tsx`) points at the trimmed lockup;
 `HouseMark` uses the cropped PNG on quieter surfaces.
 
 ### Provenance
 
-The supplied `HausCrawl Minimalist Logo.svg` is stored verbatim at
-`apps/web/public/brand/hauscrawl-logo.svg`. The trimmed lockup, square mark and
-app icons are crops of that artwork.
+The supplied `HausCrawl Minimal House Logo 2.svg` is stored verbatim at
+`apps/web/public/brand/hauscrawl-logo.svg`. The square mark and app icons are
+crops of that artwork.
 
 ### Usage rules
 

@@ -36,8 +36,8 @@ export function Logo({ size = "md", className = "" }: LogoProps) {
       <Image
         src="/brand/hauscrawl-lockup.svg"
         alt="HausCrawl"
-        width={1150}
-        height={250}
+        width={1800}
+        height={280}
         unoptimized
         className={`${sizes[size]} w-auto`}
       />

@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-import { HAUSCRAWL_LOCKUP_DATA_URI, HAUSCRAWL_MARK_DATA_URI } from "./brand-logo-data";
+import { HAUSCRAWL_LOGO_DATA_URI, HAUSCRAWL_MARK_DATA_URI } from "./brand-logo-data";
 
 export const alt = "HausCrawl — find a home together";
 export const size = { width: 1_200, height: 630 };
@@ -28,9 +28,9 @@ export default function OpenGraphImage() {
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <img
-          src={HAUSCRAWL_LOCKUP_DATA_URI}
-          width={230}
-          height={50}
+          src={HAUSCRAWL_LOGO_DATA_URI}
+          width={210}
+          height={70}
           alt="HausCrawl"
           style={{ display: "block" }}
         />
