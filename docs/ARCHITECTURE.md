@@ -411,7 +411,7 @@ accounts there.
 
 ```powershell
 pnpm test          # Vitest
-pnpm --filter @dwellr/web test:e2e   # Playwright (needs .env.local + a live dev project)
+pnpm --filter @hauscrawl/web test:e2e   # Playwright (needs .env.local + a live dev project)
 ```
 
 ## Milestone 2A: saves and collections

@@ -141,7 +141,7 @@ export default async function HomePage() {
           className="animate-rise relative overflow-hidden rounded-[2rem] bg-mist p-8 sm:p-10"
           style={{ animationDelay: "120ms" }}
         >
-          <HouseMark className="pointer-events-none absolute -top-14 -right-14 h-64 w-64 text-ink/[0.05]" />
+          <HouseMark className="pointer-events-none absolute -top-14 -right-14 h-64 w-64 opacity-[0.05]" />
 
           <div className="relative">
             <p className="text-[11px] font-medium tracking-[0.22em] text-stone uppercase">

@@ -42,7 +42,7 @@ jobs:
         run: pnpm test
 
       - name: Build web app
-        run: pnpm --filter @dwellr/web build
+        run: pnpm --filter @hauscrawl/web build
         env:
           # Public build-time placeholders only. Pages are dynamic, so the build
           # never connects; no project credentials belong in CI.

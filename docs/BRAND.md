@@ -10,38 +10,39 @@ Tagline (product-facing): **Find a home. Together.**
 
 ## Logo
 
-The HausCrawl identity uses a solid ink square with a white **H** monogram and a
-wordmark set in Outfit. The old house outline and its inline path have been
-removed.
+The supplied logo is an ink field containing the outlined house mark and the
+HausCrawl wordmark. The header and social image use the full lockup; the app
+icons use a square crop of the same house mark.
 
 ### Files
 
 | File | Use |
 | --- | --- |
-| `apps/web/public/brand/hauscrawl-mark.svg` | Mark only. Favicons, app icons, avatar-free surfaces. |
-| `apps/web/public/brand/hauscrawl-lockup.svg` | Mark + wordmark, horizontal. Default when space allows. |
+| `apps/web/public/brand/hauscrawl-logo.svg` | Supplied artwork, stored verbatim. |
+| `apps/web/public/brand/hauscrawl-lockup.svg` | The supplied artwork trimmed to its content for header, footer, auth and social use. |
+| `apps/web/public/brand/hauscrawl-mark.png` | Square house-mark crop for decorative surfaces and icons. |
 | `apps/web/src/app/icon.png` | 512 px app icon (Next.js metadata). |
-| `apps/web/src/app/apple-icon.png` | 180 px, opaque white behind the mark (iOS masks it). |
+| `apps/web/src/app/apple-icon.png` | 180 px app icon (iOS masks it). |
 | `apps/web/src/app/favicon.ico` | 48 px favicon. |
 
-The in-app logo (`src/components/brand/logo.tsx`) draws the monogram as inline
-SVG and sets the wordmark in the loaded Outfit face, so it stays crisp and
-inherits `currentColor`.
+The in-app logo (`src/components/brand/logo.tsx`) points at the supplied SVG;
+`HouseMark` uses the cropped PNG on quieter surfaces.
 
 ### Provenance
 
-The company name comes from the supplied `HausCrawl Minimalist Logo.svg`. The
-in-app identity renders that name as a HausCrawl monogram and Outfit wordmark.
+The supplied `HausCrawl Minimalist Logo.svg` is stored verbatim at
+`apps/web/public/brand/hauscrawl-logo.svg`. The trimmed lockup, square mark and
+app icons are crops of that artwork.
 
 ### Usage rules
 
-- **Clear space:** at least half the monogram height on every side.
-- **Minimum sizes:** mark 16 px; wordmark 72 px wide; lockup 90 px wide.
-- **Colour:** ink on white/`mist`, or paper (white) on ink. No other colours,
-  no gradients, no shadows, no outlines.
-- **Don't:** stretch, rotate, outline, add effects, or set the wordmark in another
-  typeface.
-- **Do:** prefer the lockup in headers and the mark alone where space is tight.
+- **Clear space:** at least half the house-mark height on every side.
+- **Minimum sizes:** mark 16 px; full lockup 90 px wide.
+- **Colour:** use the supplied ink field and grey outline as provided. Do not
+  recolour, invert, stretch, rotate, add effects, or separate the wordmark from
+  the house mark.
+- **Do:** prefer the full lockup in headers and the cropped mark where space is
+  tight or a square icon is required.
 
 ## Colour
 

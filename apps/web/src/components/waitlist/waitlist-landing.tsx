@@ -156,7 +156,7 @@ export async function WaitlistLanding() {
   return (
     <div>
       <section className="relative overflow-hidden border-b border-line">
-        <HouseMark className="pointer-events-none absolute -top-16 -right-20 h-[26rem] w-[26rem] text-ink/[0.035] sm:-right-10 lg:top-10 lg:right-[-4rem] lg:h-[34rem] lg:w-[34rem]" />
+        <HouseMark className="pointer-events-none absolute -top-16 -right-20 h-[26rem] w-[26rem] opacity-[0.035] sm:-right-10 lg:top-10 lg:right-[-4rem] lg:h-[34rem] lg:w-[34rem]" />
 
         <Container className="relative grid gap-10 pt-6 pb-12 sm:py-16 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start lg:gap-16 lg:py-20">
           <div className="lg:col-start-1 lg:row-start-1">

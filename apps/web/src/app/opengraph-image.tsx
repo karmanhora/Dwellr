@@ -1,5 +1,7 @@
 import { ImageResponse } from "next/og";
 
+import { HAUSCRAWL_LOCKUP_DATA_URI, HAUSCRAWL_MARK_DATA_URI } from "./brand-logo-data";
+
 export const alt = "HausCrawl — find a home together";
 export const size = { width: 1_200, height: 630 };
 export const contentType = "image/png";
@@ -9,15 +11,6 @@ const homes = [
   { name: "Alder Bend", facts: "2 bd · 1 ba · 960 sq ft", result: "Split opinion" },
   { name: "Northbank", facts: "4 bd · 2.5 ba · 2,050 sq ft", result: "Everyone likes" },
 ];
-
-function HausCrawlMark() {
-  return (
-    <svg width="30" height="30" viewBox="0 0 512 512" aria-hidden="true">
-      <rect width="512" height="512" rx="96" fill="#1F2422" />
-      <path d="M144 128h64v104h96V128h64v256h-64V288h-96v96h-64z" fill="#FFFFFF" />
-    </svg>
-  );
-}
 
 export default function OpenGraphImage() {
   return new ImageResponse(
@@ -34,12 +27,13 @@ export default function OpenGraphImage() {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <HausCrawlMark />
-          <div style={{ display: "flex", fontSize: 42, fontWeight: 600, letterSpacing: "-0.04em" }}>
-            HausCrawl
-          </div>
-        </div>
+        <img
+          src={HAUSCRAWL_LOCKUP_DATA_URI}
+          width={230}
+          height={50}
+          alt="HausCrawl"
+          style={{ display: "block" }}
+        />
         <div
           style={{
             display: "flex",
@@ -188,7 +182,13 @@ export default function OpenGraphImage() {
                       backgroundColor: "#F5F4EF",
                     }}
                   >
-                    <HausCrawlMark />
+                    <img
+                      src={HAUSCRAWL_MARK_DATA_URI}
+                      width={30}
+                      height={30}
+                      alt=""
+                      style={{ display: "block" }}
+                    />
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                     <div style={{ display: "flex", fontSize: 14, fontWeight: 600 }}>

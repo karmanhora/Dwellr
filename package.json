@@ -1,5 +1,5 @@
 {
-  "name": "dwellr",
+  "name": "hauscrawl",
   "version": "0.0.0",
   "private": true,
   "packageManager": "pnpm@12.18.0",
@@ -7,9 +7,9 @@
     "node": ">=20.9.0"
   },
   "scripts": {
-    "dev": "pnpm --filter @dwellr/web dev",
-    "build": "pnpm --filter @dwellr/web build",
-    "start": "pnpm --filter @dwellr/web start",
+    "dev": "pnpm --filter @hauscrawl/web dev",
+    "build": "pnpm --filter @hauscrawl/web build",
+    "start": "pnpm --filter @hauscrawl/web start",
     "lint": "pnpm -r --if-present lint",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",

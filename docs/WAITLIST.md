@@ -335,7 +335,7 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm test:security
-pnpm --filter @dwellr/web test:e2e:waitlist
+pnpm --filter @hauscrawl/web test:e2e:waitlist
 ```
 
 `pnpm test:security` needs a disposable Postgres/Supabase database with the

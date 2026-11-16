@@ -57,7 +57,7 @@ pnpm supabase db push --remote
 | `pnpm typecheck` | `tsc --noEmit` across workspaces           |
 | `pnpm test`     | Vitest suite for `packages/core`           |
 | `pnpm test:security` | Anon-key RLS/storage suite (needs Supabase) |
-| `pnpm --filter @dwellr/web test:e2e` | Playwright flows (needs `.env.local`) |
+| `pnpm --filter @hauscrawl/web test:e2e` | Playwright flows (needs `.env.local`) |
 | `pnpm format`    | Prettier write                             |
 
 ## Structure
