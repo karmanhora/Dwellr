@@ -88,12 +88,12 @@ function MockupHomeCard({
 
           <p className="mt-0.5 text-caption text-stone">{facts.join(" · ")}</p>
 
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <div className="mt-2 flex flex-wrap items-center gap-1">
             <ProvenanceBadge provenance={home.property.verification} />
             <RatingChip name="Partner" rating={partnerRating} />
           </div>
 
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <div className="mt-2 flex min-h-6 flex-wrap items-center gap-1.5">
             {everyoneLikes ? (
               <Badge tone="positive">Everyone likes</Badge>
             ) : disagreement ? (
@@ -127,10 +127,10 @@ function MockupHomeCard({
             </span>
           </div>
 
-          {note && disagreement ? (
-            <p className="mt-1.5 text-caption leading-snug text-stone">
-              Partner: &ldquo;{note}&rdquo;
-            </p>
+          {note ? (
+            <div className="mt-1.5 min-h-[2.2rem] text-caption leading-snug text-stone">
+              {disagreement ? <p>Partner: &ldquo;{note}&rdquo;</p> : null}
+            </div>
           ) : null}
         </div>
       </div>
@@ -226,9 +226,8 @@ export function CollectionMockup() {
             })}
           </div>
 
-          <div className="flex items-center justify-between border-t border-line px-4 py-3 text-caption font-medium text-ink">
-            <span>Compare all {MOCKUP_HOMES.length} homes</span>
-            <span aria-hidden="true">→</span>
+          <div className="border-t border-line px-4 py-3 text-caption text-stone">
+            {MOCKUP_HOMES.length} homes in this example
           </div>
         </div>
       </div>
