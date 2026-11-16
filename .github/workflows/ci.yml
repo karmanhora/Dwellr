@@ -76,3 +76,9 @@ jobs:
 
       - name: Run access checks
         run: pnpm test:security
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter @hauscrawl/web exec playwright install --with-deps chromium
+
+      - name: Run account-deletion regression
+        run: pnpm --filter @hauscrawl/web test:e2e:account-deletion

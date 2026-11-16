@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
+    "test:e2e:account-deletion": "playwright test --config=playwright.account-deletion.config.ts",
     "test:e2e:waitlist": "playwright test --config=playwright.waitlist.config.ts"
   },
   "dependencies": {
@@ -25,10 +26,12 @@
     "@playwright/test": "^1.65.0",
     "@tailwindcss/postcss": "^4.3.5",
     "@types/node": "^22.0.0",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "eslint": "^9.39.0",
     "eslint-config-next": "^16.4.6",
+    "pg": "^8.23.1",
     "tailwindcss": "^4.3.5",
     "typescript": "^5.9.3"
   }
