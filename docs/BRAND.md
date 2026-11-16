@@ -184,10 +184,11 @@ what it does not know.
 
 ## Landing collection mockup
 
-The waitlist hero includes one presentational phone mockup, `CollectionMockup`
+The waitlist hero includes one interactive phone mockup, `CollectionMockup`
 in `apps/web/src/components/landing/`. Its fictional homes and ratings live in
 `mockup-fixtures.ts`; the summary is computed with the real collection comparison
-logic, never queried from the database.
+logic, never queried from the database, and updates as the visitor changes their
+ratings.
 
 - The mockup shows only features that exist: per-member ratings, notes, the
   collection comparison labels (`Everyone likes`, `Split opinion`, `Still
@@ -196,12 +197,12 @@ logic, never queried from the database.
   raster images, stock homes, invented addresses, or prices.
 - The phone is a generic rounded frame. It is not an Apple or Android product
   likeness and has no notch or platform logo.
-- The phone container is exposed as one image with a concise label; its inner
-  UI is decorative and hidden from assistive technology. The illustrative
-  caption is real, visible text beneath it.
-- The frame uses the `spacing-phone-frame` token so its height is reserved before
-  fonts load and cannot shift the hero. If fixture content changes, recheck that
-  the frame still fits and update the explicit-height Playwright check.
+- The phone container is exposed as a group with a concise label; the rating
+  stars are real buttons with per-home labels and visible focus states. The
+  illustrative caption and reset control are real, visible text beneath it.
+- The frame uses the `spacing-phone-frame` token as a minimum height so space is
+  reserved before fonts load while the interactive cards can grow at narrow
+  widths. If fixture content changes, recheck that the frame still fits.
 - Keep the single entrance animation and its reduced-motion fallback.
 
 ## Imagery
