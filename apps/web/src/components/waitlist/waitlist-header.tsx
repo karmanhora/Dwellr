@@ -15,7 +15,7 @@ export function WaitlistHeader() {
           <p className="hidden text-caption tracking-[0.14em] text-stone uppercase sm:block">
             Seattle / King County
           </p>
-          <a href="#join" className={buttonClasses({ variant: "secondary", size: "sm" })}>
+          <a href="/#join" className={buttonClasses({ variant: "secondary", size: "sm" })}>
             Join the waitlist
           </a>
         </div>

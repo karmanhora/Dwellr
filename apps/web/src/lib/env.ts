@@ -4,7 +4,8 @@ import { z } from "zod";
  * Public runtime configuration.
  *
  * These two values are safe to expose to the browser — Row Level Security is
- * what protects the data. The service role key must never reach this app.
+ * what protects the data. The service role key is read only by server-side
+ * waitlist delivery code and must never reach the browser.
  */
 const publicEnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.url("NEXT_PUBLIC_SUPABASE_URL must be a valid URL."),

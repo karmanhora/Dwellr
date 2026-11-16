@@ -1,14 +1,42 @@
+import { createHmac } from "node:crypto";
+
+import { createClient } from "@supabase/supabase-js";
 import { expect, test } from "@playwright/test";
 
 // Keep local runs below the per-IP database limit; production still sees the
 // real forwarded address.
 const testIp = `198.51.100.${Math.floor(Math.random() * 200) + 1}`;
+const confirmationSecret = "dwellr-e2e-confirmation-secret";
 
 test.use({
   extraHTTPHeaders: { "x-forwarded-for": testIp },
 });
 
-test("submits the waitlist form and shows a usable share link", async ({ page }) => {
+function randomCode(length: number) {
+  return Array.from({ length }, () => "0123456789abcdef"[Math.floor(Math.random() * 16)]).join("");
+}
+
+function confirmationToken(signupId: string) {
+  const payload = Buffer.from(
+    JSON.stringify({ sub: signupId, exp: Math.floor(Date.now() / 1000) + 3_600 }),
+  ).toString("base64url");
+  const signature = createHmac("sha256", confirmationSecret).update(payload).digest("base64url");
+  return `${payload}.${signature}`;
+}
+
+const serviceUrl = process.env.SUPABASE_TEST_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_TEST_SERVICE_ROLE_KEY;
+const admin =
+  serviceUrl && serviceKey
+    ? createClient(serviceUrl, serviceKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      })
+    : null;
+
+test("submits the waitlist form without exposing a share link before confirmation", async ({
+  page,
+}) => {
   await page.goto("/");
 
   await expect(
@@ -27,12 +55,7 @@ test("submits the waitlist form and shows a usable share link", async ({ page })
   await hero.getByRole("button", { name: "Join the waitlist" }).click();
 
   await expect(page.getByText("You're on the list.")).toBeVisible();
-  await expect(page.getByLabel("Your share link")).toHaveValue(
-    /\?ref=[a-z0-9]{10}$/,
-  );
-
-  const shareUrl = await page.getByLabel("Your share link").inputValue();
-  expect(shareUrl).toContain("http://127.0.0.1:3101/?ref=");
+  await expect(page.getByLabel("Your share link")).toHaveCount(0);
 });
 
 test("silently accepts a honeypot-filled submission", async ({ page }) => {
@@ -50,7 +73,7 @@ test("silently accepts a honeypot-filled submission", async ({ page }) => {
   await expect(page.getByText("You're on the list.")).toBeVisible();
 });
 
-test("waitlist-only mode redirects app routes to the landing page", async ({ page }) => {
+test("waitlist-only mode keeps the public waitlist pages reachable", async ({ page }) => {
   await page.goto("/explore?sort=newest");
   await expect(page).toHaveURL("http://127.0.0.1:3101/");
 
@@ -62,4 +85,98 @@ test("waitlist-only mode redirects app routes to the landing page", async ({ pag
 
   await page.goto("/terms");
   await expect(page.getByRole("heading", { level: 1, name: "Terms" })).toBeVisible();
+
+  await page.goto("/waitlist/how-it-works");
+  await expect(
+    page.getByRole("heading", { level: 1, name: "How the waitlist works." }),
+  ).toBeVisible();
+});
+
+test("confirmation and a confirmed referral move the first person up five spots", async ({
+  page,
+}) => {
+  test.skip(
+    !admin,
+    "Set SUPABASE_TEST_URL / NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to exercise confirmation and referrals.",
+  );
+  if (!admin) return;
+
+  const runId = Date.now().toString();
+  const seedIp = randomCode(64);
+  const seedStart = Date.now() - 60_000;
+
+  // Six confirmed people ahead of the test signup make a five-spot move
+  // observable without exposing any other user's data.
+  for (let index = 0; index < 6; index += 1) {
+    const result = await admin.from("waitlist_signups").insert({
+      email: `waitlist.seed.${runId}.${index}@gmail.com`,
+      referral_code: randomCode(10),
+      status_code: randomCode(24),
+      ip_hash: seedIp,
+      email_confirmed_at: new Date(seedStart + index * 1_000).toISOString(),
+    });
+    if (result.error) throw new Error(`seed signup failed: ${result.error.message}`);
+  }
+
+  const firstEmail = `waitlist.referrer.${runId}@gmail.com`;
+  const secondEmail = `waitlist.referred.${runId}@gmail.com`;
+
+  await page.goto("/");
+  const hero = page.locator("#join");
+  await hero.getByLabel("Email address").fill(firstEmail);
+  await hero.getByRole("button", { name: "Join the waitlist" }).click();
+  await expect(page.getByText("You're on the list.")).toBeVisible();
+
+  const firstRow = await admin
+    .from("waitlist_signups")
+    .select("id, status_code")
+    .eq("email", firstEmail)
+    .single();
+  if (firstRow.error || !firstRow.data) {
+    throw new Error(`could not find the first signup: ${firstRow.error?.message ?? "missing"}`);
+  }
+
+  await page.goto(
+    `/waitlist/confirm?token=${encodeURIComponent(confirmationToken(firstRow.data.id))}`,
+  );
+  await expect(page).toHaveURL(new RegExp(`/waitlist/status/${firstRow.data.status_code}$`));
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("You're #7");
+
+  const shareUrl = await page.getByLabel("Your referral link").inputValue();
+  expect(shareUrl).toContain("/?ref=");
+  await expect(page.getByTestId("waitlist-referral-count")).toHaveText("0");
+  await expect(page.getByTestId("waitlist-spots-gained")).toHaveText("0");
+
+  // An unconfirmed referral does not change the first person's place.
+  await page.goto(shareUrl);
+  const referralForm = page.locator("#join");
+  await referralForm.getByLabel("Email address").fill(secondEmail);
+  await referralForm.getByRole("button", { name: "Join the waitlist" }).click();
+  await expect(page.getByText("You're on the list.")).toBeVisible();
+
+  await page.goto(`/waitlist/status/${firstRow.data.status_code}`);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("You're #7");
+  await expect(page.getByTestId("waitlist-referral-count")).toHaveText("0");
+
+  const secondRow = await admin
+    .from("waitlist_signups")
+    .select("id, status_code")
+    .eq("email", secondEmail)
+    .single();
+  if (secondRow.error || !secondRow.data) {
+    throw new Error(`could not find the referred signup: ${secondRow.error?.message ?? "missing"}`);
+  }
+
+  await page.goto(
+    `/waitlist/confirm?token=${encodeURIComponent(confirmationToken(secondRow.data.id))}`,
+  );
+  await expect(page).toHaveURL(new RegExp(`/waitlist/status/${secondRow.data.status_code}$`));
+
+  await page.goto(`/waitlist/status/${firstRow.data.status_code}`);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("You're #2");
+  await expect(page.getByTestId("waitlist-referral-count")).toHaveText("1");
+  await expect(page.getByTestId("waitlist-spots-gained")).toHaveText("5");
+
+  // The status page is private and carries the required headers.
+  expect(await page.locator('meta[name="robots"]').getAttribute("content")).toContain("noindex");
 });

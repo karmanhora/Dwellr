@@ -1,20 +1,22 @@
 import {
-  createReferralCode,
+  isUuid,
   WAITLIST_IP_HASH_PATTERN,
-  WAITLIST_REFERRAL_CODE_PATTERN,
-  waitlistShareUrl,
+  WAITLIST_STATUS_CODE_PATTERN,
   waitlistSignupSchema,
 } from "@dwellr/core";
 import { NextResponse } from "next/server";
 
+import { createWaitlistAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
   createUnsubscribeToken,
-  emailNotificationsEnabled,
+  createWaitlistConfirmationToken,
   getClientIp,
   hashIp,
   hashUnsubscribeToken,
-  sendWaitlistWelcomeEmail,
+  sendWaitlistConfirmationEmail,
+  sendWaitlistStatusEmail,
+  waitlistEmailReady,
 } from "@/lib/waitlist-server";
 
 export const runtime = "nodejs";
@@ -23,24 +25,47 @@ export const dynamic = "force-dynamic";
 const MAX_BODY_BYTES = 8_192;
 const NO_STORE = { "Cache-Control": "no-store" };
 
-type SignupResult = { ok?: boolean; referral_code?: string };
+type SignupResult = {
+  ok?: boolean;
+  is_new?: boolean;
+  signup_id?: string;
+  status_code?: string;
+  referral_code?: string;
+};
+
+type SignupArgs = {
+  p_email: string;
+  p_role: string | null;
+  p_searching_with: string | null;
+  p_region: string | null;
+  p_utm_source: string | null;
+  p_utm_medium: string | null;
+  p_utm_campaign: string | null;
+  p_referrer: string | null;
+  p_referral_code: string | null;
+  p_ip_hash: string;
+  p_unsubscribe_token_hash: string | null;
+};
 
 function jsonError(status: number, message: string) {
   return NextResponse.json({ ok: false, message }, { status, headers: NO_STORE });
 }
 
+function successResponse(emailConfigured: boolean) {
+  return NextResponse.json(
+    {
+      ok: true,
+      // A capability flag, not a delivery result. It is the same for new and
+      // duplicate submissions and never reveals whether the address existed.
+      emailConfigured,
+    },
+    { headers: NO_STORE },
+  );
+}
+
 function readString(body: Record<string, unknown>, key: string): string | undefined {
   const value = body[key];
   return typeof value === "string" ? value : undefined;
-}
-
-function readReferralCode(value: unknown): string | null {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
-  const result = value as SignupResult;
-  if (result.ok !== true || typeof result.referral_code !== "string") return null;
-  return WAITLIST_REFERRAL_CODE_PATTERN.test(result.referral_code)
-    ? result.referral_code
-    : null;
 }
 
 function resolveSiteUrl(request: Request): string {
@@ -51,21 +76,8 @@ function resolveSiteUrl(request: Request): string {
   );
 }
 
-function successResponse(referralCode: string, siteUrl: string) {
-  return NextResponse.json(
-    {
-      ok: true,
-      // The body deliberately contains nothing about whether the address was
-      // new. New and duplicate signups get the same shape.
-      referralCode,
-      shareUrl: waitlistShareUrl(siteUrl, referralCode),
-    },
-    { headers: NO_STORE },
-  );
-}
-
 function parseSignup(body: Record<string, unknown>) {
-  const parsed = waitlistSignupSchema.safeParse({
+  return waitlistSignupSchema.safeParse({
     email: readString(body, "email"),
     role: readString(body, "role") || undefined,
     searchingWith: readString(body, "searchingWith") || undefined,
@@ -76,8 +88,70 @@ function parseSignup(body: Record<string, unknown>) {
     referrer: readString(body, "referrer") || undefined,
     ref: readString(body, "ref") || undefined,
   });
+}
 
-  return parsed;
+function readAdminResult(value: unknown): SignupResult | null {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+  const result = value as SignupResult;
+
+  if (
+    result.ok !== true ||
+    typeof result.is_new !== "boolean" ||
+    typeof result.signup_id !== "string" ||
+    !isUuid(result.signup_id) ||
+    typeof result.status_code !== "string" ||
+    !WAITLIST_STATUS_CODE_PATTERN.test(result.status_code) ||
+    typeof result.referral_code !== "string"
+  ) {
+    return null;
+  }
+
+  return result;
+}
+
+async function sendDeliveryEmail({
+  result,
+  email,
+  siteUrl,
+}: {
+  result: SignupResult;
+  email: string;
+  siteUrl: string;
+}): Promise<boolean> {
+  const unsubscribeToken = createUnsubscribeToken(email);
+  const unsubscribeUrl = unsubscribeToken ? new URL("/unsubscribe", `${siteUrl}/`) : null;
+  if (unsubscribeUrl && unsubscribeToken) {
+    unsubscribeUrl.searchParams.set("token", unsubscribeToken);
+  }
+
+  if (!result.status_code) return false;
+
+  if (result.is_new) {
+    if (!result.signup_id) return false;
+    const confirmationToken = createWaitlistConfirmationToken(result.signup_id);
+    if (!confirmationToken) {
+      console.warn(
+        "[waitlist] confirmation signing is not configured; position and referral UI are disabled.",
+      );
+      return false;
+    }
+
+    const confirmUrl = new URL("/waitlist/confirm", `${siteUrl}/`);
+    confirmUrl.searchParams.set("token", confirmationToken);
+
+    return sendWaitlistConfirmationEmail({
+      to: email,
+      confirmUrl: confirmUrl.toString(),
+      unsubscribeUrl: unsubscribeUrl?.toString() ?? null,
+    });
+  }
+
+  const statusUrl = new URL(`/waitlist/status/${result.status_code}`, `${siteUrl}/`);
+  return sendWaitlistStatusEmail({
+    to: email,
+    statusUrl: statusUrl.toString(),
+    unsubscribeUrl: unsubscribeUrl?.toString() ?? null,
+  });
 }
 
 export async function POST(request: Request) {
@@ -103,7 +177,7 @@ export async function POST(request: Request) {
   // writing anything, so the bot has no signal that it was caught.
   const honeypot = readString(body, "website");
   if (honeypot && honeypot.trim().length > 0) {
-    return successResponse(createReferralCode(), siteUrl);
+    return successResponse(false);
   }
 
   const parsed = parseSignup(body);
@@ -126,12 +200,9 @@ export async function POST(request: Request) {
   }
 
   const unsubscribeToken = createUnsubscribeToken(input.email);
-  const unsubscribeHash = unsubscribeToken
-    ? hashUnsubscribeToken(unsubscribeToken)
-    : null;
+  const unsubscribeHash = unsubscribeToken ? hashUnsubscribeToken(unsubscribeToken) : null;
 
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("join_waitlist", {
+  const args: SignupArgs = {
     p_email: input.email,
     p_role: input.role ?? null,
     p_searching_with: input.searchingWith ?? null,
@@ -143,43 +214,70 @@ export async function POST(request: Request) {
     p_referral_code: input.ref ?? null,
     p_ip_hash: ipHash,
     p_unsubscribe_token_hash: unsubscribeHash,
-  });
+  };
 
-  if (error) {
-    const message = error.message.toLowerCase();
-    if (message.includes("rate_limited")) {
-      return jsonError(429, "Too many signups from this connection. Try again later.");
-    }
-    if (message.includes("invalid_input")) {
-      return jsonError(400, "Check your email and try again.");
+  const admin = createWaitlistAdminClient();
+  let adminResult: SignupResult | null = null;
+
+  if (admin) {
+    const { data, error } = await admin.rpc("join_waitlist_admin", args);
+
+    if (error) {
+      const message = error.message.toLowerCase();
+      if (message.includes("rate_limited")) {
+        return jsonError(429, "Too many signups from this connection. Try again later.");
+      }
+      if (message.includes("invalid_input")) {
+        return jsonError(400, "Check your email and try again.");
+      }
+
+      console.error("[waitlist] admin join failed:", error.code ?? "unknown");
+      return jsonError(500, "We couldn't add you just now. Try again.");
     }
 
-    // Never surface database details or a stack trace to the browser.
-    console.error("[waitlist] join failed:", error.code ?? "unknown");
-    return jsonError(500, "We couldn't add you just now. Try again.");
+    adminResult = readAdminResult(data);
+    if (!adminResult) {
+      console.error("[waitlist] admin join returned an unexpected result.");
+      return jsonError(500, "We couldn't add you just now. Try again.");
+    }
+  } else {
+    console.warn(
+      "[waitlist] SUPABASE_SERVICE_ROLE_KEY is not configured; the public signup path is active but double opt-in, positions and referrals are disabled.",
+    );
+
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("join_waitlist", args);
+
+    if (error) {
+      const message = error.message.toLowerCase();
+      if (message.includes("rate_limited")) {
+        return jsonError(429, "Too many signups from this connection. Try again later.");
+      }
+      if (message.includes("invalid_input")) {
+        return jsonError(400, "Check your email and try again.");
+      }
+
+      console.error("[waitlist] join failed:", error.code ?? "unknown");
+      return jsonError(500, "We couldn't add you just now. Try again.");
+    }
+
+    if (!data || typeof data !== "object" || (data as { ok?: unknown }).ok !== true) {
+      console.error("[waitlist] join returned an unexpected result.");
+      return jsonError(500, "We couldn't add you just now. Try again.");
+    }
   }
 
-  const referralCode = readReferralCode(data);
-  if (!referralCode) {
-    console.error("[waitlist] join returned an unexpected result.");
-    return jsonError(500, "We couldn't add you just now. Try again.");
-  }
-
-  // The claim is one-time per token, so duplicate submits do not resend email.
-  if (emailNotificationsEnabled() && unsubscribeToken && unsubscribeHash) {
-    const { data: claimed } = await supabase.rpc("claim_waitlist_notification", {
-      p_token_hash: unsubscribeHash,
-    });
-
-    if (claimed === true) {
-      const unsubscribeUrl = new URL("/unsubscribe", `${siteUrl}/`);
-      unsubscribeUrl.searchParams.set("token", unsubscribeToken);
-      await sendWaitlistWelcomeEmail({
-        to: input.email,
-        unsubscribeUrl: unsubscribeUrl.toString(),
+  let emailConfigured = false;
+  if (adminResult) {
+    emailConfigured = await waitlistEmailReady();
+    if (emailConfigured) {
+      await sendDeliveryEmail({
+        result: adminResult,
+        email: input.email,
+        siteUrl,
       });
     }
   }
 
-  return successResponse(referralCode, siteUrl);
+  return successResponse(emailConfigured);
 }

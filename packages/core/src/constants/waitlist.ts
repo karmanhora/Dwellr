@@ -8,6 +8,26 @@ export const WAITLIST_REFERRAL_CODE_LENGTH = 10;
 export const WAITLIST_REFERRAL_CODE_PATTERN = /^[a-z0-9]{10}$/;
 export const WAITLIST_COUNT_VISIBILITY_THRESHOLD = 25;
 export const WAITLIST_IP_HASH_PATTERN = /^[0-9a-f]{64}$/;
+export const WAITLIST_REFERRAL_BONUS_SPOTS = 5;
+export const WAITLIST_MAX_CREDITED_REFERRALS = 10;
+export const WAITLIST_MAX_SPOTS_GAINED =
+  WAITLIST_REFERRAL_BONUS_SPOTS * WAITLIST_MAX_CREDITED_REFERRALS;
+export const WAITLIST_MAX_REFERRALS_PER_IP_PER_DAY = 3;
+export const WAITLIST_STATUS_CODE_MIN_LENGTH = 12;
+export const WAITLIST_STATUS_CODE_PATTERN = /^[a-z0-9]{12,64}$/;
+export const WAITLIST_STATUS_RATE_LIMIT = 20;
+export const WAITLIST_STATUS_RATE_WINDOW_SECONDS = 60;
+export const WAITLIST_CONFIRMATION_TTL_SECONDS = 24 * 60 * 60;
+
+export const WAITLIST_TIERS = ["founding_members", "first_wave", "founding_member_badge"] as const;
+
+export type WaitlistTier = (typeof WAITLIST_TIERS)[number];
+
+export const WAITLIST_TIER_LABELS: Record<WaitlistTier, string> = {
+  founding_members: "Founding Members list",
+  first_wave: "First-wave invite",
+  founding_member_badge: "Founding Member badge",
+};
 
 export const WAITLIST_ROLES = [
   "planning_next_12_months",

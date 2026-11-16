@@ -1,9 +1,10 @@
 /**
  * Runs the access suite against the local Supabase stack.
  *
- * `supabase status -o env` prints the local API URL and anon key (public, safe
- * for local use). Neither value is written to disk. Set SUPABASE_TEST_URL and
- * SUPABASE_TEST_ANON_KEY yourself to point the suite at another disposable
+ * `supabase status -o env` prints the local API URL and keys. The service-role
+ * key is passed only to the access-suite process for disposable fixtures and
+ * is never written to disk. Set SUPABASE_TEST_URL, SUPABASE_TEST_ANON_KEY and
+ * optionally SUPABASE_TEST_SERVICE_ROLE_KEY to point at another disposable
  * project.
  */
 
@@ -11,6 +12,7 @@ import { execSync, spawnSync } from "node:child_process";
 
 let url = process.env.SUPABASE_TEST_URL;
 let anonKey = process.env.SUPABASE_TEST_ANON_KEY;
+let serviceKey = process.env.SUPABASE_TEST_SERVICE_ROLE_KEY;
 
 if (!url || !anonKey) {
   let status = "";
@@ -35,6 +37,7 @@ if (!url || !anonKey) {
 
   url = values.API_URL;
   anonKey = values.ANON_KEY;
+  serviceKey = serviceKey || values.SERVICE_ROLE_KEY;
 
   if (!url || !anonKey) {
     console.error("`supabase status -o env` did not include API_URL and ANON_KEY.");
@@ -44,7 +47,12 @@ if (!url || !anonKey) {
 
 const result = spawnSync(process.execPath, ["tests/security/access.mjs"], {
   stdio: "inherit",
-  env: { ...process.env, SUPABASE_TEST_URL: url, SUPABASE_TEST_ANON_KEY: anonKey },
+  env: {
+    ...process.env,
+    SUPABASE_TEST_URL: url,
+    SUPABASE_TEST_ANON_KEY: anonKey,
+    ...(serviceKey ? { SUPABASE_TEST_SERVICE_ROLE_KEY: serviceKey } : {}),
+  },
 });
 
 process.exit(result.status ?? 1);

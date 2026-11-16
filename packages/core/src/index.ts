@@ -54,9 +54,14 @@ export {
   type VideoStatus,
 } from "./constants/post";
 export {
+  WAITLIST_CONFIRMATION_TTL_SECONDS,
   WAITLIST_COUNT_VISIBILITY_THRESHOLD,
   WAITLIST_EMAIL_MAX_LENGTH,
   WAITLIST_IP_HASH_PATTERN,
+  WAITLIST_MAX_CREDITED_REFERRALS,
+  WAITLIST_MAX_REFERRALS_PER_IP_PER_DAY,
+  WAITLIST_MAX_SPOTS_GAINED,
+  WAITLIST_REFERRAL_BONUS_SPOTS,
   WAITLIST_REFERRAL_CODE_LENGTH,
   WAITLIST_REFERRAL_CODE_PATTERN,
   WAITLIST_REFERRER_MAX_LENGTH,
@@ -65,7 +70,14 @@ export {
   WAITLIST_ROLES,
   WAITLIST_SEARCHING_WITH,
   WAITLIST_SEARCHING_WITH_LABELS,
+  WAITLIST_STATUS_CODE_MIN_LENGTH,
+  WAITLIST_STATUS_CODE_PATTERN,
+  WAITLIST_STATUS_RATE_LIMIT,
+  WAITLIST_STATUS_RATE_WINDOW_SECONDS,
+  WAITLIST_TIER_LABELS,
+  WAITLIST_TIERS,
   WAITLIST_UTM_MAX_LENGTH,
+  type WaitlistTier,
 } from "./constants/waitlist";
 export {
   AVATAR_URL_MAX_LENGTH,
@@ -354,6 +366,17 @@ export {
   toProvenanceMap,
 } from "./services/property";
 export { createReferralCode, waitlistShareUrl } from "./services/waitlist";
+export {
+  calculateWaitlistPositions,
+  canCreditWaitlistReferral,
+  confirmWaitlistSignup,
+  waitlistSpotsGained,
+  waitlistTier,
+  type WaitlistConfirmationState,
+  type WaitlistPosition,
+  type WaitlistQueueEntry,
+  type WaitlistReferralContext,
+} from "./services/waitlist-position";
 export { safeRedirectPath } from "./services/redirect";
 export { getFieldErrors } from "./services/validation";
 export {

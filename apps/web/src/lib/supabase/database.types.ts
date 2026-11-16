@@ -36,6 +36,7 @@ export type Database = {
           utm_campaign: string | null;
           referrer: string | null;
           referral_code: string;
+          status_code: string;
           referred_by: string | null;
           email_confirmed_at: string | null;
           unsubscribed_at: string | null;
@@ -61,6 +62,7 @@ export type Database = {
           utm_campaign?: string | null;
           referrer?: string | null;
           referral_code: string;
+          status_code: string;
           referred_by?: string | null;
           email_confirmed_at?: string | null;
           unsubscribed_at?: string | null;
@@ -917,6 +919,43 @@ export type Database = {
           p_unsubscribe_token_hash?: string | null;
         };
         Returns: Json;
+      };
+      join_waitlist_admin: {
+        Args: {
+          p_email: string;
+          p_role?: string | null;
+          p_searching_with?: string | null;
+          p_region?: string | null;
+          p_utm_source?: string | null;
+          p_utm_medium?: string | null;
+          p_utm_campaign?: string | null;
+          p_referrer?: string | null;
+          p_referral_code?: string | null;
+          p_ip_hash: string;
+          p_unsubscribe_token_hash?: string | null;
+        };
+        Returns: Json;
+      };
+      confirm_waitlist_signup: {
+        Args: { p_signup_id: string };
+        Returns: Json;
+      };
+      get_waitlist_status: {
+        Args: { p_code: string };
+        Returns: Array<{
+          position: number | null;
+          total: number | null;
+          referral_count: number;
+          tier: string | null;
+        }>;
+      };
+      get_waitlist_referral_code: {
+        Args: { p_status_code: string };
+        Returns: string | null;
+      };
+      waitlist_position: {
+        Args: { p_signup_id: string };
+        Returns: number | null;
       };
       waitlist_signup_count: {
         Args: Record<string, never>;

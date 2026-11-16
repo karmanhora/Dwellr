@@ -8,10 +8,9 @@ import {
 } from "@dwellr/core/waitlist";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
-import { Button, buttonClasses } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { CheckIcon } from "@/components/ui/icons";
-import { Input } from "@/components/ui/input";
 import { SelectField } from "@/components/ui/select";
 import { trackWaitlistEvent } from "@/lib/waitlist-analytics";
 
@@ -22,8 +21,7 @@ type WaitlistFormProps = {
 };
 
 type SuccessState = {
-  referralCode: string;
-  shareUrl: string;
+  emailConfigured: boolean;
 };
 
 type SourceState = {
@@ -33,8 +31,6 @@ type SourceState = {
   referrer?: string;
   ref?: string;
 };
-
-const SHARE_TEXT = "I'm on the dwellr waitlist for early access in Seattle / King County. Find a home together.";
 
 function readSource(): SourceState {
   const params = new URLSearchParams(window.location.search);
@@ -54,13 +50,10 @@ export function WaitlistForm({ idPrefix, eyebrow, trackPageView = false }: Waitl
   const [role, setRole] = useState("");
   const [searchingWith, setSearchingWith] = useState("");
   const [region, setRegion] = useState("");
-  const [source] = useState<SourceState>(() =>
-    typeof window === "undefined" ? {} : readSource(),
-  );
+  const [source] = useState<SourceState>(() => (typeof window === "undefined" ? {} : readSource()));
   const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<SuccessState | null>(null);
-  const [copied, setCopied] = useState(false);
 
   const started = useRef(false);
   const honeypotRef = useRef<HTMLInputElement>(null);
@@ -111,9 +104,11 @@ export function WaitlistForm({ idPrefix, eyebrow, trackPageView = false }: Waitl
         }),
       });
 
-      const payload = (await response.json().catch(() => null)) as
-        | { ok?: boolean; referralCode?: string; shareUrl?: string; message?: string }
-        | null;
+      const payload = (await response.json().catch(() => null)) as {
+        ok?: boolean;
+        emailConfigured?: boolean;
+        message?: string;
+      } | null;
 
       if (!response.ok) {
         setError(
@@ -125,13 +120,7 @@ export function WaitlistForm({ idPrefix, eyebrow, trackPageView = false }: Waitl
         return;
       }
 
-      if (!payload?.referralCode || !payload.shareUrl) {
-        setError("We couldn't add you just now. Try again.");
-        setStatus("idle");
-        return;
-      }
-
-      setSuccess({ referralCode: payload.referralCode, shareUrl: payload.shareUrl });
+      setSuccess({ emailConfigured: payload?.emailConfigured === true });
       setStatus("success");
       trackWaitlistEvent("waitlist_success", { form: idPrefix });
     } catch {
@@ -140,108 +129,33 @@ export function WaitlistForm({ idPrefix, eyebrow, trackPageView = false }: Waitl
     }
   }
 
-  async function copyShareLink() {
-    if (!success) return;
-
-    trackWaitlistEvent("waitlist_referral_share_click", { method: "copy", form: idPrefix });
-
-    try {
-      await navigator.clipboard.writeText(success.shareUrl);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2_500);
-    } catch {
-      const input = document.getElementById(`${idPrefix}-share`) as HTMLInputElement | null;
-      if (input) {
-        input.focus();
-        input.select();
-        document.execCommand("copy");
-        setCopied(true);
-        window.setTimeout(() => setCopied(false), 2_500);
-      }
-    }
-  }
-
   if (success) {
-    const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(SHARE_TEXT)}&url=${encodeURIComponent(success.shareUrl)}`;
-    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(success.shareUrl)}`;
-    const emailUrl = `mailto:?subject=${encodeURIComponent("Join me on the dwellr waitlist")}&body=${encodeURIComponent(`${SHARE_TEXT}\n\n${success.shareUrl}`)}`;
-
     return (
       <div className="rounded-[1.6rem] border border-line bg-paper p-6 sm:p-7">
         <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-moss-soft text-ink">
             <CheckIcon size={18} />
           </span>
-          <p className="text-lg font-medium tracking-[-0.02em] text-ink" role="status" aria-live="polite">
-            You&apos;re on the list.
+          <p
+            className="text-lg font-medium tracking-[-0.02em] text-ink"
+            role="status"
+            aria-live="polite"
+          >
+            {success.emailConfigured ? "Check your email." : "You're on the list."}
           </p>
         </div>
 
         <p className="mt-4 text-body-sm leading-relaxed text-stone">
-          We&apos;ll email you when early access opens in Seattle / King County. No noise in the
-          meantime.
+          {success.emailConfigured
+            ? "Confirm your email to join the queue and get your private status page. Check your inbox for the link."
+            : "We'll email you when early access opens in Seattle / King County. No noise in the meantime."}
         </p>
 
-        <div className="mt-6 border-t border-line pt-5">
-          <label htmlFor={`${idPrefix}-share`} className="text-body-sm font-medium text-ink">
-            Your share link
-          </label>
-          <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-            <Input
-              id={`${idPrefix}-share`}
-              readOnly
-              value={success.shareUrl}
-              onFocus={(event) => event.currentTarget.select()}
-              className="text-body-sm"
-            />
-            <Button type="button" variant="secondary" onClick={copyShareLink} className="shrink-0">
-              {copied ? "Copied" : "Copy link"}
-            </Button>
-          </div>
-          <p className="mt-2 text-caption text-stone">
-            Know someone hunting too? Share your link. We count referrals when they sign up.
-          </p>
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          <a
-            href={xUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={buttonClasses({ variant: "secondary", size: "sm" })}
-            onClick={() =>
-              trackWaitlistEvent("waitlist_referral_share_click", { method: "x", form: idPrefix })
-            }
-          >
-            Share on X
-          </a>
-          <a
-            href={facebookUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={buttonClasses({ variant: "secondary", size: "sm" })}
-            onClick={() =>
-              trackWaitlistEvent("waitlist_referral_share_click", {
-                method: "facebook",
-                form: idPrefix,
-              })
-            }
-          >
-            Share on Facebook
-          </a>
-          <a
-            href={emailUrl}
-            className={buttonClasses({ variant: "secondary", size: "sm" })}
-            onClick={() =>
-              trackWaitlistEvent("waitlist_referral_share_click", { method: "email", form: idPrefix })
-            }
-          >
-            Email a friend
-          </a>
-        </div>
-
-        <p className="mt-5 text-caption text-stone">
-          We never share your email.{" "}
+        <p className="mt-5 text-caption leading-relaxed text-stone">
+          <a href="/waitlist/how-it-works" className="underline underline-offset-2 hover:text-ink">
+            How the waitlist works
+          </a>{" "}
+          ·{" "}
           <a href="/privacy" className="underline underline-offset-2 hover:text-ink">
             Privacy
           </a>
@@ -326,7 +240,10 @@ export function WaitlistForm({ idPrefix, eyebrow, trackPageView = false }: Waitl
         </div>
       </details>
 
-      <div className="absolute -left-[9999px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
+      <div
+        className="absolute -left-[9999px] top-auto h-px w-px overflow-hidden"
+        aria-hidden="true"
+      >
         <label htmlFor={`${idPrefix}-website`}>Company website</label>
         <input
           ref={honeypotRef}
@@ -339,12 +256,7 @@ export function WaitlistForm({ idPrefix, eyebrow, trackPageView = false }: Waitl
         />
       </div>
 
-      <Button
-        type="submit"
-        size="lg"
-        loading={status === "submitting"}
-        className="mt-5 w-full"
-      >
+      <Button type="submit" size="lg" loading={status === "submitting"} className="mt-5 w-full">
         {status === "submitting" ? "Joining…" : "Join the waitlist"}
       </Button>
 
@@ -352,6 +264,10 @@ export function WaitlistForm({ idPrefix, eyebrow, trackPageView = false }: Waitl
         Only waitlist updates. No spam, no selling your email.{" "}
         <a href="/privacy" className="underline underline-offset-2 hover:text-ink">
           Privacy
+        </a>
+        <br />
+        <a href="/waitlist/how-it-works" className="underline underline-offset-2 hover:text-ink">
+          How the waitlist works
         </a>
       </p>
     </form>

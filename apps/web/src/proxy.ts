@@ -18,6 +18,7 @@ const WAITLIST_API_PREFIXES = ["/api/waitlist", "/api/unsubscribe"];
 
 function isWaitlistRoute(pathname: string): boolean {
   if (WAITLIST_PATHS.has(pathname) || WAITLIST_ASSET_PATHS.has(pathname)) return true;
+  if (pathname === "/waitlist" || pathname.startsWith("/waitlist/")) return true;
   return WAITLIST_API_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );

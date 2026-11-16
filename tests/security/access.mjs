@@ -1,10 +1,11 @@
 /**
  * Anon / owner / stranger access suite for dwellr's Supabase schema.
  *
- * It runs against a disposable database (local Supabase in CI) using only the
- * public anon key: every check goes through PostgREST, Storage or Auth exactly
- * as a browser would. No service-role key is used, so the policies are what is
- * being tested, not a bypass.
+ * It runs against a disposable database (local Supabase in CI) using the
+ * public anon key for the access checks: every check goes through PostgREST,
+ * Storage or Auth exactly as a browser would. An optional service-role key is
+ * used only to create and confirm disposable waitlist fixtures for valid-code
+ * and rate-limit checks; it never replaces an anon access assertion.
  *
  * Run with `pnpm test:security` (starts from `supabase status`) or set
  * SUPABASE_TEST_URL and SUPABASE_TEST_ANON_KEY explicitly.
@@ -15,6 +16,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const url = process.env.SUPABASE_TEST_URL;
 const anonKey = process.env.SUPABASE_TEST_ANON_KEY;
+const serviceKey = process.env.SUPABASE_TEST_SERVICE_ROLE_KEY;
 
 if (!url || !anonKey) {
   console.error(
@@ -46,6 +48,11 @@ function makeClient() {
 }
 
 const anon = makeClient();
+const service = serviceKey
+  ? createClient(url, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    })
+  : null;
 const owner = makeClient();
 const stranger = makeClient();
 const viewer = makeClient();
@@ -167,13 +174,17 @@ try {
     .eq("id", accounts.owner.id)
     .select("bio")
     .single();
-  check("an owner updates their own profile", ownerProfileUpdate.data?.bio === "Security suite profile.");
+  check(
+    "an owner updates their own profile",
+    ownerProfileUpdate.data?.bio === "Security suite profile.",
+  );
 
-  const profileDelete = await owner.from("profiles").delete().eq("id", accounts.owner.id).select("id");
-  const profileAfterDelete = await anon
+  const profileDelete = await owner
     .from("profiles")
-    .select("id")
-    .eq("id", accounts.owner.id);
+    .delete()
+    .eq("id", accounts.owner.id)
+    .select("id");
+  const profileAfterDelete = await anon.from("profiles").select("id").eq("id", accounts.owner.id);
   check(
     "clients cannot delete profiles",
     (Boolean(profileDelete.error) || profileDelete.data?.length === 0) &&
@@ -252,7 +263,9 @@ try {
   check(
     "every property fact starts as user_submitted",
     (provenance.data?.length ?? 0) >= 5 &&
-      provenance.data.every((row) => row.provenance === "user_submitted" && row.verified_at === null),
+      provenance.data.every(
+        (row) => row.provenance === "user_submitted" && row.verified_at === null,
+      ),
     `${provenance.data?.length ?? 0} rows`,
   );
 
@@ -260,7 +273,11 @@ try {
     .from("property_field_provenance")
     .select("source_ref")
     .eq("property_id", propertyId);
-  check("clients cannot read provenance source_ref", Boolean(sourceRef.error), sourceRef.error?.code);
+  check(
+    "clients cannot read provenance source_ref",
+    Boolean(sourceRef.error),
+    sourceRef.error?.code,
+  );
 
   const provenanceInsert = await owner.from("property_field_provenance").insert({
     property_id: propertyId,
@@ -289,7 +306,8 @@ try {
     .eq("property_id", propertyId);
   check(
     "the initial price is recorded as observed",
-    initialPriceHistory.data?.length === 1 && initialPriceHistory.data[0].previous_price_cents === null,
+    initialPriceHistory.data?.length === 1 &&
+      initialPriceHistory.data[0].previous_price_cents === null,
   );
 
   const historyInsert = await owner.from("property_price_history").insert({
@@ -377,7 +395,11 @@ try {
     property_id: propertyId,
     confirmed_by: accounts.owner.id,
   });
-  check("the poster confirms their listing", !ownerConfirmation.error, ownerConfirmation.error?.message);
+  check(
+    "the poster confirms their listing",
+    !ownerConfirmation.error,
+    ownerConfirmation.error?.message,
+  );
 
   const publicConfirmation = await anon
     .from("property_confirmations")
@@ -402,7 +424,11 @@ try {
   const photoUpload = await owner.storage
     .from(photoBucket)
     .upload(photoPath, png, { contentType: "image/png", upsert: false });
-  check("an owner uploads under their own storage prefix", !photoUpload.error, photoUpload.error?.message);
+  check(
+    "an owner uploads under their own storage prefix",
+    !photoUpload.error,
+    photoUpload.error?.message,
+  );
 
   const foreignUpload = await stranger.storage
     .from(photoBucket)
@@ -421,7 +447,10 @@ try {
     .single();
   check("the property owner can attach a photo row", !photoRow.error, photoRow.error?.message);
 
-  const anonPhotoRead = await anon.from("property_photos").select("id").eq("property_id", propertyId);
+  const anonPhotoRead = await anon
+    .from("property_photos")
+    .select("id")
+    .eq("property_id", propertyId);
   check("anon reads property photos", anonPhotoRead.data?.length === 1);
 
   const photoPathTrigger = await owner.from("property_photos").insert({
@@ -446,10 +475,16 @@ try {
   check("a stranger cannot update photo rows", strangerPhotoUpdate.data?.length === 0);
 
   const publicPhoto = await fetch(`${url}/storage/v1/object/public/${photoBucket}/${photoPath}`);
-  check("property photos are publicly readable", publicPhoto.status === 200, `HTTP ${publicPhoto.status}`);
+  check(
+    "property photos are publicly readable",
+    publicPhoto.status === 200,
+    `HTTP ${publicPhoto.status}`,
+  );
 
   const strangerRemove = await stranger.storage.from(photoBucket).remove([photoPath]);
-  const photoAfterRemove = await fetch(`${url}/storage/v1/object/public/${photoBucket}/${photoPath}`);
+  const photoAfterRemove = await fetch(
+    `${url}/storage/v1/object/public/${photoBucket}/${photoPath}`,
+  );
   check(
     "a stranger cannot delete another owner's object",
     photoAfterRemove.status === 200,
@@ -462,7 +497,11 @@ try {
     .upload(avatarPath, png, { contentType: "image/png" });
   check("an owner uploads an avatar", !avatarUpload.error);
   const publicAvatar = await fetch(`${url}/storage/v1/object/public/${avatarBucket}/${avatarPath}`);
-  check("avatars are publicly readable", publicAvatar.status === 200, `HTTP ${publicAvatar.status}`);
+  check(
+    "avatars are publicly readable",
+    publicAvatar.status === 200,
+    `HTTP ${publicAvatar.status}`,
+  );
 
   // --- collections ---------------------------------------------------------
   const slug = `${runId}${Math.random().toString(36).slice(2)}`
@@ -490,14 +529,20 @@ try {
     .from("collections")
     .select("id")
     .eq("id", collectionId);
-  check("a stranger cannot read a private collection", strangerPrivateCollection.data?.length === 0);
+  check(
+    "a stranger cannot read a private collection",
+    strangerPrivateCollection.data?.length === 0,
+  );
 
   const strangerCollectionInsert = await stranger.from("collections").insert({
     owner_id: accounts.owner.id,
     name: "Forged collection",
     share_slug: `${slug.slice(0, 11)}a`,
   });
-  check("a stranger cannot create a collection for someone else", Boolean(strangerCollectionInsert.error));
+  check(
+    "a stranger cannot create a collection for someone else",
+    Boolean(strangerCollectionInsert.error),
+  );
 
   const anonCollectionInsert = await anon.from("collections").insert({
     owner_id: accounts.owner.id,
@@ -541,7 +586,10 @@ try {
     .eq("property_id", propertyId)
     .select("note")
     .single();
-  check("an owner updates their collection item", ownerItemUpdate.data?.note === "Updated owner note.");
+  check(
+    "an owner updates their collection item",
+    ownerItemUpdate.data?.note === "Updated owner note.",
+  );
 
   const strangerItemUpdate = await stranger
     .from("collection_items")
@@ -558,12 +606,11 @@ try {
     .select("id");
   check("a stranger cannot delete a collection", strangerCollectionDelete.data?.length === 0);
 
-  const stillThere = await owner
-    .from("collections")
-    .select("name")
-    .eq("id", collectionId)
-    .single();
-  check("the collection survives foreign writes", stillThere.data?.name === `Security collection ${runId}`);
+  const stillThere = await owner.from("collections").select("name").eq("id", collectionId).single();
+  check(
+    "the collection survives foreign writes",
+    stillThere.data?.name === `Security collection ${runId}`,
+  );
 
   // --- collaboration roles, evaluations and invites -----------------------
   const editorProperty = await owner
@@ -625,7 +672,10 @@ try {
     viewerPending.error?.message,
   );
   const strangerPending = await stranger.rpc("get_my_pending_invites");
-  check("the pending-invite RPC does not leak another invitee's invite", strangerPending.data?.length === 0);
+  check(
+    "the pending-invite RPC does not leak another invitee's invite",
+    strangerPending.data?.length === 0,
+  );
 
   const strangerInviteRead = await stranger
     .from("collection_invites")
@@ -648,7 +698,10 @@ try {
     .eq("collection_id", collectionId)
     .eq("user_id", accounts.viewer.id)
     .single();
-  check("the accepted invite creates a viewer membership", viewerMembership.data?.role === "viewer");
+  check(
+    "the accepted invite creates a viewer membership",
+    viewerMembership.data?.role === "viewer",
+  );
 
   const viewerPendingAfterAccept = await viewer.rpc("get_my_pending_invites");
   check(
@@ -656,10 +709,7 @@ try {
     !(viewerPendingAfterAccept.data ?? []).some((invite) => invite.id === viewerInvite.id),
   );
 
-  const viewerCollectionRead = await viewer
-    .from("collections")
-    .select("id")
-    .eq("id", collectionId);
+  const viewerCollectionRead = await viewer.from("collections").select("id").eq("id", collectionId);
   check("a viewer reads the private collection", viewerCollectionRead.data?.length === 1);
 
   const viewerEvaluationRead = await viewer
@@ -730,16 +780,18 @@ try {
   const editorAccept = await editor.rpc("accept_collection_invite_by_id", {
     p_invite_id: editorInvite.id,
   });
-  check("a second editor accepts their named invite", !editorAccept.error, editorAccept.error?.message);
+  check(
+    "a second editor accepts their named invite",
+    !editorAccept.error,
+    editorAccept.error?.message,
+  );
 
-  const editorItemInsert = await editor
-    .from("collection_items")
-    .insert({
-      collection_id: collectionId,
-      property_id: editorPropertyId,
-      added_by: accounts.editor.id,
-      note: "Editor's addition.",
-    });
+  const editorItemInsert = await editor.from("collection_items").insert({
+    collection_id: collectionId,
+    property_id: editorPropertyId,
+    added_by: accounts.editor.id,
+    note: "Editor's addition.",
+  });
   check("an editor adds a home", !editorItemInsert.error, editorItemInsert.error?.message);
 
   const editorItemUpdate = await editor
@@ -826,7 +878,11 @@ try {
   const directAccept = await stranger.rpc("accept_collection_invite_by_id", {
     p_invite_id: directAcceptInvite.id,
   });
-  check("a named invite is accepted without exposing a token", !directAccept.error, directAccept.error?.message);
+  check(
+    "a named invite is accepted without exposing a token",
+    !directAccept.error,
+    directAccept.error?.message,
+  );
   const directReuse = await stranger.rpc("accept_collection_invite_by_id", {
     p_invite_id: directAcceptInvite.id,
   });
@@ -840,7 +896,8 @@ try {
   check("a used one-use invite cannot be reused", Boolean(lateReuse.error));
 
   const revokedInvite = await createInvite({ inviteeId: accounts.stranger.id });
-  if (revokedInvite.error) throw new Error(`revoked invite setup failed: ${revokedInvite.error.message}`);
+  if (revokedInvite.error)
+    throw new Error(`revoked invite setup failed: ${revokedInvite.error.message}`);
   const revoke = await owner
     .from("collection_invites")
     .update({ revoked_at: new Date().toISOString() })
@@ -867,7 +924,8 @@ try {
     inviteeId: accounts.stranger.id,
     expiresInMs: 1000,
   });
-  if (expiringInvite.error) throw new Error(`expiring invite failed: ${expiringInvite.error.message}`);
+  if (expiringInvite.error)
+    throw new Error(`expiring invite failed: ${expiringInvite.error.message}`);
   await new Promise((resolve) => setTimeout(resolve, 1200));
   const expiredAccept = await stranger.rpc("accept_collection_invite", {
     p_token_hash: expiringInvite.hash,
@@ -880,12 +938,13 @@ try {
     .eq("id", collectionId)
     .select("is_public")
     .single();
-  check("the owner publishes the collection", publish.data?.is_public === true, publish.error?.message);
+  check(
+    "the owner publishes the collection",
+    publish.data?.is_public === true,
+    publish.error?.message,
+  );
 
-  const anonPublicCollection = await anon
-    .from("collections")
-    .select("id")
-    .eq("share_slug", slug);
+  const anonPublicCollection = await anon.from("collections").select("id").eq("share_slug", slug);
   check("anon reads a published collection", anonPublicCollection.data?.length === 1);
 
   const anonPublicItems = await anon
@@ -1009,7 +1068,10 @@ try {
     .from("notifications")
     .select("id")
     .eq("id", likeNotification.data?.id ?? 0);
-  check("a user cannot read another user's notifications", strangerNotifications.data?.length === 0);
+  check(
+    "a user cannot read another user's notifications",
+    strangerNotifications.data?.length === 0,
+  );
 
   const forgedNotification = await owner.from("notifications").insert({
     user_id: accounts.owner.id,
@@ -1043,10 +1105,7 @@ try {
     .maybeSingle();
   check("follower counts include the new follow", (followCounts.data?.follower_count ?? 0) >= 1);
 
-  const followNotification = await owner
-    .from("notifications")
-    .select("id")
-    .eq("type", "follow");
+  const followNotification = await owner.from("notifications").select("id").eq("type", "follow");
   check("a follow creates a notification", (followNotification.data?.length ?? 0) >= 1);
 
   const strangerComment = await stranger
@@ -1062,10 +1121,7 @@ try {
   check("a signed-in user comments", !strangerComment.error, strangerComment.error?.message);
   firstCommentId = strangerComment.data?.id ?? null;
 
-  const anonCommentRead = await anon
-    .from("comments")
-    .select("body")
-    .eq("id", firstCommentId);
+  const anonCommentRead = await anon.from("comments").select("body").eq("id", firstCommentId);
   check("comments are publicly readable", anonCommentRead.data?.length === 1);
 
   const forgedComment = await stranger.from("comments").insert({
@@ -1117,7 +1173,10 @@ try {
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", ownerReply.data?.id)
     .select("id");
-  check("a stranger cannot delete someone else's comment", strangerDeleteOwnerComment.data?.length === 0);
+  check(
+    "a stranger cannot delete someone else's comment",
+    strangerDeleteOwnerComment.data?.length === 0,
+  );
 
   const report = await stranger
     .from("reports")
@@ -1157,7 +1216,10 @@ try {
     .update({ status: "dismissed", resolved_at: new Date().toISOString() })
     .eq("id", report.data?.id)
     .select("id");
-  check("reporters cannot resolve their own reports", Boolean(reportStatusUpdate.error) || reportStatusUpdate.data?.length === 0);
+  check(
+    "reporters cannot resolve their own reports",
+    Boolean(reportStatusUpdate.error) || reportStatusUpdate.data?.length === 0,
+  );
 
   const ownerDeleteStrangerComment = await owner
     .from("comments")
@@ -1167,7 +1229,8 @@ try {
     .single();
   check(
     "a content owner soft-deletes a comment into a tombstone",
-    ownerDeleteStrangerComment.data?.body === "" && Boolean(ownerDeleteStrangerComment.data?.deleted_at),
+    ownerDeleteStrangerComment.data?.body === "" &&
+      Boolean(ownerDeleteStrangerComment.data?.deleted_at),
     ownerDeleteStrangerComment.error?.message,
   );
 
@@ -1196,7 +1259,11 @@ try {
     })
     .select("neighborhoods")
     .single();
-  check("a user saves feed preferences", preferences.data?.neighborhoods?.[0] === "Test Heights", preferences.error?.message);
+  check(
+    "a user saves feed preferences",
+    preferences.data?.neighborhoods?.[0] === "Test Heights",
+    preferences.error?.message,
+  );
 
   const strangerFeed = await stranger
     .from("feed_properties")
@@ -1216,7 +1283,10 @@ try {
   check("feed preferences are private", foreignPreferences.data?.length === 0);
 
   const anonFeed = await anon.from("feed_properties").select("id").eq("id", propertyId);
-  check("anon cannot read the personalized feed", Boolean(anonFeed.error) || anonFeed.data?.length === 0);
+  check(
+    "anon cannot read the personalized feed",
+    Boolean(anonFeed.error) || anonFeed.data?.length === 0,
+  );
 
   // A block hides both directions and stops new interactions.
   await stranger.from("follows").delete().eq("follower_id", accounts.stranger.id);
@@ -1229,10 +1299,7 @@ try {
   const blockedProperty = await stranger.from("properties").select("id").eq("id", propertyId);
   check("a blocked user's property disappears", blockedProperty.data?.length === 0);
 
-  const blockedProfile = await stranger
-    .from("profiles")
-    .select("id")
-    .eq("id", accounts.owner.id);
+  const blockedProfile = await stranger.from("profiles").select("id").eq("id", accounts.owner.id);
   check("a blocked user's profile disappears", blockedProfile.data?.length === 0);
 
   const ownerSeesStranger = await owner
@@ -1334,7 +1401,11 @@ try {
     p_photos: [],
     p_video: null,
   });
-  check("an author publishes a text post through create_post", !textPost.error, textPost.error?.message);
+  check(
+    "an author publishes a text post through create_post",
+    !textPost.error,
+    textPost.error?.message,
+  );
   postId = textPost.data;
 
   const anonPostRead = await anon.from("posts").select("id, kind").eq("id", postId).maybeSingle();
@@ -1366,7 +1437,11 @@ try {
   const postPhotoUpload = await owner.storage
     .from(postPhotoBucket)
     .upload(postPhotoPath, png, { contentType: "image/png", upsert: false });
-  check("an owner uploads a post photo under their prefix", !postPhotoUpload.error, postPhotoUpload.error?.message);
+  check(
+    "an owner uploads a post photo under their prefix",
+    !postPhotoUpload.error,
+    postPhotoUpload.error?.message,
+  );
   if (!postPhotoUpload.error) uploadedPostPhotos.push(postPhotoPath);
 
   const outsidePath = `${accounts.owner.id}/${uuid()}.png`;
@@ -1460,7 +1535,11 @@ try {
   const videoUpload = await owner.storage
     .from(postVideoBucket)
     .upload(videoPath, Buffer.from("webm-test"), { contentType: "video/webm", upsert: false });
-  check("an owner uploads a video under their prefix", !videoUpload.error, videoUpload.error?.message);
+  check(
+    "an owner uploads a video under their prefix",
+    !videoUpload.error,
+    videoUpload.error?.message,
+  );
   if (!videoUpload.error) uploadedPostVideos.push(videoPath);
 
   const outsideVideo = await stranger.storage
@@ -1580,7 +1659,11 @@ try {
     target_id: postId,
     reason: "personal_information",
   });
-  check("a post can be reported for personal or identifying information", !reportPost.error, reportPost.error?.message);
+  check(
+    "a post can be reported for personal or identifying information",
+    !reportPost.error,
+    reportPost.error?.message,
+  );
 
   // Blocked users disappear from posts, watch and media rows.
   strangerPostId = (
@@ -1649,7 +1732,11 @@ try {
   check("anon cannot soft-delete a post", Boolean(anonDelete.error));
 
   const ownerDeletePost = await owner.rpc("soft_delete_post", { p_post_id: postId });
-  check("an author soft-deletes their own post", !ownerDeletePost.error, ownerDeletePost.error?.message);
+  check(
+    "an author soft-deletes their own post",
+    !ownerDeletePost.error,
+    ownerDeletePost.error?.message,
+  );
   const deletedPostRead = await anon.from("posts").select("id").eq("id", postId);
   check("a soft-deleted post is hidden even from anon", deletedPostRead.data?.length === 0);
   const deletedPostComments = await anon
@@ -1660,7 +1747,11 @@ try {
   check("comments on a soft-deleted post are hidden", deletedPostComments.data?.length === 0);
 
   const ownerDeletePhotoPost = await owner.rpc("soft_delete_post", { p_post_id: photoPostId });
-  check("an author deletes a photo post", !ownerDeletePhotoPost.error, ownerDeletePhotoPost.error?.message);
+  check(
+    "an author deletes a photo post",
+    !ownerDeletePhotoPost.error,
+    ownerDeletePhotoPost.error?.message,
+  );
 
   const retainedPostReport = await stranger
     .from("reports")
@@ -1748,9 +1839,158 @@ try {
     "anon can join the waitlist through join_waitlist",
     !waitlistJoin.error &&
       waitlistJoin.data?.ok === true &&
-      /^[a-z0-9]{10}$/.test(waitlistJoin.data?.referral_code ?? ""),
+      !("referral_code" in (waitlistJoin.data ?? {})) &&
+      !("status_code" in (waitlistJoin.data ?? {})),
     waitlistJoin.error?.message,
   );
+
+  const waitlistRowLeak = await anon
+    .from("waitlist_signups")
+    .select("status_code, referral_code, email_confirmed_at")
+    .eq("email", waitlistEmail);
+  check(
+    "anon cannot read waitlist status or referral codes",
+    Boolean(waitlistRowLeak.error) || waitlistRowLeak.data?.length === 0,
+    waitlistRowLeak.error?.message,
+  );
+
+  const anonAdminJoin = await anon.rpc("join_waitlist_admin", {
+    p_email: `dwellr.waitlist.admin.${runId}@gmail.com`,
+    p_ip_hash: tokenHash(`waitlist-admin-ip-${runId}`),
+  });
+  check("anon cannot call the service-only signup function", Boolean(anonAdminJoin.error));
+
+  const anonPosition = await anon.rpc("waitlist_position", { p_signup_id: uuid() });
+  check("anon cannot call the internal position function", Boolean(anonPosition.error));
+
+  const anonInviteOrder = await anon.from("waitlist_invite_order").select("email");
+  check(
+    "anon cannot read the admin invite order view",
+    Boolean(anonInviteOrder.error) || anonInviteOrder.data?.length === 0,
+    anonInviteOrder.error?.message,
+  );
+
+  const authenticatedWaitlistRead = await owner.from("waitlist_signups").select("id, email");
+  check(
+    "authenticated users cannot read waitlist rows",
+    Boolean(authenticatedWaitlistRead.error) || authenticatedWaitlistRead.data?.length === 0,
+    authenticatedWaitlistRead.error?.message,
+  );
+
+  const authenticatedInviteOrder = await owner.from("waitlist_invite_order").select("email");
+  check(
+    "authenticated users cannot read the admin invite order view",
+    Boolean(authenticatedInviteOrder.error) || authenticatedInviteOrder.data?.length === 0,
+    authenticatedInviteOrder.error?.message,
+  );
+
+  const anonConfirm = await anon.rpc("confirm_waitlist_signup", { p_signup_id: uuid() });
+  check("anon cannot confirm a signup directly", Boolean(anonConfirm.error));
+
+  const anonReferralCode = await anon.rpc("get_waitlist_referral_code", {
+    p_status_code: "z".repeat(24),
+  });
+  check("anon cannot read a referral code by status code", Boolean(anonReferralCode.error));
+
+  const unknownStatus = await anon.rpc("get_waitlist_status", {
+    p_code: "z".repeat(24),
+  });
+  check(
+    "an unknown status code returns an empty row, not an error",
+    !unknownStatus.error &&
+      unknownStatus.data?.length === 1 &&
+      unknownStatus.data[0].position === null &&
+      unknownStatus.data[0].total === null &&
+      unknownStatus.data[0].referral_count === 0 &&
+      unknownStatus.data[0].tier === null,
+    unknownStatus.error?.message,
+  );
+
+  if (service) {
+    const adminEmail = `dwellr.waitlist.valid.${runId}@gmail.com`;
+    const adminJoin = await service.rpc("join_waitlist_admin", {
+      p_email: adminEmail,
+      p_ip_hash: tokenHash(`waitlist-valid-ip-${runId}`),
+    });
+    const adminSignup = adminJoin.data;
+    check(
+      "the service role can create a delivery context",
+      !adminJoin.error &&
+        adminSignup?.ok === true &&
+        typeof adminSignup.signup_id === "string" &&
+        /^[a-z0-9]{24}$/.test(adminSignup.status_code ?? ""),
+      adminJoin.error?.message,
+    );
+
+    if (adminSignup?.signup_id && adminSignup.status_code) {
+      const firstConfirm = await service.rpc("confirm_waitlist_signup", {
+        p_signup_id: adminSignup.signup_id,
+      });
+      const secondConfirm = await service.rpc("confirm_waitlist_signup", {
+        p_signup_id: adminSignup.signup_id,
+      });
+      check(
+        "confirmation is idempotent and returns the same status code",
+        !firstConfirm.error &&
+          firstConfirm.data?.ok === true &&
+          firstConfirm.data?.status_code === adminSignup.status_code &&
+          !secondConfirm.error &&
+          secondConfirm.data?.status_code === adminSignup.status_code,
+        firstConfirm.error?.message ?? secondConfirm.error?.message,
+      );
+
+      const serviceReferralCode = await service.rpc("get_waitlist_referral_code", {
+        p_status_code: adminSignup.status_code,
+      });
+      check(
+        "the service role can read the referral code for a confirmed signup",
+        !serviceReferralCode.error && /^[a-z0-9]{10}$/.test(serviceReferralCode.data ?? ""),
+        serviceReferralCode.error?.message,
+      );
+
+      const validStatus = await anon.rpc("get_waitlist_status", {
+        p_code: adminSignup.status_code,
+      });
+      check(
+        "a valid status code returns the same shape as an unknown code",
+        !validStatus.error &&
+          validStatus.data?.length === 1 &&
+          JSON.stringify(Object.keys(validStatus.data[0]).sort()) ===
+            JSON.stringify(Object.keys(unknownStatus.data?.[0] ?? {}).sort()) &&
+          typeof validStatus.data[0].position === "number" &&
+          validStatus.data[0].referral_count === 0,
+        validStatus.error?.message,
+      );
+
+      const rateJoin = await service.rpc("join_waitlist_admin", {
+        p_email: `dwellr.waitlist.rate-status.${runId}@gmail.com`,
+        p_ip_hash: tokenHash(`waitlist-status-rate-ip-${runId}`),
+      });
+      if (rateJoin.data?.signup_id && rateJoin.data?.status_code) {
+        await service.rpc("confirm_waitlist_signup", {
+          p_signup_id: rateJoin.data.signup_id,
+        });
+      }
+
+      const rateCode = rateJoin.data?.status_code;
+      const rateAttempts = [];
+      for (let index = 0; index < 21; index += 1) {
+        const result = await anon.rpc("get_waitlist_status", { p_code: rateCode });
+        rateAttempts.push(result.data?.[0] ?? null);
+      }
+      check(
+        "status calls are rate-limited after twenty attempts per code per minute",
+        Boolean(rateCode) &&
+          rateAttempts.slice(0, 20).every((row) => row?.position !== null) &&
+          rateAttempts[20]?.position === null,
+        JSON.stringify(rateAttempts[20]),
+      );
+    }
+  } else {
+    console.log(
+      "SKIP  valid status, confirmation idempotency and status rate-limit checks (set SUPABASE_TEST_SERVICE_ROLE_KEY)",
+    );
+  }
 
   const duplicateJoin = await anon.rpc("join_waitlist", {
     p_email: `  ${waitlistEmail.toUpperCase()}  `,
@@ -1853,7 +2093,10 @@ try {
   });
   check(
     "a welcome notification can be claimed only once",
-    !firstClaim.error && firstClaim.data === true && !secondClaim.error && secondClaim.data === false,
+    !firstClaim.error &&
+      firstClaim.data === true &&
+      !secondClaim.error &&
+      secondClaim.data === false,
     firstClaim.error?.message ?? secondClaim.error?.message,
   );
 
@@ -1866,11 +2109,7 @@ try {
   check("a user deletes their own property", deleteStrangerProperty.data?.length === 1);
   strangerPropertyId = null;
 
-  const deleteProperty = await owner
-    .from("properties")
-    .delete()
-    .eq("id", propertyId)
-    .select("id");
+  const deleteProperty = await owner.from("properties").delete().eq("id", propertyId).select("id");
   check("an owner deletes their own property", deleteProperty.data?.length === 1);
 
   const photosAfterDelete = await anon
@@ -1901,7 +2140,10 @@ try {
     .from("notifications")
     .select("id")
     .eq("target_id", property.data.id);
-  check("notifications are cleaned up with the property", socialNotificationsAfterDelete.data?.length === 0);
+  check(
+    "notifications are cleaned up with the property",
+    socialNotificationsAfterDelete.data?.length === 0,
+  );
 
   const commentReportsAfterDelete = await stranger
     .from("reports")

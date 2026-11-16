@@ -24,6 +24,12 @@ export function WaitlistFooter() {
               Terms
             </a>
             <a
+              href="/waitlist/how-it-works"
+              className="text-body-sm text-stone transition hover:text-ink"
+            >
+              How it works
+            </a>
+            <a
               href={`mailto:${contact}`}
               className="text-body-sm text-stone transition hover:text-ink"
             >
