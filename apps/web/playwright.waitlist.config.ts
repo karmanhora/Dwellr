@@ -37,7 +37,7 @@ export default defineConfig({
       WAITLIST_ONLY: "true",
       NEXT_PUBLIC_SITE_URL: "http://127.0.0.1:3101",
       WAITLIST_EMAIL_ENABLED: "false",
-      WAITLIST_CONFIRMATION_SECRET: "dwellr-e2e-confirmation-secret",
+      WAITLIST_CONFIRMATION_SECRET: "HausCrawl-e2e-confirmation-secret",
     },
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],

@@ -1,11 +1,11 @@
-# dwellr — Architecture
+# HausCrawl — Architecture
 
 Milestone 0 establishes the foundation: a pnpm monorepo, a shared business-logic
 package, a Supabase-backed auth loop, and a public profile surface.
 
 ## Product constraints that shape the architecture
 
-1. **dwellr is not a listing site.** Users contribute property content. Every
+1. **HausCrawl is not a listing site.** Users contribute property content. Every
    property field will carry a provenance tag — `verified` or `user-submitted` —
    and the UI must never present unverified data as fact. No scraping.
 2. **Location is generalized by default** (neighborhood, not street address).
@@ -18,7 +18,7 @@ package, a Supabase-backed auth loop, and a public profile surface.
 ## Repository layout
 
 ```
-dwellr/
+HausCrawl/
 ├── apps/
 │   └── web/                  Next.js 16 App Router app (the product surface)
 │       ├── public/brand/     Logo mark, wordmark, lockup, PNG exports
@@ -775,7 +775,7 @@ block while fresh, and a stronger "Is this listing still accurate?" prompt once
 stale, with a one-click confirmation that appends a row and redirects back with
 a notice. Public pages show "Poster confirmed 3 days ago" or "Posted 45 days
 ago · not recently confirmed" — explicitly attributed to the poster, not to
-dwellr.
+HausCrawl.
 
 ### Provenance stays intact
 
@@ -864,7 +864,7 @@ Photo posts reuse the browser pipeline from property photos: resize to a 2000 px
 long edge, draw to canvas, and re-encode as WebP. The original file, including
 EXIF and GPS, is never uploaded.
 
-Videos are different. dwellr cannot yet strip video container metadata. The
+Videos are different. HausCrawl cannot yet strip video container metadata. The
 upload screen therefore shows a prominent notice: do not show house numbers,
 license plates, mail, or anything that identifies where someone lives, and the
 original file keeps what the camera recorded. This is a known gap.
@@ -940,7 +940,7 @@ they leave view, and only the current/next items preload metadata.
 - Autoplay is muted and is disabled under `prefers-reduced-motion` or when the
   browser exposes `saveData`.
 - Tap the player to play/pause, use the Sound button to unmute, and the mute
-  choice persists in `localStorage` under `dwellr:watch:muted`.
+  choice persists in `localStorage` under `HausCrawl:watch:muted`.
 - Keyboard: Up/Down or PageUp/PageDown move between videos, Space/K toggles
   play, M toggles mute. The feed container has an accessible instruction label.
 - The overlay includes author, caption, topics, like, comments, report, share,
@@ -956,7 +956,7 @@ they leave view, and only the current/next items preload metadata.
 `/create` is a three-option hub: List a home (`/create/home`), Share a post
 (`/create/post`), Share a video (`/create/video`). The property form moved to
 `/create/home`; the hub is linked from the header, mobile navigation and account
-menu. Property tagging searches existing dwellr properties through a
+menu. Property tagging searches existing HausCrawl properties through a
 public-read route (`/api/properties/search`) and never requires a tag.
 
 ### Trust, safety and moderation workflow

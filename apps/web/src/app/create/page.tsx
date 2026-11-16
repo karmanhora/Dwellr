@@ -46,7 +46,7 @@ export default async function CreatePage() {
     <Container size="narrow" className="py-10 sm:py-14">
       <p className="text-eyebrow text-stone uppercase">Create</p>
       <h1 className="mt-3 text-headline font-medium tracking-[-0.03em] sm:text-display">
-        Add something to dwellr.
+        Add something to HausCrawl.
       </h1>
       <p className="mt-3 max-w-prose text-body leading-relaxed text-stone">
         List a home, share a post, or publish a short video. Community content is always labelled

@@ -30,7 +30,7 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-line bg-paper">
       <Container className="flex h-16 items-center gap-4 sm:h-20">
         <div className="flex shrink-0 items-center gap-6">
-          <Link href="/" className="rounded-lg" aria-label="dwellr — home">
+          <Link href="/" className="rounded-lg" aria-label="HausCrawl — home">
             <Logo size="sm" />
           </Link>
           <Link

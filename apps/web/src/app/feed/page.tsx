@@ -98,7 +98,7 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
                 Community posts
               </h2>
               <p className="mt-1 text-caption text-stone">
-                Photos, notes, and videos from people on dwellr. User content, not verified facts.
+                Photos, notes, and videos from people on HausCrawl. User content, not verified facts.
               </p>
             </div>
             <ButtonLink href="/posts" variant="secondary" size="sm">

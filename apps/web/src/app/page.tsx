@@ -20,14 +20,14 @@ const steps = [
   {
     number: "03",
     title: "Keep the record",
-    body: "Homes stay on dwellr after the tour. Come back to what you learned, not just what you scrolled past.",
+    body: "Homes stay on HausCrawl after the tour. Come back to what you learned, not just what you scrolled past.",
   },
 ];
 
 const detailRules = [
   {
     label: "Verified",
-    body: "Checked against the source by dwellr.",
+    body: "Checked against the source by HausCrawl.",
     className: "bg-ink text-paper",
   },
   {
@@ -47,21 +47,21 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       type: "website",
       url: "/",
-      siteName: "dwellr",
-      title: "dwellr — find a home together",
+      siteName: "HausCrawl",
+      title: "HausCrawl — find a home together",
       description: SITE_DESCRIPTION,
       images: [
         {
           url: "/opengraph-image",
           width: 1200,
           height: 630,
-          alt: "dwellr — find a home together",
+          alt: "HausCrawl — find a home together",
         },
       ],
     },
     twitter: {
       card: "summary_large_image",
-      title: "dwellr — find a home together",
+      title: "HausCrawl — find a home together",
       description: SITE_DESCRIPTION,
       images: ["/opengraph-image"],
     },
@@ -163,7 +163,7 @@ export default async function HomePage() {
 
             <div className="mt-10 border-t border-ink/10 pt-6">
               <p className="text-sm leading-relaxed text-stone">
-                Every property field is tagged, so you always know what dwellr confirmed and what
+                Every property field is tagged, so you always know what HausCrawl confirmed and what
                 the community contributed.
               </p>
             </div>
@@ -197,7 +197,7 @@ export default async function HomePage() {
           </h2>
           <div className="space-y-5 text-[15px] leading-relaxed text-stone sm:text-base">
             <p>
-              Most property sites are built to show you as many listings as possible. dwellr is
+              Most property sites are built to show you as many listings as possible. HausCrawl is
               built around the homes you are actually considering — and the people considering them
               with you.
             </p>

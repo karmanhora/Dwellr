@@ -1,8 +1,6 @@
 import { ImageResponse } from "next/og";
 
-import { DWELLR_MARK_PATH } from "@/components/brand/logo-paths";
-
-export const alt = "dwellr — find a home together";
+export const alt = "HausCrawl — find a home together";
 export const size = { width: 1_200, height: 630 };
 export const contentType = "image/png";
 
@@ -12,10 +10,11 @@ const homes = [
   { name: "Northbank", facts: "4 bd · 2.5 ba · 2,050 sq ft", result: "Everyone likes" },
 ];
 
-function HouseMark() {
+function HausCrawlMark() {
   return (
-    <svg width="30" height="30" viewBox="214 312 224 202" aria-hidden="true">
-      <path d={DWELLR_MARK_PATH} fill="#1F2422" fillRule="evenodd" />
+    <svg width="30" height="30" viewBox="0 0 512 512" aria-hidden="true">
+      <rect width="512" height="512" rx="96" fill="#1F2422" />
+      <path d="M144 128h64v104h96V128h64v256h-64V288h-96v96h-64z" fill="#FFFFFF" />
     </svg>
   );
 }
@@ -35,8 +34,11 @@ export default function OpenGraphImage() {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", fontSize: 42, fontWeight: 600, letterSpacing: "-0.04em" }}>
-          dwellr
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <HausCrawlMark />
+          <div style={{ display: "flex", fontSize: 42, fontWeight: 600, letterSpacing: "-0.04em" }}>
+            HausCrawl
+          </div>
         </div>
         <div
           style={{
@@ -186,7 +188,7 @@ export default function OpenGraphImage() {
                       backgroundColor: "#F5F4EF",
                     }}
                   >
-                    <HouseMark />
+                    <HausCrawlMark />
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                     <div style={{ display: "flex", fontSize: 14, fontWeight: 600 }}>

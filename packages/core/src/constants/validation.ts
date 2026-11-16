@@ -23,7 +23,7 @@ export const RESERVED_USERNAMES: ReadonlySet<string> = new Set([
   "about",
   "admin",
   "api",
-  "dwellr",
+  "hauscrawl",
   "help",
   "legal",
   "login",

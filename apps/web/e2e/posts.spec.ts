@@ -1,10 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
 
-const password = "DwellrM3test42";
+const password = "HausCrawlM3test42";
 const runId = Date.now();
 const suffix = String(runId).slice(-7);
-const email = `dwellr.m3.${runId}@gmail.com`;
+const email = `HausCrawl.m3.${runId}@gmail.com`;
 const username = `m3owner${suffix}`;
 const homeTitle = `M3 tagged home ${runId}`;
 const photoCaption = `Photo post caption ${runId}`;
@@ -51,7 +51,7 @@ async function makeWebm(page: Page): Promise<Buffer> {
       context.fillRect(0, 0, canvas.width, canvas.height);
       context.fillStyle = "#20241f";
       context.font = "20px sans-serif";
-      context.fillText("dwellr test", 70, 280);
+      context.fillText("HausCrawl test", 70, 280);
       if (recorder.state !== "inactive") requestAnimationFrame(paint);
     };
 
@@ -121,7 +121,7 @@ test("create photo and video posts, discover them, watch, like, comment and tag 
   // Video post using a browser-generated WebM.
   await page.goto("/create/video");
   await page.locator("#video-input").setInputFiles({
-    name: `dwellr-${runId}.webm`,
+    name: `HausCrawl-${runId}.webm`,
     mimeType: "video/webm",
     buffer: videoBuffer,
   });

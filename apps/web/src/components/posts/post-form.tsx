@@ -504,7 +504,7 @@ export function PostForm({
             <p className="text-body-sm font-medium text-ink">Before you upload</p>
             <p className="mt-1 text-caption leading-relaxed text-stone">
               Don&rsquo;t show house numbers, license plates, mail, or anything that identifies
-              where someone lives. dwellr cannot remove video metadata yet — the original file
+              where someone lives. HausCrawl cannot remove video metadata yet — the original file
               keeps what your camera recorded.
             </p>
           </div>

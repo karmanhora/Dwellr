@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
 import path from "node:path";
 
-const password = "DwellrM1test42";
+const password = "HausCrawlM1test42";
 const runId = Date.now();
-const email = `dwellr.m1.${runId}@gmail.com`;
+const email = `HausCrawl.m1.${runId}@gmail.com`;
 const username = `m1check${String(runId).slice(-6)}`;
 const title = `Sunlit test home ${runId}`;
 const collectionName = `Weekend tours ${runId}`;

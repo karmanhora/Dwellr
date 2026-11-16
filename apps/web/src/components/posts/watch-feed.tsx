@@ -177,7 +177,7 @@ function ShareButton({ postId, caption }: { postId: string; caption: string }) {
   async function share() {
     try {
       if (navigator.share) {
-        await navigator.share({ title: "A home video on dwellr", text: postExcerpt(caption, 100), url });
+        await navigator.share({ title: "A home video on HausCrawl", text: postExcerpt(caption, 100), url });
         setMessage("Shared.");
       } else {
         await navigator.clipboard.writeText(url);
@@ -353,7 +353,7 @@ export function WatchFeed({
             </ButtonLink>
           ) : (
             <ButtonLink href="/sign-up" size="sm">
-              Join dwellr
+              Join HausCrawl
             </ButtonLink>
           )
         }

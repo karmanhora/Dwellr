@@ -1,4 +1,4 @@
-# dwellr
+# HausCrawl
 
 A social network for home hunting. Save homes, build shared collections, and
 evaluate properties together — with every property detail marked as verified or
@@ -67,7 +67,7 @@ apps/web      Next.js app (routes, Server Actions, components)
 packages/core Zod schemas, domain types, pure services, brand constants
 supabase      Config and versioned migrations
 docs          Architecture and brand documentation
-scripts       Brand asset generation
+scripts       Local tooling
 ```
 
 ## Milestone 2 surfaces

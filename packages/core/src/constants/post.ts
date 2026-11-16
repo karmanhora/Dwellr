@@ -80,4 +80,4 @@ export const WATCH_RELEVANCE = {
   newest: 0,
 } as const;
 
-export const WATCH_MUTE_STORAGE_KEY = "dwellr:watch:muted";
+export const WATCH_MUTE_STORAGE_KEY = "HausCrawl:watch:muted";

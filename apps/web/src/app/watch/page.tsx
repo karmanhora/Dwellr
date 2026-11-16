@@ -9,7 +9,7 @@ import { getWatchPage } from "@/lib/posts";
 export const metadata: Metadata = {
   title: "Watch homes",
   description:
-    "Short home walkthroughs, renovations, and neighborhood tours from the dwellr community.",
+    "Short home walkthroughs, renovations, and neighborhood tours from the HausCrawl community.",
 };
 
 export default async function WatchPage() {

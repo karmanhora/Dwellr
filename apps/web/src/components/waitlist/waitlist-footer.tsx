@@ -39,7 +39,7 @@ export function WaitlistFooter() {
         </div>
 
         <div className="flex flex-col justify-between gap-2 border-t border-line pt-5 text-caption text-stone sm:flex-row">
-          <p>© {new Date().getFullYear()} dwellr</p>
+          <p>© {new Date().getFullYear()} HausCrawl</p>
           <p>Private by default. No street addresses.</p>
         </div>
       </Container>

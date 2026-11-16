@@ -2,10 +2,10 @@
  * Brand tokens. Kept in core so a future Expo app renders the same identity
  * without importing anything from the web app.
  *
- * The wordmark is always lowercase: "dwellr".
+ * The wordmark is always written "HausCrawl", with a capital H and C.
  */
 export const BRAND = {
-  name: "dwellr",
+  name: "HausCrawl",
   tagline: "Find a home. Together.",
   typeface: "Outfit",
   colors: {

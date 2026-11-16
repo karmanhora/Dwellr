@@ -205,7 +205,7 @@ export default async function WaitlistStatusPage({
           </p>
           <p>
             Positions are never stored. They are calculated from the current queue, so they move
-            when someone else confirms. dwellr may remove fraudulent referrals.
+            when someone else confirms. HausCrawl may remove fraudulent referrals.
           </p>
         </div>
         <Link

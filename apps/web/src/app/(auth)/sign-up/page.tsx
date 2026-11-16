@@ -8,7 +8,7 @@ import { getCurrentUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Create your account",
-  description: "Join dwellr to save homes, build shared collections, and decide together.",
+  description: "Join HausCrawl to save homes, build shared collections, and decide together.",
 };
 
 export default async function SignUpPage() {

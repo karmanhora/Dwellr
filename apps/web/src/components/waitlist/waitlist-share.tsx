@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { trackWaitlistEvent } from "@/lib/waitlist-analytics";
 
 const SHARE_TEXT =
-  "I'm on the dwellr waitlist for early access in Seattle / King County. Join if you're hunting too:";
+  "I'm on the HausCrawl waitlist for early access in Seattle / King County. Join if you're hunting too:";
 
 export function WaitlistShare({ referralUrl }: { referralUrl: string }) {
   const [copied, setCopied] = useState(false);
@@ -42,7 +42,7 @@ export function WaitlistShare({ referralUrl }: { referralUrl: string }) {
 
     try {
       await navigator.share({
-        title: "dwellr waitlist",
+        title: "HausCrawl waitlist",
         text: SHARE_TEXT,
         url: referralUrl,
       });
@@ -54,7 +54,7 @@ export function WaitlistShare({ referralUrl }: { referralUrl: string }) {
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
   const smsUrl = `sms:?&body=${encodeURIComponent(shareText)}`;
   const xUrl = `https://x.com/intent/post?text=${encodeURIComponent(shareText)}`;
-  const emailUrl = `mailto:?subject=${encodeURIComponent("Join me on the dwellr waitlist")}&body=${encodeURIComponent(shareText)}`;
+  const emailUrl = `mailto:?subject=${encodeURIComponent("Join me on the HausCrawl waitlist")}&body=${encodeURIComponent(shareText)}`;
 
   return (
     <section aria-labelledby="waitlist-share-heading" className="border-t border-line pt-6">

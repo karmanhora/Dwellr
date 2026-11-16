@@ -13,7 +13,7 @@ import { getPostSummaries } from "@/lib/posts";
 export const metadata: Metadata = {
   title: "Community posts",
   description:
-    "Home tours, renovations, interiors, and neighborhood notes from the dwellr community.",
+    "Home tours, renovations, interiors, and neighborhood notes from the HausCrawl community.",
 };
 
 type PostsPageProps = {
@@ -45,7 +45,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         Notes from real homes.
       </h1>
       <p className="mt-3 max-w-2xl text-body leading-relaxed text-stone">
-        Posts and videos are written by people in the dwellr community. They are never presented as
+        Posts and videos are written by people in the HausCrawl community. They are never presented as
         verified property facts; tagged homes keep their own labels.
       </p>
 
@@ -99,7 +99,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
                 </ButtonLink>
               ) : (
                 <ButtonLink href="/sign-up" size="sm">
-                  Join dwellr
+                  Join HausCrawl
                 </ButtonLink>
               )
             }

@@ -7,7 +7,7 @@ import { getContactEmail } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Terms",
   description:
-    "The terms for joining the dwellr waitlist, including email consent, acceptable use, and the limits of the service.",
+    "The terms for joining the HausCrawl waitlist, including email consent, acceptable use, and the limits of the service.",
   alternates: { canonical: "/terms" },
 };
 
@@ -30,8 +30,8 @@ export default function TermsPage() {
         <section>
           <h2 className="text-xl font-medium tracking-[-0.02em] text-ink">This is a waitlist</h2>
           <p className="mt-3">
-            The dwellr waitlist lets you ask to hear about early access. Joining does not create an
-            account, guarantee access, or promise that dwellr will launch in your area on a
+            The HausCrawl waitlist lets you ask to hear about early access. Joining does not create an
+            account, guarantee access, or promise that HausCrawl will launch in your area on a
             particular date. We may change, pause, or close the waitlist.
           </p>
         </section>
@@ -40,7 +40,7 @@ export default function TermsPage() {
           <h2 className="text-xl font-medium tracking-[-0.02em] text-ink">Your email</h2>
           <p className="mt-3">
             By joining, you agree that we may email you about early access and launch updates for
-            dwellr. You can unsubscribe at any time using the link in an email or by contacting us.
+            HausCrawl. You can unsubscribe at any time using the link in an email or by contacting us.
             Please use an email address you are allowed to use. Do not sign up someone else.
           </p>
         </section>

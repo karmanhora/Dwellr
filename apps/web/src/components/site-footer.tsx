@@ -23,9 +23,9 @@ export function SiteFooter() {
           </Link>
         </nav>
         <p className="max-w-md text-body-sm leading-relaxed text-stone">
-          Every detail is either verified by dwellr or clearly marked as added by the community.
+          Every detail is either verified by HausCrawl or clearly marked as added by the community.
         </p>
-        <p className="text-caption whitespace-nowrap text-stone">© {new Date().getFullYear()} dwellr</p>
+        <p className="text-caption whitespace-nowrap text-stone">© {new Date().getFullYear()} HausCrawl</p>
       </Container>
     </footer>
   );

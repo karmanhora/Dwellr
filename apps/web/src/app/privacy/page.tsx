@@ -7,7 +7,7 @@ import { getContactEmail } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Privacy",
   description:
-    "What dwellr collects from the waitlist, why we collect it, how long we keep it, and how to ask us to delete it.",
+    "What HausCrawl collects from the waitlist, why we collect it, how long we keep it, and how to ask us to delete it.",
   alternates: { canonical: "/privacy" },
 };
 
@@ -30,7 +30,7 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-xl font-medium tracking-[-0.02em] text-ink">The short version</h2>
           <p className="mt-3">
-            We collect your email so we can tell you when dwellr opens in your area. Everything
+            We collect your email so we can tell you when HausCrawl opens in your area. Everything
             else on the form is optional. We do not sell or share your email for advertising, and
             we do not ask for a street address.
           </p>
@@ -69,7 +69,7 @@ export default function PrivacyPage() {
           <h2 className="text-xl font-medium tracking-[-0.02em] text-ink">What we do not collect</h2>
           <p className="mt-3">
             We do not ask for a phone number, payment details, or a home address. The waitlist form
-            does not include a listing, a photo, or a street address. If you later use the dwellr
+            does not include a listing, a photo, or a street address. If you later use the HausCrawl
             product, its own privacy terms will apply to what you save there.
           </p>
         </section>
@@ -77,7 +77,7 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-xl font-medium tracking-[-0.02em] text-ink">Why we use it</h2>
           <ul className="mt-3 list-disc space-y-2 pl-5">
-            <li>To send early-access updates and launch news about dwellr.</li>
+            <li>To send early-access updates and launch news about HausCrawl.</li>
             <li>To understand which areas and audiences are interested first.</li>
             <li>To keep the waitlist working and prevent spam or abuse.</li>
           </ul>

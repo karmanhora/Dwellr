@@ -46,7 +46,7 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
         Edit this home.
       </h1>
       <p className="mt-3 max-w-prose text-body leading-relaxed text-stone">
-        Changing a fact resets it to community-added. dwellr never keeps a verification on a number
+        Changing a fact resets it to community-added. HausCrawl never keeps a verification on a number
         you have edited.
       </p>
 

@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
   if (!post) return { title: "Post not found" };
   return {
     title: post.author ? `Post by ${authorName(post.author)}` : "Community post",
-    description: post.caption.slice(0, 160) || "A post from the dwellr community.",
+    description: post.caption.slice(0, 160) || "A post from the HausCrawl community.",
     robots: { index: true, follow: true },
   };
 }

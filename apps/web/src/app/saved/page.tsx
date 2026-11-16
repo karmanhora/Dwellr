@@ -51,7 +51,7 @@ export default async function SavedPage({ searchParams }: SavedPageProps) {
 
       {deleted ? (
         <p role="status" className="mt-6 rounded-card bg-moss-soft px-4 py-3 text-body-sm text-moss">
-          Collection deleted. The homes are still on dwellr.
+          Collection deleted. The homes are still on HausCrawl.
         </p>
       ) : null}
 

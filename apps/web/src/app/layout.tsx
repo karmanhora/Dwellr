@@ -23,8 +23,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
   applicationName: SITE_NAME,
   title: {
-    default: "dwellr — find a home, together",
-    template: "%s · dwellr",
+    default: "HausCrawl — find a home, together",
+    template: "%s · HausCrawl",
   },
   description:
     "A social network for home hunting. Post homes, keep the details that matter, and decide together.",

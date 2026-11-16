@@ -6,7 +6,7 @@ import { expect, test } from "@playwright/test";
 // Keep local runs below the per-IP database limit; production still sees the
 // real forwarded address.
 const testIp = `198.51.100.${Math.floor(Math.random() * 200) + 1}`;
-const confirmationSecret = "dwellr-e2e-confirmation-secret";
+const confirmationSecret = "HausCrawl-e2e-confirmation-secret";
 
 test.use({
   extraHTTPHeaders: { "x-forwarded-for": testIp },

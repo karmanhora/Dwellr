@@ -9,7 +9,7 @@ import { getCurrentUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Sign in",
-  description: "Sign in to dwellr.",
+  description: "Sign in to HausCrawl.",
 };
 
 type SignInPageProps = {
@@ -30,7 +30,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
       description="Pick up where you left off with the homes you're considering."
       alternate={
         <>
-          New to dwellr?{" "}
+          New to HausCrawl?{" "}
           <Link href="/sign-up" className="font-medium text-ink underline underline-offset-4">
             Create an account
           </Link>

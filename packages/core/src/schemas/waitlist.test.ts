@@ -77,8 +77,8 @@ describe("createReferralCode", () => {
   });
 
   it("builds a share URL with the referral code", () => {
-    expect(waitlistShareUrl("https://dwellr.example", "abcdefghij")).toBe(
-      "https://dwellr.example/?ref=abcdefghij",
+    expect(waitlistShareUrl("https://hauscrawl.example", "abcdefghij")).toBe(
+      "https://hauscrawl.example/?ref=abcdefghij",
     );
   });
 });

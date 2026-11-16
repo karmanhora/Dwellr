@@ -1,61 +1,46 @@
-# dwellr — Brand
+# HausCrawl — Brand
 
 ## Name
 
-Always lowercase: **dwellr**, in the wordmark, in running text, and in the
-browser title. Never "Dwellr" mid-sentence and never "Dwellr, Inc." in
-product copy. The legal entity name can differ.
+Always write **HausCrawl** with a capital H and C, in the wordmark, in running
+text, and in the browser title. Never "hauscrawl" mid-sentence and never
+"HausCrawl, Inc." in product copy. The legal entity name can differ.
 
 Tagline (product-facing): **Find a home. Together.**
 
 ## Logo
 
-Two elements, one supplied lockup:
-
-1. **House mark** — a thick, continuous house outline with a notched inner form.
-   Geometric, no gradient, no effects.
-2. **Wordmark** — "dwellr" in the supplied custom lowercase geometric vector,
-   optically spaced tight.
+The HausCrawl identity uses a solid ink square with a white **H** monogram and a
+wordmark set in Outfit. The old house outline and its inline path have been
+removed.
 
 ### Files
 
 | File | Use |
 | --- | --- |
-| `apps/web/public/brand/dwellr-mark.svg` | Mark only. Header, avatar-free surfaces, favicons, app icons. |
-| `apps/web/public/brand/dwellr-wordmark.svg` | Wordmark only, for places with an existing mark. |
-| `apps/web/public/brand/dwellr-lockup.svg` | Mark + wordmark, horizontal. Default when space allows. |
-| `apps/web/public/brand/dwellr-mark-1024.png` | Transparent raster mark, 1024 px. |
-| `apps/web/public/brand/dwellr-mark-512.png` | Transparent raster mark, 512 px. |
+| `apps/web/public/brand/hauscrawl-mark.svg` | Mark only. Favicons, app icons, avatar-free surfaces. |
+| `apps/web/public/brand/hauscrawl-lockup.svg` | Mark + wordmark, horizontal. Default when space allows. |
 | `apps/web/src/app/icon.png` | 512 px app icon (Next.js metadata). |
 | `apps/web/src/app/apple-icon.png` | 180 px, opaque white behind the mark (iOS masks it). |
 | `apps/web/src/app/favicon.ico` | 48 px favicon. |
 
-Regenerate the raster files with:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/generate-brand-assets.ps1
-```
-
-The in-app logo (`src/components/brand/logo.tsx`) draws the supplied mark and
-wordmark as one inline SVG lockup, so it stays crisp and inherits `currentColor`.
-Its outline geometry lives in `logo-paths.ts` and must stay identical to the
-outline in the brand SVGs.
+The in-app logo (`src/components/brand/logo.tsx`) draws the monogram as inline
+SVG and sets the wordmark in the loaded Outfit face, so it stays crisp and
+inherits `currentColor`.
 
 ### Provenance
 
-The original vector artwork was supplied as `Minimalist Dwellr House Logo.svg`.
-The brand SVGs and inline paths are derived from that artwork, replacing the
-earlier reconstruction from the brand description.
+The company name comes from the supplied `HausCrawl Minimalist Logo.svg`. The
+in-app identity renders that name as a HausCrawl monogram and Outfit wordmark.
 
 ### Usage rules
 
-- **Clear space:** at least the height of the doorway on every side.
+- **Clear space:** at least half the monogram height on every side.
 - **Minimum sizes:** mark 16 px; wordmark 72 px wide; lockup 90 px wide.
 - **Colour:** ink on white/`mist`, or paper (white) on ink. No other colours,
   no gradients, no shadows, no outlines.
-- **Don't:** stretch, rotate, outline, add effects, set the wordmark in another
-  typeface, uppercase it, or place the mark inside a container that changes its
-  silhouette.
+- **Don't:** stretch, rotate, outline, add effects, or set the wordmark in another
+  typeface.
 - **Do:** prefer the lockup in headers and the mark alone where space is tight.
 
 ## Colour
@@ -192,7 +177,7 @@ preference.
 ## Voice
 
 Calm, direct, specific. Short sentences. No hype ("dream home", "once in a
-lifetime"), no fake urgency, no exclamation marks. Say what dwellr does and
+lifetime"), no fake urgency, no exclamation marks. Say what HausCrawl does and
 what it does not know.
 
 ## Landing collection mockup

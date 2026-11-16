@@ -52,12 +52,12 @@ const reasons = [
   {
     icon: MapPinIcon,
     title: "Private by default",
-    body: "dwellr works at the neighborhood level. We do not ask for a street address, and your shortlist is not public.",
+    body: "HausCrawl works at the neighborhood level. We do not ask for a street address, and your shortlist is not public.",
   },
   {
     icon: CheckIcon,
     title: "Clear about what is verified",
-    body: "Every detail is labelled as verified by dwellr or added by the community, so you know what you are relying on.",
+    body: "Every detail is labelled as verified by HausCrawl or added by the community, so you know what you are relying on.",
   },
   {
     icon: UserIcon,
@@ -68,14 +68,14 @@ const reasons = [
 
 const faqs = [
   {
-    question: "What is dwellr?",
+    question: "What is HausCrawl?",
     answer:
-      "dwellr is a social network for home hunting, not a real-estate listing portal. Follow people you trust, share posts about homes and neighborhoods, and keep a private collection for the people deciding with you. We are starting with early access in Seattle / King County.",
+      "HausCrawl is a social network for home hunting, not a real-estate listing portal. Follow people you trust, share posts about homes and neighborhoods, and keep a private collection for the people deciding with you. We are starting with early access in Seattle / King County.",
   },
   {
-    question: "Is dwellr social media?",
+    question: "Is HausCrawl social media?",
     answer:
-      "It has a social layer: profiles, follows, posts, likes, and threaded comments. The decision itself stays private. You can follow people and share what you are learning, or use dwellr only with the people in your collection.",
+      "It has a social layer: profiles, follows, posts, likes, and threaded comments. The decision itself stays private. You can follow people and share what you are learning, or use HausCrawl only with the people in your collection.",
   },
   {
     question: "Is it free?",
@@ -85,7 +85,7 @@ const faqs = [
   {
     question: "What happens to my email?",
     answer:
-      "We use it to send early-access updates about dwellr. We do not sell or share it. You can unsubscribe from any email or ask us to delete your details.",
+      "We use it to send early-access updates about HausCrawl. We do not sell or share it. You can unsubscribe from any email or ask us to delete your details.",
   },
   {
     question: "When does it launch?",
@@ -95,7 +95,7 @@ const faqs = [
   {
     question: "Is my address shared?",
     answer:
-      "No. dwellr uses neighborhood-level locations. We do not ask for a street address, and there are no home addresses in the waitlist.",
+      "No. HausCrawl uses neighborhood-level locations. We do not ask for a street address, and there are no home addresses in the waitlist.",
   },
 ];
 
@@ -172,7 +172,7 @@ export async function WaitlistLanding() {
             </h1>
 
             <p className="mt-5 max-w-xl text-base leading-relaxed text-stone sm:mt-7 sm:text-lg lg:text-xl">
-              dwellr is a social network for home hunting. Follow people whose taste you trust, save
+              HausCrawl is a social network for home hunting. Follow people whose taste you trust, save
               and react to the homes you are considering, and make the decision together in one
               private place.
             </p>
@@ -223,7 +223,7 @@ export async function WaitlistLanding() {
                 A social network for the home hunt.
               </h2>
               <p className="mt-5 max-w-md text-[15px] leading-relaxed text-stone">
-                Home search already happens in group chats, saved tabs, and screenshots. dwellr
+                Home search already happens in group chats, saved tabs, and screenshots. HausCrawl
                 brings the useful social parts together: people you trust, homes worth discussing,
                 and a private place to decide.
               </p>
@@ -277,13 +277,13 @@ export async function WaitlistLanding() {
           <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-20">
             <div>
               <p className="text-[11px] font-medium tracking-[0.2em] text-stone uppercase">
-                Why dwellr
+                Why HausCrawl
               </p>
               <h2 className="mt-4 text-3xl leading-tight font-medium tracking-[-0.035em] text-ink sm:text-4xl">
                 Built for a decision you make together.
               </h2>
               <p className="mt-5 max-w-md text-[15px] leading-relaxed text-stone">
-                Home hunting is rarely a solo project. dwellr is designed around the people who will
+                Home hunting is rarely a solo project. HausCrawl is designed around the people who will
                 live with the choice.
               </p>
             </div>

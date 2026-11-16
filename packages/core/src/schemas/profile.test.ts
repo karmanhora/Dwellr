@@ -13,9 +13,9 @@ import type { ProfileRow } from "../types/profile";
 
 describe("usernameSchema", () => {
   it("trims and lowercases a valid username", () => {
-    const result = usernameSchema.safeParse("  Dwellr_Fan  ");
+    const result = usernameSchema.safeParse("  HausCrawl_Fan  ");
     expect(result.success).toBe(true);
-    if (result.success) expect(result.data).toBe("dwellr_fan");
+    if (result.success) expect(result.data).toBe("hauscrawl_fan");
   });
 
   it.each(["ab", "has space", "emoji🙂", "dot.name", "a".repeat(25)])("rejects %j", (value) => {
@@ -51,7 +51,7 @@ describe("displayNameSchema and bioSchema", () => {
 
 describe("avatarUrlSchema", () => {
   it("accepts http and https URLs", () => {
-    expect(avatarUrlSchema.safeParse("https://cdn.dwellr.com/a.png").success).toBe(true);
+    expect(avatarUrlSchema.safeParse("https://cdn.HausCrawl.com/a.png").success).toBe(true);
     expect(avatarUrlSchema.safeParse("http://localhost:3000/a.png").success).toBe(true);
   });
 
@@ -117,7 +117,7 @@ describe("profile services", () => {
   it("derives initials", () => {
     expect(getInitials("Karman Hora")).toBe("KH");
     expect(getInitials("karman_hora")).toBe("KH");
-    expect(getInitials("dwellr")).toBe("D");
+    expect(getInitials("HausCrawl")).toBe("H");
     expect(getInitials("")).toBe("?");
   });
 

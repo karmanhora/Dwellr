@@ -4,7 +4,7 @@ import { signInSchema, signUpSchema } from "./auth";
 
 const validSignUp = {
   email: "Karman@Example.com",
-  password: "dwellr2026",
+  password: "HausCrawl2026",
   username: "karman_h",
   displayName: "Karman Hora",
 };
@@ -21,15 +21,15 @@ describe("signUpSchema", () => {
   });
 
   it("normalizes email whitespace and mixed case", () => {
-    const result = signUpSchema.safeParse({ ...validSignUp, email: "  HELLO@Dwellr.CO  " });
+    const result = signUpSchema.safeParse({ ...validSignUp, email: "  HELLO@HausCrawl.CO  " });
     expect(result.success).toBe(true);
-    if (result.success) expect(result.data.email).toBe("hello@dwellr.co");
+    if (result.success) expect(result.data.email).toBe("hello@hauscrawl.co");
   });
 
   it("normalizes usernames to lowercase", () => {
-    const result = signUpSchema.safeParse({ ...validSignUp, username: "  DwellrFan  " });
+    const result = signUpSchema.safeParse({ ...validSignUp, username: "  HausCrawlFan  " });
     expect(result.success).toBe(true);
-    if (result.success) expect(result.data.username).toBe("dwellrfan");
+    if (result.success) expect(result.data.username).toBe("hauscrawlfan");
   });
 
   it("treats a blank display name as not provided", () => {
@@ -47,18 +47,18 @@ describe("signUpSchema", () => {
 
   it("requires at least 8 characters", () => {
     // 7 characters, otherwise satisfying every class rule.
-    expect(signUpSchema.safeParse({ ...validSignUp, password: "Dwellr2" }).success).toBe(false);
+    expect(signUpSchema.safeParse({ ...validSignUp, password: "Haus123" }).success).toBe(false);
 
     // 8 characters is the boundary and must be accepted.
-    const boundary = signUpSchema.safeParse({ ...validSignUp, password: "Dwellr26" });
+    const boundary = signUpSchema.safeParse({ ...validSignUp, password: "Haus1234" });
     expect(boundary.success).toBe(true);
   });
 
   it.each([
-    ["too short", "dw3llr"],
-    ["no number", "dwellrhouse"],
+    ["too short", "haus3"],
+    ["no number", "HausCrawlhouse"],
     ["no letter", "12345678"],
-    ["too long", `dwellr2026${"x".repeat(70)}`],
+    ["too long", `HausCrawl2026${"x".repeat(70)}`],
   ])("rejects a password that is %s", (_label, password) => {
     expect(signUpSchema.safeParse({ ...validSignUp, password }).success).toBe(false);
   });

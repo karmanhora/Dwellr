@@ -1,6 +1,6 @@
 # Waitlist
 
-The public waitlist for dwellr's Seattle / King County early access. It is a
+The public waitlist for HausCrawl's Seattle / King County early access. It is a
 single landing page with an email form, optional context fields, email
 confirmation, a private status page, and a referral link.
 

@@ -44,7 +44,7 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
 
   return {
     title: getDisplayName(profile),
-    description: profile.bio ?? `@${profile.username} on dwellr.`,
+    description: profile.bio ?? `@${profile.username} on HausCrawl.`,
   };
 }
 

@@ -1,6 +1,5 @@
 import { formatCount } from "@dwellr/core";
 
-import { DWELLR_MARK_PATH } from "@/components/brand/logo-paths";
 import { Badge, ProvenanceBadge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { StarIcon } from "@/components/ui/icons";
@@ -26,8 +25,8 @@ function HouseIllustration({ variant }: { variant: MockupIllustration }) {
         <rect x="88" y="14" width="13" height="40" rx="2" className="fill-sand" />
       ) : null}
 
-      <svg x="37" y="13" width="46" height="43" viewBox="214 312 224 202" className="text-ink">
-        <path d={DWELLR_MARK_PATH} fill="currentColor" fillRule="evenodd" />
+      <svg x="37" y="13" width="46" height="43" viewBox="0 0 120 80" className="text-ink">
+        <path d="M60 10 104 45v29H73V55H47v19H16V45z" fill="currentColor" />
       </svg>
 
       <rect x="13" y="64" width="94" height="1.5" className="fill-line-strong" />

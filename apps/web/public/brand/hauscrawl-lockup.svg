@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 220" width="1000" height="220" role="img" aria-label="HausCrawl">
+  <rect x="24" y="34" width="152" height="152" rx="28" fill="#1F2422"/>
+  <path fill="#FFFFFF" d="M68 68h19v31h29V68h19v76h-19v-28H87v28H68z"/>
+  <text x="210" y="145" font-family="Outfit, 'Segoe UI', Arial, sans-serif" font-size="92" font-weight="500" letter-spacing="-4" fill="#1F2422">HausCrawl</text>
+</svg>

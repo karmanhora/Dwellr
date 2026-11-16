@@ -106,7 +106,7 @@ export function watchRelevanceLabel(relevance: number): string {
   if (relevance >= 3) return "Someone you follow · in a neighborhood you chose";
   if (relevance === 2) return "From someone you follow";
   if (relevance === 1) return "In a neighborhood you chose";
-  return "Newest on dwellr";
+  return "Newest on HausCrawl";
 }
 
 export function toPostSummary(

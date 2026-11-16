@@ -460,7 +460,7 @@ export function PropertyForm({
           Where it is
         </h2>
         <p className="mt-2 max-w-prose text-body-sm leading-relaxed text-stone">
-          Neighborhood-level only. dwellr does not collect street addresses in this version, so
+          Neighborhood-level only. HausCrawl does not collect street addresses in this version, so
           never include one in the title or description.
         </p>
 

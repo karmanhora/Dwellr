@@ -21,7 +21,7 @@ import { getPropertyFeed } from "@/lib/properties";
 export const metadata: Metadata = {
   title: "Explore homes",
   description:
-    "Browse homes posted by the dwellr community — with every detail labelled as verified or community-added.",
+    "Browse homes posted by the HausCrawl community — with every detail labelled as verified or community-added.",
 };
 
 type ExplorePageProps = {
@@ -157,7 +157,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
             description={
               isFiltered
                 ? "Try a different neighborhood, city, or status."
-                : "dwellr has no invented listings. The first home here will be posted by a person."
+                : "HausCrawl has no invented listings. The first home here will be posted by a person."
             }
             action={
               user ? (

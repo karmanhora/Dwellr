@@ -8,7 +8,7 @@ import { getCurrentUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "List a home",
-  description: "Add a home to dwellr with photos and the details you know.",
+  description: "Add a home to HausCrawl with photos and the details you know.",
   robots: { index: false, follow: false },
 };
 
@@ -24,7 +24,7 @@ export default async function CreatePropertyPage() {
       </h1>
       <p className="mt-3 max-w-prose text-body leading-relaxed text-stone">
         Only add facts you know to be true. Everything you write is labelled as community-added
-        until dwellr can verify it against a source.
+        until HausCrawl can verify it against a source.
       </p>
 
       <div className="mt-10">

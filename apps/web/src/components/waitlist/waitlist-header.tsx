@@ -7,7 +7,7 @@ export function WaitlistHeader() {
   return (
     <header className="border-b border-line bg-paper">
       <Container className="flex h-16 items-center justify-between gap-4 sm:h-20">
-        <a href="/" className="rounded-lg" aria-label="dwellr — home">
+        <a href="/" className="rounded-lg" aria-label="HausCrawl — home">
           <Logo size="sm" />
         </a>
 

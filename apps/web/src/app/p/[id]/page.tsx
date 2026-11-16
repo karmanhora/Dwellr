@@ -59,7 +59,7 @@ export async function generateMetadata({ params }: PropertyPageProps): Promise<M
     : undefined;
   const description =
     property.description?.slice(0, 160) ??
-    `A home in ${property.location.neighborhood}, ${property.location.city} on dwellr.`;
+    `A home in ${property.location.neighborhood}, ${property.location.city} on HausCrawl.`;
 
   return {
     title: property.title,
@@ -406,7 +406,7 @@ export default async function PropertyPage({ params, searchParams }: PropertyPag
 
           {property.location.latitude !== null && property.location.longitude !== null ? (
             <p className="mt-4 text-caption leading-relaxed text-stone">
-              Approximate location only — rounded to about a kilometre. dwellr does not publish
+              Approximate location only — rounded to about a kilometre. HausCrawl does not publish
               street addresses.
             </p>
           ) : null}
@@ -487,7 +487,7 @@ export default async function PropertyPage({ params, searchParams }: PropertyPag
               <Badge tone="community">Community</Badge>
             </div>
             <p className="mt-3 text-caption leading-relaxed text-stone">
-              Community means the person who posted the home added it. Verified means dwellr
+              Community means the person who posted the home added it. Verified means HausCrawl
               confirmed it against a source. A post is only marked Verified when every fact is.
             </p>
           </div>

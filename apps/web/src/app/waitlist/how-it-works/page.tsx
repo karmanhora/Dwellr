@@ -7,7 +7,7 @@ import { getContactEmail } from "@/lib/site";
 export const metadata: Metadata = {
   title: "How the waitlist works",
   description:
-    "How dwellr waitlist positions, email confirmation, referrals and referral rewards work.",
+    "How HausCrawl waitlist positions, email confirmation, referrals and referral rewards work.",
   alternates: { canonical: "/waitlist/how-it-works" },
 };
 
@@ -75,7 +75,7 @@ export default function WaitlistHowItWorksPage() {
         <section>
           <h2 className="text-xl font-medium tracking-[-0.02em] text-ink">Changes and fairness</h2>
           <p className="mt-3">
-            dwellr may adjust the waitlist program as it grows, including the referral rules. We may
+            HausCrawl may adjust the waitlist program as it grows, including the referral rules. We may
             remove referrals that do not reflect a real person confirming their email. We do not
             show other people&apos;s positions or use countdowns or scarcity claims.
           </p>
@@ -120,7 +120,7 @@ export default function WaitlistHowItWorksPage() {
           href="/"
           className="inline-flex h-11 items-center rounded-full border border-line-strong bg-paper px-5 text-body-sm font-medium text-ink transition hover:border-ink hover:bg-mist"
         >
-          Back to dwellr
+          Back to HausCrawl
         </Link>
       </div>
     </Container>

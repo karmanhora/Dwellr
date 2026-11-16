@@ -58,7 +58,7 @@ export async function generateMetadata({ params }: CollectionPageProps): Promise
     title: result.collection.name,
     description:
       result.collection.description ??
-      `A collection of homes${result.owner ? ` by ${getDisplayName(result.owner)}` : ""} on dwellr.`,
+      `A collection of homes${result.owner ? ` by ${getDisplayName(result.owner)}` : ""} on HausCrawl.`,
     robots: result.collection.isPublic ? undefined : { index: false, follow: false },
   };
 }

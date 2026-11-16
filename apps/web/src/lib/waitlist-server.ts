@@ -9,9 +9,9 @@ import { getContactEmail } from "@/lib/site";
  * component: it reads private signing material and the service-role client.
  */
 
-const DEVELOPMENT_IP_SALT = "dwellr-development-waitlist-ip-salt";
-const DEVELOPMENT_UNSUBSCRIBE_SECRET = "dwellr-development-unsubscribe-secret";
-const DEVELOPMENT_CONFIRMATION_SECRET = "dwellr-development-confirmation-secret";
+const DEVELOPMENT_IP_SALT = "HausCrawl-development-waitlist-ip-salt";
+const DEVELOPMENT_UNSUBSCRIBE_SECRET = "HausCrawl-development-unsubscribe-secret";
+const DEVELOPMENT_CONFIRMATION_SECRET = "HausCrawl-development-confirmation-secret";
 
 function isProduction(): boolean {
   return process.env.NODE_ENV === "production";
@@ -246,7 +246,7 @@ export async function sendWaitlistConfirmationEmail({
 
   const safeConfirmUrl = escapeHtml(confirmUrl);
   const text = [
-    "Confirm your email to join the dwellr waitlist.",
+    "Confirm your email to join the HausCrawl waitlist.",
     "",
     "Only confirmed email addresses are in the queue. Confirming also gives you a status page and a referral link.",
     "",
@@ -263,12 +263,12 @@ export async function sendWaitlistConfirmationEmail({
 
   return sendResendEmail({
     to,
-    subject: "Confirm your dwellr waitlist email",
+    subject: "Confirm your HausCrawl waitlist email",
     text,
     html: [
       '<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1F2422;line-height:1.6">',
       '<h1 style="font-size:28px;line-height:1.2;margin:0 0 20px">Confirm your email.</h1>',
-      "<p>Only confirmed email addresses are in the dwellr waitlist queue. Confirming gives you a status page and a referral link.</p>",
+      "<p>Only confirmed email addresses are in the HausCrawl waitlist queue. Confirming gives you a status page and a referral link.</p>",
       `<p style="margin:28px 0"><a href="${safeConfirmUrl}" style="display:inline-block;background:#1F2422;color:#FFFFFF;padding:14px 22px;border-radius:999px;text-decoration:none">Confirm my email</a></p>`,
       '<p style="font-size:13px;color:#6F7069">If the button does not work, copy this link into your browser:<br />',
       `${safeConfirmUrl}</p>`,
@@ -292,7 +292,7 @@ export async function sendWaitlistStatusEmail({
 
   const safeStatusUrl = escapeHtml(statusUrl);
   const text = [
-    "Here is the status link for your dwellr waitlist signup.",
+    "Here is the status link for your HausCrawl waitlist signup.",
     "",
     `View your status: ${statusUrl}`,
     "",
@@ -306,7 +306,7 @@ export async function sendWaitlistStatusEmail({
 
   return sendResendEmail({
     to,
-    subject: "Your dwellr waitlist status",
+    subject: "Your HausCrawl waitlist status",
     text,
     html: [
       '<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1F2422;line-height:1.6">',

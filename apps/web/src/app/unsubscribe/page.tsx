@@ -6,7 +6,7 @@ import { UnsubscribeForm } from "@/components/waitlist/unsubscribe-form";
 
 export const metadata: Metadata = {
   title: "Unsubscribe",
-  description: "Unsubscribe from dwellr waitlist emails.",
+  description: "Unsubscribe from HausCrawl waitlist emails.",
   robots: { index: false, follow: false },
 };
 
@@ -29,7 +29,7 @@ export default async function UnsubscribePage({ searchParams }: UnsubscribePageP
       {validToken ? (
         <>
           <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-stone">
-            This will remove you from dwellr waitlist emails. You can still join again later with
+            This will remove you from HausCrawl waitlist emails. You can still join again later with
             the same email address.
           </p>
           <div className="mt-8">
@@ -39,11 +39,11 @@ export default async function UnsubscribePage({ searchParams }: UnsubscribePageP
       ) : (
         <div className="mt-5 max-w-xl space-y-4 text-[15px] leading-relaxed text-stone">
           <p>
-            This unsubscribe link is missing its token. Use the link at the bottom of a dwellr
+            This unsubscribe link is missing its token. Use the link at the bottom of a HausCrawl
             waitlist email, or email us and we will remove you manually.
           </p>
           <Link href="/" className="inline-block font-medium text-ink underline underline-offset-2">
-            Back to dwellr
+            Back to HausCrawl
           </Link>
         </div>
       )}

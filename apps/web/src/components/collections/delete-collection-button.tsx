@@ -21,7 +21,7 @@ export function DeleteCollectionButton({ collectionId }: { collectionId: string 
         open={open}
         onClose={() => setOpen(false)}
         title="Delete this collection?"
-        description="The collection is removed. The homes stay on dwellr and your saves are untouched."
+        description="The collection is removed. The homes stay on HausCrawl and your saves are untouched."
         footer={
           <>
             <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>

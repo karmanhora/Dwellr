@@ -1,12 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
 
-const password = "DwellrM2test42";
+const password = "HausCrawlM2test42";
 const runId = Date.now();
 const suffix = String(runId).slice(-7);
-const ownerEmail = `dwellr.m2.owner.${runId}@gmail.com`;
+const ownerEmail = `HausCrawl.m2.owner.${runId}@gmail.com`;
 const ownerUsername = `m2owner${suffix}`;
-const editorEmail = `dwellr.m2.editor.${runId}@gmail.com`;
+const editorEmail = `HausCrawl.m2.editor.${runId}@gmail.com`;
 const editorUsername = `m2editor${suffix}`;
 const firstTitle = `Cedar test home ${runId}`;
 const secondTitle = `Alder test home ${runId}`;
