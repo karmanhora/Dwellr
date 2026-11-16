@@ -21,6 +21,7 @@ const initialYourRatings = Object.fromEntries(
     home.evaluations.find((evaluation) => evaluation.userId === "you")?.rating ?? 0,
   ]),
 );
+const memberIds = MOCKUP_MEMBERS.map((member) => member.id);
 
 function HouseIllustration({ variant }: { variant: MockupIllustration }) {
   return (
@@ -44,11 +45,11 @@ function HouseIllustration({ variant }: { variant: MockupIllustration }) {
   );
 }
 
-function RatingChip({ name, rating }: { name: string; rating: number }) {
+function PartnerRatingChip({ rating }: { rating: number }) {
   return (
     <span className="inline-flex items-center gap-1 rounded-full border border-line bg-paper px-2 py-0.5 text-caption leading-none text-ink">
       <StarIcon size={9} filled />
-      <span className="text-stone">{name}</span>
+      <span className="text-stone">Partner</span>
       <span className="font-semibold">{rating}</span>
     </span>
   );
@@ -90,7 +91,7 @@ function MockupHomeCard({
 
           <div className="mt-2 flex flex-wrap items-center gap-1">
             <ProvenanceBadge provenance={home.property.verification} />
-            <RatingChip name="Partner" rating={partnerRating} />
+            <PartnerRatingChip rating={partnerRating} />
           </div>
 
           <div className="mt-2 flex min-h-6 flex-wrap items-center gap-1.5">
@@ -150,10 +151,7 @@ export function CollectionMockup() {
         : evaluation,
     ),
   }));
-  const comparison = summarizeCollectionComparison(
-    homes,
-    MOCKUP_MEMBERS.map((member) => member.id),
-  );
+  const comparison = summarizeCollectionComparison(homes, memberIds);
   const hasChanged = MOCKUP_HOMES.some(
     (home) =>
       home.evaluations.find((evaluation) => evaluation.userId === "you")?.rating !==

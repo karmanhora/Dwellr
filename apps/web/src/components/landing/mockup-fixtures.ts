@@ -1,8 +1,4 @@
-import {
-  summarizeCollectionComparison,
-  type CollectionEvaluation,
-  type PropertySummary,
-} from "@dwellr/core";
+import type { CollectionEvaluation, PropertySummary } from "@dwellr/core";
 
 export type MockupIllustration = "gable" | "courtyard" | "tower";
 
@@ -16,8 +12,6 @@ export const MOCKUP_MEMBERS = [
   { id: "you", name: "You" },
   { id: "partner", name: "Partner" },
 ] as const;
-
-const memberIds = MOCKUP_MEMBERS.map((member) => member.id);
 
 function evaluation(
   propertyId: string,
@@ -121,11 +115,3 @@ export const MOCKUP_HOMES: MockupHome[] = [
     ],
   },
 ];
-
-export const MOCKUP_COMPARISON = summarizeCollectionComparison(
-  MOCKUP_HOMES.map((home) => ({
-    property: home.property,
-    evaluations: home.evaluations,
-  })),
-  memberIds,
-);
