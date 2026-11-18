@@ -91,5 +91,26 @@ export default async function WaitlistConfirmPage({
     );
   }
 
+  // Confirming the waitlist by email also proves ownership of the address, so
+  // mark the linked Auth record confirmed. If the row predates the link or the
+  // Auth update fails, keep the waitlist confirmation working; password
+  // recovery can still establish and verify the account later.
+  const { data: signup, error: linkError } = await admin
+    .from("waitlist_signups")
+    .select("auth_user_id")
+    .eq("id", signupId)
+    .maybeSingle();
+
+  if (linkError) {
+    console.error("[waitlist] auth link lookup failed:", linkError.code ?? "unknown");
+  } else if (signup?.auth_user_id) {
+    const { error: authError } = await admin.auth.admin.updateUserById(signup.auth_user_id, {
+      email_confirm: true,
+    });
+    if (authError) {
+      console.error("[waitlist] auth email confirmation failed:", authError.code ?? "unknown");
+    }
+  }
+
   redirect(`/waitlist/status/${result.status_code}`);
 }

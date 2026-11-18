@@ -1,6 +1,7 @@
 "use client";
 
 import { DISPLAY_NAME_MAX_LENGTH, PASSWORD_MIN_LENGTH, USERNAME_MAX_LENGTH } from "@hauscrawl/core";
+import Link from "next/link";
 import { useActionState } from "react";
 
 import { signUpAction } from "@/app/(auth)/actions";
@@ -72,6 +73,17 @@ export function SignUpForm() {
         minLength={PASSWORD_MIN_LENGTH}
         error={errors.password}
       />
+
+      {state.recoverAccount && state.values?.email ? (
+        <p className="text-center text-sm text-stone">
+          <Link
+            href={`/forgot-password?email=${encodeURIComponent(state.values.email)}`}
+            className="font-medium text-ink underline underline-offset-4"
+          >
+            Set or recover your password
+          </Link>
+        </p>
+      ) : null}
 
       <SubmitButton pendingLabel="Creating your account…">Create account</SubmitButton>
     </form>

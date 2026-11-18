@@ -15,6 +15,7 @@
     "test": "pnpm -r --if-present test",
     "test:e2e:account-deletion": "pnpm --filter @hauscrawl/web test:e2e:account-deletion",
     "test:security": "node tests/security/run.mjs",
+    "backfill:waitlist-auth": "node scripts/backfill-waitlist-auth.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "supabase": "supabase"

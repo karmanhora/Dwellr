@@ -6,8 +6,9 @@ import {
 } from "@hauscrawl/core";
 import { NextResponse } from "next/server";
 
-import { createWaitlistAdminClient } from "@/lib/supabase/admin";
+import { createWaitlistAdminClient, ensureWaitlistAuthUser } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { isMissingAuthUserIdColumnError } from "@/lib/waitlist-errors";
 import {
   createUnsubscribeToken,
   createWaitlistConfirmationToken,
@@ -31,6 +32,14 @@ type SignupResult = {
   signup_id?: string;
   status_code?: string;
   referral_code?: string;
+};
+
+type ValidSignupResult = {
+  ok: true;
+  is_new: boolean;
+  signup_id: string;
+  status_code: string;
+  referral_code: string;
 };
 
 type SignupArgs = {
@@ -90,7 +99,7 @@ function parseSignup(body: Record<string, unknown>) {
   });
 }
 
-function readAdminResult(value: unknown): SignupResult | null {
+function readAdminResult(value: unknown): ValidSignupResult | null {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
   const result = value as SignupResult;
 
@@ -106,7 +115,7 @@ function readAdminResult(value: unknown): SignupResult | null {
     return null;
   }
 
-  return result;
+  return result as ValidSignupResult;
 }
 
 async function sendDeliveryEmail({
@@ -114,7 +123,7 @@ async function sendDeliveryEmail({
   email,
   siteUrl,
 }: {
-  result: SignupResult;
+  result: ValidSignupResult;
   email: string;
   siteUrl: string;
 }): Promise<boolean> {
@@ -217,7 +226,7 @@ export async function POST(request: Request) {
   };
 
   const admin = createWaitlistAdminClient();
-  let adminResult: SignupResult | null = null;
+  let adminResult: ValidSignupResult | null = null;
 
   if (admin) {
     const { data, error } = await admin.rpc("join_waitlist_admin", args);
@@ -240,9 +249,44 @@ export async function POST(request: Request) {
       console.error("[waitlist] admin join returned an unexpected result.");
       return jsonError(500, "We couldn't add you just now. Try again.");
     }
+
+    // Authentication → Users is the owner-facing waitlist view. Keep this
+    // idempotent because duplicate waitlist submissions also arrive here.
+    const authUser = await ensureWaitlistAuthUser(admin, {
+      email: input.email,
+      signupId: adminResult.signup_id,
+    });
+    if (authUser.status === "failed") {
+      return jsonError(500, "We couldn't finish adding you. Try again.");
+    }
+
+    const { error: linkError } = await admin
+      .from("waitlist_signups")
+      .update({ auth_user_id: authUser.userId })
+      .eq("id", adminResult.signup_id);
+    if (linkError) {
+      if (!isMissingAuthUserIdColumnError(linkError)) {
+        console.error("[waitlist] auth user link failed:", linkError.code ?? "unknown");
+        return jsonError(500, "We couldn't finish adding you. Try again.");
+      }
+
+      // Deploying code ahead of the migration must not take the waitlist down.
+      // The Auth user exists; the explicit backfill will link it after the
+      // column is applied, and recovery can still verify the address.
+      console.error(
+        "[waitlist] auth_user_id column is missing; apply 20261118120000_waitlist_auth_users.sql and rerun the backfill.",
+      );
+    }
   } else {
+    if (process.env.NODE_ENV === "production") {
+      console.error(
+        "[waitlist] SUPABASE_SERVICE_ROLE_KEY is required in production for Auth user mirroring.",
+      );
+      return jsonError(503, "The waitlist is temporarily unavailable. Try again later.");
+    }
+
     console.warn(
-      "[waitlist] SUPABASE_SERVICE_ROLE_KEY is not configured; the public signup path is active but double opt-in, positions and referrals are disabled.",
+      "[waitlist] SUPABASE_SERVICE_ROLE_KEY is not configured; development fallback is active, but Auth mirroring, double opt-in, positions and referrals are disabled.",
     );
 
     const supabase = await createClient();

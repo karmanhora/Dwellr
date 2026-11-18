@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "test:e2e": "playwright test",
     "test:e2e:account-deletion": "playwright test --config=playwright.account-deletion.config.ts",
     "test:e2e:waitlist": "playwright test --config=playwright.waitlist.config.ts"
@@ -33,6 +34,7 @@
     "eslint-config-next": "^16.4.6",
     "pg": "^8.23.1",
     "tailwindcss": "^4.3.5",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.0"
   }
 }

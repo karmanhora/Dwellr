@@ -16,21 +16,57 @@ confirmation, a private status page, and a referral link.
    **60 new signups globally per minute**. The public `join_waitlist` wrapper
    returns only `{ ok: true }`; it never returns a referral code, status code,
    position, or any duplicate-email signal.
-4. A new signup gets a signed, 24-hour confirmation token by email. The token
+4. After the waitlist RPC succeeds, the route calls
+   `auth.admin.createUser` with the same email. This is the only step that
+   places the address in **Supabase Authentication → Users**. The Auth account
+   is created unconfirmed, with `app_metadata.waitlist = true` and a generated
+   `waitlist_<signup-id>` username so the automatic public profile does not
+   expose the email local part. Existing addresses are idempotent; the route
+   links the Auth user id back to `waitlist_signups.auth_user_id`. Auth creation
+   or link failures return a retryable error rather than silently losing the
+   Auth record, except the documented missing-column rollout case below.
+5. A new signup gets a signed, 24-hour confirmation token by email. The token
    contains the signup id and is signed with `WAITLIST_CONFIRMATION_SECRET`.
    `/waitlist/confirm?token=...` verifies it and calls
-   `confirm_waitlist_signup`, which sets `email_confirmed_at` and is idempotent.
-5. A duplicate email gets a status-link email to that address instead. The API
+   `confirm_waitlist_signup`, which sets `email_confirmed_at` on the waitlist row
+   and is idempotent. When the row has a linked `auth_user_id`, it also marks
+   that Auth user's email confirmed; a waitlist confirmation is proof of address
+   ownership. If the Auth update fails, the waitlist confirmation still succeeds
+   and recovery remains available.
+6. A duplicate email gets a status-link email to that address instead. The API
    response is identical for new and duplicate signups: `{ ok: true, emailConfigured }`.
    `emailConfigured` is a server capability flag, not a delivery result, and is
    never a statement about whether the address already existed.
-6. If `SUPABASE_SERVICE_ROLE_KEY`, `WAITLIST_CONFIRMATION_SECRET`, or Resend is
-   missing, the form still writes through the public wrapper, but position and
-   referral UI stay hidden. There is no synthetic position or share link.
+7. Without `SUPABASE_SERVICE_ROLE_KEY`, production refuses the signup with a
+   retryable 503 rather than accepting an email that will not reach Auth → Users.
+   Development falls back to the anon `join_waitlist` wrapper for local form
+   work; Auth mirroring, double opt-in, positions and referrals are off there.
+   Without `WAITLIST_CONFIRMATION_SECRET` or Resend, position and referral UI
+   stay off. There is no synthetic position or share link.
 
-If the service-role key is missing, the route falls back to the anon
-`join_waitlist` wrapper and logs that double opt-in is disabled. Do not use that
-fallback for a real launch.
+## Account recovery and sign-up conflicts
+
+Mirrored waitlist users have no password. They are not ordinary login-ready
+accounts, so the normal sign-up path must not leave them stuck.
+
+- A sign-up for a mirrored waitlist email is detected from
+  `app_metadata.waitlist = true` (and from Supabase's obfuscated existing-user
+  response). The form shows a notice and a link to **Set or recover your
+  password** instead of claiming a new account was created.
+- `/forgot-password` calls `resetPasswordForEmail` with a redirect to
+  `/auth/confirm`, which defaults to `/auth/reset-password`. The response is
+  deliberately the same for unknown and existing addresses.
+- `/auth/confirm` accepts either the PKCE `code` or a recovery `token_hash`,
+  establishes the recovery session, and redirects to the authenticated
+  `/auth/reset-password` page.
+- `/auth/reset-password` sets the new password. Because opening the emailed link
+  proves control of the address, it also marks the Auth email confirmed through
+  the server-only admin client. Sign-in then works normally.
+
+Add `https://<your-site>/auth/confirm` to Supabase Authentication → URL
+Configuration → Redirect URLs for each deployed origin. Recovery is unavailable
+while `WAITLIST_ONLY=true` because the proxy keeps auth routes private until the
+app launches.
 
 ## Position rules
 
@@ -148,7 +184,7 @@ Names only. Never commit values.
 | `WAITLIST_IP_SALT` | Server secret | Salt for the one-way IP hash used for rate limiting |
 | `WAITLIST_UNSUBSCRIBE_SECRET` | Server secret | HMAC key for signed unsubscribe tokens |
 | `WAITLIST_CONFIRMATION_SECRET` | Server secret | HMAC key for signed, expiring confirmation tokens |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server secret | Admin delivery/confirmation RPCs; server-only |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server secret | Admin RPCs, delivery/confirmation, and Auth user mirroring; server-only |
 | `WAITLIST_EMAIL_ENABLED` | Server | Enables Resend confirmation and status email |
 | `RESEND_API_KEY` | Server secret | Resend API key; only needed when email is enabled |
 | `WAITLIST_EMAIL_FROM` | Server | Verified Resend sender, including display name |
@@ -208,10 +244,40 @@ pnpm supabase db push --dry-run --remote
 ```
 
 `--remote` targets the linked Supabase project; the dry-run does not write. It
-must list only the Part B migration if the original waitlist migration is
-already applied. Review the SQL before applying. The migration backfills a
-status code for every existing row, so it requires a brief exclusive lock on
-`waitlist_signups`.
+must list only the waitlist migrations that are not already applied. Review the
+SQL before applying. The position migration backfills a status code for every
+existing row, so it requires a brief exclusive lock on `waitlist_signups`.
+
+`20261118120000_waitlist_auth_users.sql` adds the nullable
+`waitlist_signups.auth_user_id` link and its unique index. Apply it before
+deploying Auth mirroring or running the backfill. It does not create or modify
+Auth users by itself. If the route is deployed first, it keeps the waitlist
+working but logs the missing column; the backfill links those rows after the
+migration is applied.
+
+## Backfill existing waitlist rows
+
+Existing waitlist rows are not mirrored automatically. The explicit backfill
+script is dry-run by default, sends no email, never deletes data, excludes
+unsubscribed rows unless asked, and is idempotent. It links an existing Auth
+user with the same email instead of creating a duplicate.
+
+```bash
+# Read-only inventory; apply the auth_user_id migration first.
+pnpm backfill:waitlist-auth
+
+# Write only after checking the project ref printed above.
+pnpm backfill:waitlist-auth -- --apply --project=<project-ref>
+
+# Include unsubscribed waitlist rows (default is to skip them).
+pnpm backfill:waitlist-auth -- --apply --project=<project-ref> --include-unsubscribed
+```
+
+It reads `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from the
+environment or `apps/web/.env.local`. `--delay-ms` controls the write rate
+(default 120 ms). It confirms an Auth email only when the matching waitlist row
+is already email-confirmed. Review failures and rerun; successful rows are
+skipped by their `auth_user_id` link.
 
 ## Invite order (admin only)
 
@@ -236,8 +302,16 @@ through the public site.
 
 ## Viewing signups
 
-Use the Supabase dashboard → Table Editor → `waitlist_signups`, or the SQL
-editor. Both require dashboard/service access; the public site cannot read rows.
+The primary owner-facing view is Supabase Dashboard → **Authentication → Users**.
+Every successful waitlist signup is mirrored there as an email user with
+`app_metadata.waitlist = true`. New rows start unconfirmed and become confirmed
+when the waitlist confirmation succeeds (or when account recovery completes).
+The Auth account still has no password until the person uses the recovery flow;
+it is a waitlist record, not an active login.
+
+For waitlist-specific context, use Table Editor → `waitlist_signups`, or the
+SQL editor. Both require dashboard/service access; the public site cannot read
+rows.
 
 ```sql
 select
@@ -286,20 +360,26 @@ needed.
 ## Deploy checklist
 
 1. Set the environment variables for the target Vercel environment, including
-   the server-only service key and confirmation secret.
+   the server-only service key (needed to mirror waitlist emails into
+   Authentication → Users) and confirmation secret.
 2. Run the migration dry-run and review it; apply only with explicit approval.
-3. Confirm `WAITLIST_ONLY=true` in production and `false` in preview.
-4. Set `NEXT_PUBLIC_SITE_URL` to the real origin; verify canonical, OG image,
-   sitemap, and robots URLs.
-5. Verify the Resend sender domain, set `WAITLIST_EMAIL_FROM`, and send one test
+   This includes `20261118120000_waitlist_auth_users.sql` before Auth mirroring.
+3. Run the backfill dry-run, then apply it with the printed project ref if
+   existing waitlist rows should appear in Auth → Users.
+4. Confirm `WAITLIST_ONLY=true` in production and `false` in preview.
+5. Set `NEXT_PUBLIC_SITE_URL` to the real origin; verify canonical, OG image,
+   sitemap, and robots URLs. Add `/auth/confirm` to the Supabase redirect URLs.
+6. Verify the Resend sender domain, set `WAITLIST_EMAIL_FROM`, and send one test
    confirmation, one duplicate status email, and one unsubscribe link.
-6. Configure PostHog to discard IP addresses; verify no codes arrive in events.
-7. Run lint, typecheck, unit, security, and Playwright suites against a
+7. Configure PostHog to discard IP addresses; verify no codes arrive in events.
+8. Run lint, typecheck, unit, security, and Playwright suites against a
    disposable database.
-8. After deploy, submit one real test signup, confirm it, check the position,
+9. After deploy, submit one real test signup, confirm it, check the position,
    share link, second signup, confirmation, and referral move. Remove test rows
    through the dashboard if needed.
-9. Keep a current export/backup process for the list before launch messaging.
+10. Test a waitlist email through **Forgot your password**, confirm the reset
+    link, set a password, and sign in.
+11. Keep a current export/backup process for the list before launch messaging.
 
 ## Metrics to watch weekly
 
@@ -327,6 +407,10 @@ Operational rules:
 - Do not expose the service-role key to the browser or a client bundle.
 - Do not expose `waitlist_invite_order`, `status_code`, or the referral code in
   analytics, public HTML, or public database responses.
+- Auth mirroring creates an Auth user and an automatic public profile with a
+  pseudonymous `waitlist_<id>` username. The Auth email stays unverified until
+  waitlist confirmation or account recovery. Do not treat the Auth user as
+  consent to product email beyond the waitlist.
 
 ## Tests
 
@@ -350,6 +434,14 @@ the position/referral tests are skipped.
 
 ## Known limitations
 
+- Auth mirroring needs `SUPABASE_SERVICE_ROLE_KEY`. Production rejects the
+  signup if it is missing; development can still use the public fallback, but no
+  Auth user is made locally.
+- The mirrored Auth user has no password. Waitlist confirmation confirms the
+  email, and the sign-up/recovery flows route that email to password setup; a
+  user cannot sign in with a password until they complete recovery.
+- Recovery requires `/auth/confirm` to be present in the Supabase redirect URL
+  allowlist and is unavailable while waitlist-only mode blocks auth routes.
 - Confirmation and status email are delivered only when the Resend domain is
   verified; local development without those values intentionally shows no
   position UI.

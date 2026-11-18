@@ -182,7 +182,7 @@ export type {
   PostVideoInput,
   UpdatePostInput,
 } from "./schemas/post";
-export { emailSchema, signInSchema, signUpSchema } from "./schemas/auth";
+export { emailSchema, passwordSchema, signInSchema, signUpSchema } from "./schemas/auth";
 export type { SignInInput, SignUpInput } from "./schemas/auth";
 export {
   waitlistReferralCodeSchema,

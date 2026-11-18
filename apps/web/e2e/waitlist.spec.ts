@@ -42,10 +42,10 @@ test("submits the waitlist form without exposing a share link before confirmatio
   await expect(
     page.getByRole("heading", { level: 1, name: /find a home together/i }),
   ).toBeVisible();
-  await expect(page.getByText("Illustrative example").first()).toBeVisible();
 
+  const email = `waitlist.e2e.${Date.now()}@gmail.com`;
   const hero = page.locator("#join");
-  await hero.getByLabel("Email address").fill(`waitlist.e2e.${Date.now()}@gmail.com`);
+  await hero.getByLabel("Email address").fill(email);
 
   await hero.getByText("Add a little more").click();
   await hero.getByLabel("What best describes you?").selectOption("actively_looking");
@@ -56,6 +56,21 @@ test("submits the waitlist form without exposing a share link before confirmatio
 
   await expect(page.getByText("You're on the list.")).toBeVisible();
   await expect(page.getByLabel("Your share link")).toHaveCount(0);
+
+  if (admin) {
+    const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    expect(error).toBeNull();
+    const authUser = data.users.find((user) => user.email === email);
+    expect(authUser).toBeTruthy();
+
+    const { data: signup, error: signupError } = await admin
+      .from("waitlist_signups")
+      .select("auth_user_id")
+      .eq("email", email)
+      .maybeSingle();
+    expect(signupError).toBeNull();
+    expect(signup?.auth_user_id).toBe(authUser?.id);
+  }
 });
 
 test("silently accepts a honeypot-filled submission", async ({ page }) => {

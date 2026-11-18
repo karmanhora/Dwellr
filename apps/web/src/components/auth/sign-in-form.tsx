@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 
 import { signInAction } from "@/app/(auth)/actions";
@@ -42,6 +43,15 @@ export function SignInForm({ next }: { next?: string }) {
       />
 
       <SubmitButton pendingLabel="Signing in…">Sign in</SubmitButton>
+
+      <p className="text-center text-sm text-stone">
+        <Link
+          href="/forgot-password"
+          className="font-medium text-ink underline underline-offset-4"
+        >
+          Forgot your password?
+        </Link>
+      </p>
     </form>
   );
 }

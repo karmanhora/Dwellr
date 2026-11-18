@@ -43,6 +43,7 @@ export type Database = {
           last_notified_at: string | null;
           unsubscribe_token_hash: string | null;
           ip_hash: string;
+          auth_user_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -69,12 +70,14 @@ export type Database = {
           last_notified_at?: string | null;
           unsubscribe_token_hash?: string | null;
           ip_hash: string;
+          auth_user_id?: string | null;
           created_at?: string;
         };
         Update: {
           email_confirmed_at?: string | null;
           unsubscribed_at?: string | null;
           last_notified_at?: string | null;
+          auth_user_id?: string | null;
         };
         Relationships: [
           {
