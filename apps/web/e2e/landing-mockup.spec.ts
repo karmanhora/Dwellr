@@ -1,26 +1,18 @@
 import { expect, test } from "@playwright/test";
 
-const mockupLabel = "Example collection showing two partners' ratings for three homes";
+const shortlistLabel = "Example shortlist showing two partners' ratings for two homes";
 
-test("renders the example collection and its computed summary", async ({ page }) => {
+test("renders the interactive shortlist and its computed summary", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page.getByRole("img", { name: mockupLabel })).toBeVisible();
-  await expect(page.getByText("You both like 2 of 3 homes")).toBeVisible();
-  await expect(
-    page.getByText("Illustrative example. Early access screens may change."),
-  ).toBeVisible();
-  await expect(page.getByText("Split opinion")).toBeVisible();
-});
-
-test("reserves the phone frame height explicitly", async ({ page }) => {
-  await page.goto("/");
-
-  const height = await page
-    .getByRole("img", { name: mockupLabel })
-    .evaluate((element) => getComputedStyle(element).height);
-
-  expect(height).toBe("692px");
+  const shortlist = page.getByRole("group", { name: shortlistLabel });
+  await expect(shortlist).toBeVisible();
+  await expect(shortlist.getByText("You both like 1 of 2 homes")).toBeVisible();
+  await expect(shortlist.getByText("Early access screens may change.")).toBeVisible();
+  await expect(shortlist.getByRole("heading", { name: "Maple Hollow" })).toBeVisible();
+  await expect(shortlist.getByRole("heading", { name: "Alder Bend" })).toBeVisible();
+  await expect(shortlist.getByText("Everyone likes")).toBeVisible();
+  await expect(shortlist.getByText("Split opinion")).toBeVisible();
 });
 
 for (const width of [375, 768, 1280]) {
@@ -34,32 +26,6 @@ for (const width of [375, 768, 1280]) {
     }));
 
     expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1);
-  });
-
-  test(`keeps the complete frame and caption together at ${width}px`, async ({ page }) => {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto("/");
-
-    const frame = page.getByRole("img", { name: mockupLabel });
-    const caption = page.getByText("Illustrative example. Early access screens may change.");
-    await page.evaluate((label) => {
-      const element = document.querySelector(`[role="img"][aria-label="${label}"]`);
-      if (!element) return;
-      const top = element.getBoundingClientRect().top + window.scrollY;
-      window.scrollTo({ top: Math.max(0, top - 80), behavior: "instant" });
-    }, mockupLabel);
-
-    const frameBox = await frame.boundingBox();
-    const captionBox = await caption.boundingBox();
-
-    expect(frameBox).not.toBeNull();
-    expect(captionBox).not.toBeNull();
-    expect(frameBox!.x).toBeGreaterThanOrEqual(0);
-    expect(frameBox!.x + frameBox!.width).toBeLessThanOrEqual(width + 1);
-    expect(frameBox!.y).toBeGreaterThanOrEqual(0);
-    expect(frameBox!.y + frameBox!.height).toBeLessThanOrEqual(900);
-    expect(captionBox!.y).toBeGreaterThanOrEqual(frameBox!.y + frameBox!.height);
-    expect(captionBox!.y + captionBox!.height).toBeLessThanOrEqual(900);
   });
 }
 
@@ -75,13 +41,12 @@ test("keeps the form submit above the fold at 375x667", async ({ page }) => {
   expect(box!.y + box!.height).toBeLessThanOrEqual(667);
 });
 
-test("does not animate when reduced motion is enabled", async ({ page }) => {
+test("does not animate the neighborhood strip when reduced motion is enabled", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
 
   const duration = await page
-    .getByRole("img", { name: mockupLabel })
-    .locator("..")
+    .locator(".landing-marquee")
     .evaluate((element) => getComputedStyle(element).animationDuration);
 
   expect(Number.parseFloat(duration)).toBeLessThan(0.001);

@@ -1,19 +1,15 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 
-import { formatCount, summarizeCollectionComparison } from "@hauscrawl/core";
+import { summarizeCollectionComparison } from "@hauscrawl/core";
 
-import { Badge, ProvenanceBadge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { StarIcon } from "@/components/ui/icons";
 
-import {
-  MOCKUP_HOMES,
-  MOCKUP_MEMBERS,
-  type MockupHome,
-  type MockupIllustration,
-} from "./mockup-fixtures";
+import { MOCKUP_HOMES, MOCKUP_MEMBERS, type MockupHome } from "./mockup-fixtures";
 
 const initialYourRatings = Object.fromEntries(
   MOCKUP_HOMES.map((home) => [
@@ -23,34 +19,46 @@ const initialYourRatings = Object.fromEntries(
 );
 const memberIds = MOCKUP_MEMBERS.map((member) => member.id);
 
-function HouseIllustration({ variant }: { variant: MockupIllustration }) {
+function RatingStars({
+  value,
+  label,
+  onChange,
+}: {
+  value: number;
+  label: string;
+  onChange?: (rating: number) => void;
+}) {
   return (
-    <svg viewBox="0 0 120 80" className="h-full w-full" aria-hidden="true" focusable="false">
-      <rect width="120" height="80" className="fill-mist" />
-
-      {variant === "gable" ? <circle cx="96" cy="21" r="11" className="fill-sand" /> : null}
-      {variant === "courtyard" ? (
-        <rect x="11" y="24" width="23" height="28" rx="2" className="fill-sand" />
-      ) : null}
-      {variant === "tower" ? (
-        <rect x="88" y="14" width="13" height="40" rx="2" className="fill-sand" />
-      ) : null}
-
-      <svg x="37" y="13" width="46" height="43" viewBox="0 0 120 80" className="text-ink">
-        <path d="M60 10 104 45v29H73V55H47v19H16V45z" fill="currentColor" />
-      </svg>
-
-      <rect x="13" y="64" width="94" height="1.5" className="fill-line-strong" />
-    </svg>
-  );
-}
-
-function PartnerRatingChip({ rating }: { rating: number }) {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-line bg-paper px-2 py-0.5 text-caption leading-none text-ink">
-      <StarIcon size={9} filled />
-      <span className="text-stone">Partner</span>
-      <span className="font-semibold">{rating}</span>
+    <span
+      className="flex items-center gap-0.5"
+      role={onChange ? "group" : "img"}
+      aria-label={`${label}: ${value} out of 5`}
+    >
+      {[1, 2, 3, 4, 5].map((star) =>
+        onChange ? (
+          <button
+            key={star}
+            type="button"
+            aria-label={`${label} ${star} out of 5`}
+            aria-pressed={star <= value}
+            onClick={() => onChange(star)}
+            className="rounded-sm p-0.5 transition hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15"
+          >
+            <StarIcon
+              size={15}
+              filled={star <= value}
+              className={star <= value ? "text-brass" : "text-line-strong"}
+            />
+          </button>
+        ) : (
+          <StarIcon
+            key={star}
+            size={14}
+            filled={star <= value}
+            className={star <= value ? "text-brass" : "text-line-strong"}
+          />
+        ),
+      )}
     </span>
   );
 }
@@ -71,77 +79,79 @@ function MockupHomeCard({
   onRate: (rating: number) => void;
 }) {
   const note = home.evaluations.find((evaluation) => evaluation.note)?.note;
-  const facts = [
-    home.property.bedrooms !== null ? `${formatCount(home.property.bedrooms)} bd` : null,
-    home.property.bathrooms !== null ? `${formatCount(home.property.bathrooms)} ba` : null,
-    home.property.squareFeet !== null ? `${formatCount(home.property.squareFeet)} sq ft` : null,
-  ].filter(Boolean);
 
   return (
-    <article className="rounded-control border border-line p-2.5">
-      <div className="flex gap-2.5">
-        <div className="h-14 w-16 shrink-0 overflow-hidden rounded-control">
-          <HouseIllustration variant={home.illustration} />
+    <article className="flex h-full flex-col overflow-hidden rounded-[1.35rem] border border-line/80 bg-paper">
+      <div className="relative aspect-[4/3] overflow-hidden">
+        <Image
+          src={home.photo}
+          alt={home.photoAlt}
+          fill
+          sizes="(min-width: 640px) 24rem, 90vw"
+          className="object-cover"
+        />
+        <span className="absolute top-3 left-3 rounded-full bg-cream/95 px-3 py-1 text-[10px] font-semibold tracking-[0.14em] text-ink uppercase">
+          {home.property.neighborhood}
+        </span>
+      </div>
+
+      <div className="flex flex-1 flex-col p-4">
+        <h3 className="font-serif text-[1.45rem] leading-tight tracking-[-0.03em] text-ink">
+          {home.property.title}
+        </h3>
+        <p className="mt-1 text-caption text-stone">Community-added</p>
+
+        <div className="mt-3 flex min-h-6 flex-wrap items-center gap-1.5">
+          {everyoneLikes ? (
+            <Badge tone="positive">Everyone likes</Badge>
+          ) : disagreement ? (
+            <Badge tone="quiet">Split opinion</Badge>
+          ) : (
+            <Badge tone="neutral">Still deciding</Badge>
+          )}
         </div>
 
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-body-sm font-medium text-ink">{home.property.neighborhood}</p>
-
-          <p className="mt-0.5 text-caption text-stone">{facts.join(" · ")}</p>
-
-          <div className="mt-2 flex flex-wrap items-center gap-1">
-            <ProvenanceBadge provenance={home.property.verification} />
-            <PartnerRatingChip rating={partnerRating} />
-          </div>
-
-          <div className="mt-2 flex min-h-6 flex-wrap items-center gap-1.5">
-            {everyoneLikes ? (
-              <Badge tone="positive">Everyone likes</Badge>
-            ) : disagreement ? (
-              <Badge tone="quiet">Split opinion</Badge>
-            ) : null}
-          </div>
-
-          <div className="mt-2 flex items-center justify-between gap-2 border-t border-line pt-2">
-            <span className="text-caption text-stone">Your rating</span>
-            <span
-              className="flex items-center gap-0.5"
-              role="group"
-              aria-label={`Your rating for ${home.property.neighborhood}`}
-            >
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  aria-label={`Rate ${home.property.neighborhood} ${star} out of 5`}
-                  aria-pressed={star <= yourRating}
-                  onClick={() => onRate(star)}
-                  className="rounded-sm p-0.5 transition hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15"
-                >
-                  <StarIcon
-                    size={14}
-                    filled={star <= yourRating}
-                    className={star <= yourRating ? "text-ink" : "text-line-strong"}
-                  />
-                </button>
-              ))}
+        <div className="mt-4 space-y-2.5 border-t border-line pt-3.5">
+          <div className="flex items-center justify-between gap-3">
+            <span className="flex items-center gap-2 text-caption text-stone">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-moss text-[9px] font-semibold text-cream">
+                Y
+              </span>
+              You
             </span>
+            <RatingStars
+              label={`Your rating for ${home.property.title}`}
+              value={yourRating}
+              onChange={onRate}
+            />
           </div>
 
-          {note ? (
-            <div className="mt-1.5 min-h-[2.2rem] text-caption leading-snug text-stone">
-              {disagreement ? <p>Partner: &ldquo;{note}&rdquo;</p> : null}
-            </div>
-          ) : null}
+          <div className="flex items-center justify-between gap-3">
+            <span className="flex items-center gap-2 text-caption text-stone">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brass text-[9px] font-semibold text-ink">
+                P
+              </span>
+              Partner
+            </span>
+            <RatingStars
+              label={`Partner rating for ${home.property.title}`}
+              value={partnerRating}
+            />
+          </div>
         </div>
+
+        {note ? (
+          <p className="mt-4 border-t border-line pt-3 font-serif text-sm leading-relaxed text-ink/75 italic">
+            “{note}”
+          </p>
+        ) : null}
       </div>
     </article>
   );
 }
 
 export function CollectionMockup() {
-  const [yourRatings, setYourRatings] =
-    useState<Record<string, number>>(initialYourRatings);
+  const [yourRatings, setYourRatings] = useState<Record<string, number>>(initialYourRatings);
 
   const homes = MOCKUP_HOMES.map((home) => ({
     ...home,
@@ -163,85 +173,85 @@ export function CollectionMockup() {
   }
 
   return (
-    <div className="w-full max-w-80 animate-rise" style={{ animationDelay: "160ms" }}>
+    <div className="w-full max-w-[54rem] animate-rise" style={{ animationDelay: "160ms" }}>
       <div
         role="group"
-        aria-label="Interactive example collection. Tap a star to change your ratings."
-        className="mx-auto min-h-phone-frame w-full rounded-sheet border border-ink/15 bg-ink p-1.5"
+        aria-label="Example shortlist showing two partners' ratings for two homes"
+        className="rounded-[1.9rem] border border-line/80 bg-cream p-4 shadow-lift sm:p-6"
       >
-        <div className="overflow-hidden rounded-panel bg-paper">
-          <div className="px-4 pt-4 pb-3">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-eyebrow text-stone">Shared collection</p>
-                <p className="mt-1 text-lg leading-none font-medium tracking-[-0.025em] text-ink">
-                  Our first home
-                </p>
-              </div>
-
-              <div className="flex shrink-0 items-start gap-2">
-                {MOCKUP_MEMBERS.map((member) => (
-                  <div key={member.id} className="flex flex-col items-center gap-0.5">
-                    <Avatar name={member.name} size="xs" />
-                    <span className="text-caption text-stone">{member.name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <p className="mt-3 text-caption text-stone" aria-live="polite">
-              You both like{" "}
-              <span className="font-semibold text-ink">
-                {comparison.everyoneLikesCount} of {comparison.homes.length}
-              </span>{" "}
-              homes
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-semibold tracking-[0.18em] text-stone uppercase">
+              Example shortlist
             </p>
-            <p className="mt-1 text-caption text-stone/70">Tap a star to rate the homes.</p>
-          </div>
-
-          <div className="space-y-2 border-t border-line px-3 py-3">
-            {MOCKUP_HOMES.map((home) => {
-              const compared = comparison.homes.find(
-                (candidate) => candidate.property.id === home.property.id,
-              );
-
-              return (
-                <MockupHomeCard
-                  key={home.property.id}
-                  home={home}
-                  yourRating={yourRatings[home.property.id] ?? 0}
-                  partnerRating={home.evaluations[1]?.rating ?? 0}
-                  everyoneLikes={compared?.everyoneLikes ?? false}
-                  disagreement={compared?.disagreement ?? false}
-                  onRate={(rating) =>
-                    setYourRatings((current) => ({
-                      ...current,
-                      [home.property.id]: rating,
-                    }))
-                  }
-                />
-              );
-            })}
-          </div>
-
-          <div className="border-t border-line px-4 py-3 text-caption text-stone">
-            {MOCKUP_HOMES.length} homes in this example
+            <p className="mt-2 font-serif text-2xl leading-tight tracking-[-0.03em] text-ink sm:text-[1.75rem]">
+              Two homes, two perspectives.
+            </p>
           </div>
         </div>
-      </div>
 
-      <p className="mt-3 text-center text-caption leading-relaxed text-stone">
-        Illustrative example. Early access screens may change.{" "}
-        {hasChanged ? (
-          <button
-            type="button"
-            onClick={resetRatings}
-            className="underline decoration-line-strong underline-offset-2 transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15"
-          >
-            Reset ratings
-          </button>
-        ) : null}
-      </p>
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+          <p className="text-caption text-stone" aria-live="polite">
+            You both like{" "}
+            <span className="font-semibold text-ink">
+              {comparison.everyoneLikesCount} of {comparison.homes.length}
+            </span>{" "}
+            homes
+          </p>
+
+          <div className="flex items-center gap-3">
+            {MOCKUP_MEMBERS.map((member) => (
+              <div key={member.id} className="flex items-center gap-1.5">
+                <Avatar name={member.name} size="xs" />
+                <span className="text-caption text-stone">{member.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          {MOCKUP_HOMES.map((home) => {
+            const compared = comparison.homes.find(
+              (candidate) => candidate.property.id === home.property.id,
+            );
+            const partnerRating =
+              home.evaluations.find((evaluation) => evaluation.userId === "partner")?.rating ?? 0;
+
+            return (
+              <MockupHomeCard
+                key={home.property.id}
+                home={home}
+                yourRating={yourRatings[home.property.id] ?? 0}
+                partnerRating={partnerRating}
+                everyoneLikes={compared?.everyoneLikes ?? false}
+                disagreement={compared?.disagreement ?? false}
+                onRate={(rating) =>
+                  setYourRatings((current) => ({
+                    ...current,
+                    [home.property.id]: rating,
+                  }))
+                }
+              />
+            );
+          })}
+        </div>
+
+        <p className="mt-4 text-caption leading-relaxed text-stone">
+          Tap a star to rate the homes. Early access screens may change.
+          {hasChanged ? (
+            <>
+              {" "}
+              <button
+                type="button"
+                onClick={resetRatings}
+                className="underline decoration-line-strong underline-offset-2 transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15"
+              >
+                Reset ratings
+              </button>
+            </>
+          ) : null}
+        </p>
+      </div>
     </div>
   );
 }

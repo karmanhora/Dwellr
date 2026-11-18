@@ -1,68 +1,63 @@
-import { HouseMark } from "@/components/brand/logo";
 import { CollectionMockup } from "@/components/landing/collection-mockup";
+import { FeedExample } from "@/components/landing/feed-example";
+import { HeroHomeCards } from "@/components/landing/hero-home-cards";
+import { NeighborhoodStrip } from "@/components/landing/neighborhood-strip";
 import { WaitlistForm } from "@/components/waitlist/waitlist-form";
 import { Container } from "@/components/ui/container";
-import { CheckIcon, HomeIcon, MapPinIcon, StarIcon, UserIcon } from "@/components/ui/icons";
-import { getVisibleWaitlistCount } from "@/lib/waitlist";
-
-const promises = [
-  "A feed built from accounts you follow, the neighborhoods and styles you choose, and community posts",
-  "Private shared collections for your partner, family, or friends",
-  "Neighborhood-level locations and clearly labelled details",
-];
-
-const socialFeatures = [
-  {
-    title: "Follow the people you trust",
-    body: "The feed combines homes from accounts you follow, homes in the neighborhoods and styles you choose, and community posts. It is explicit, not inferred from clicks.",
-  },
-  {
-    title: "Share what you notice",
-    body: "Post photos, notes, or a short video about a home or neighborhood. Likes and threaded comments keep the conversation with the home.",
-  },
-  {
-    title: "Keep the decision private",
-    body: "Invite your partner, family, or friends into a private collection. Everyone can rate, add pros and cons, and see where opinions split.",
-  },
-  {
-    title: "Know what you are looking at",
-    body: "Property details are labelled verified or community-added. Posts and comments stay clearly separate from verified facts.",
-  },
-];
+import { CheckIcon, HomeIcon, MapPinIcon, UserIcon } from "@/components/ui/icons";
+import { getWaitlistCount } from "@/lib/waitlist";
 
 const steps = [
   {
     number: "01",
-    title: "Save the homes you both like",
-    body: "Keep the places you are considering in one private shortlist, with the details and notes that matter to you.",
+    title: "Follow people you trust",
+    body: "The feed brings together homes from the people you follow, the neighborhoods and styles you choose, and community posts.",
   },
   {
     number: "02",
-    title: "Rate them together",
-    body: "Each person adds a rating and a note. Differences become a conversation instead of a guess.",
+    title: "Rate the homes together",
+    body: "Everyone adds a rating and a note. The shortlist keeps both perspectives in view, so differences become a conversation.",
   },
   {
     number: "03",
-    title: "Compare side by side",
-    body: "Line up the shortlist and decide with the same information in front of everyone.",
+    title: "Decide in one private place",
+    body: "Your shared collection stays private to the people you invite. Everyone sees the same homes and the same notes.",
   },
 ];
 
-const reasons = [
+const featureRows = [
   {
-    icon: MapPinIcon,
-    title: "Private by default",
-    body: "HausCrawl works at the neighborhood level. We do not ask for a street address, and your shortlist is not public.",
+    icon: UserIcon,
+    title: "Follow the people whose taste you trust",
+    body: "The feed is shaped by the accounts and neighborhoods you choose, never by clicks you did not mean to share.",
   },
   {
-    icon: CheckIcon,
-    title: "Clear about what is verified",
-    body: "Every detail is labelled as verified by HausCrawl or added by the community, so you know what you are relying on.",
+    icon: HomeIcon,
+    title: "Keep the details with the home",
+    body: "Save a home, add a note, and come back to the conversation around it instead of another lost tab.",
+  },
+  {
+    icon: MapPinIcon,
+    title: "Know what you are looking at",
+    body: "Details are marked verified or community-added. Posts stay separate from the facts that came from a source.",
+  },
+];
+
+const privacyPoints = [
+  {
+    icon: MapPinIcon,
+    title: "Neighborhood-level, not street-level",
+    body: "HausCrawl works with general locations. We do not ask for a street address, and there are no home addresses in the waitlist.",
   },
   {
     icon: UserIcon,
-    title: "Built for the people deciding",
-    body: "Partners, family, and friends can look at the same homes together, instead of passing screenshots back and forth.",
+    title: "Yours to control",
+    body: "Your shortlist is private. Waitlist email is used for early-access updates, and every message includes an unsubscribe link.",
+  },
+  {
+    icon: CheckIcon,
+    title: "Minimal by design",
+    body: "The form asks only for an email plus optional context. We hash IP addresses for abuse limits and use cookieless analytics.",
   },
 ];
 
@@ -99,207 +94,121 @@ const faqs = [
   },
 ];
 
-function Rating({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="text-caption text-stone">{label}</span>
-      <span className="flex items-center gap-0.5" role="img" aria-label={`${value} out of 5`}>
-        {[1, 2, 3, 4, 5].map((star) => (
-          <StarIcon
-            key={star}
-            size={13}
-            filled={star <= value}
-            className={star <= value ? "text-ink" : "text-line-strong"}
-          />
-        ))}
-      </span>
-    </div>
-  );
-}
-
-function ExampleHome({
-  name,
-  neighborhood,
-  facts,
-  yourRating,
-  partnerRating,
-  note,
-}: {
-  name: string;
-  neighborhood: string;
-  facts: string;
-  yourRating: number;
-  partnerRating: number;
-  note: string;
-}) {
-  return (
-    <div className="border-t border-line pt-5 first:border-t-0 first:pt-0 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-6 sm:first:border-l-0 sm:first:pl-0">
-      <p className="text-caption tracking-[0.16em] text-stone uppercase">{name}</p>
-      <h3 className="mt-2 text-lg font-medium tracking-[-0.02em] text-ink">{neighborhood}</h3>
-      <p className="mt-1 text-body-sm text-stone">{facts}</p>
-
-      <div className="mt-5 space-y-2.5">
-        <Rating label="You" value={yourRating} />
-        <Rating label="Partner" value={partnerRating} />
-      </div>
-
-      <p className="mt-5 border-t border-line pt-4 text-body-sm leading-relaxed text-ink/80">
-        “{note}”
-      </p>
-    </div>
-  );
-}
-
 export async function WaitlistLanding() {
-  const count = await getVisibleWaitlistCount();
+  const count = await getWaitlistCount();
 
   return (
-    <div>
-      <section className="relative overflow-hidden border-b border-line">
-        <HouseMark className="pointer-events-none absolute -top-16 -right-20 h-[26rem] w-[26rem] opacity-[0.035] sm:-right-10 lg:top-10 lg:right-[-4rem] lg:h-[34rem] lg:w-[34rem]" />
-
-        <Container className="relative grid gap-10 pt-6 pb-12 sm:py-16 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start lg:gap-16 lg:py-20">
-          <div className="lg:col-start-1 lg:row-start-1">
+    <div className="overflow-x-clip bg-mist">
+      <section className="relative overflow-hidden">
+        <Container className="relative grid gap-12 pt-10 pb-16 sm:pt-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:items-center lg:gap-14 lg:pt-14 lg:pb-20">
+          <div>
             <p className="flex items-center gap-3 text-[11px] font-medium tracking-[0.22em] text-stone uppercase">
-              <span aria-hidden="true" className="h-px w-8 bg-ink/30" />A social network for home
-              hunting · Seattle / King County
+              <span aria-hidden="true" className="h-px w-8 bg-ink/30" />
+              A social network for home hunting
             </p>
 
-            <h1 className="mt-5 text-[3rem] leading-[0.95] font-medium tracking-[-0.05em] text-ink sm:mt-7 sm:text-6xl lg:text-[5.25rem]">
+            <h1 className="mt-5 font-serif text-[3.6rem] leading-[0.92] font-normal tracking-[-0.055em] text-ink sm:text-[5rem]">
               Find a home
               <br />
-              together.
+              <span className="text-moss italic">together.</span>
             </h1>
 
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-stone sm:mt-7 sm:text-lg lg:text-xl">
-              HausCrawl is a social network for home hunting. Follow people whose taste you trust, save
-              and react to the homes you are considering, and make the decision together in one
-              private place.
+            <p className="mt-5 max-w-[34rem] text-base leading-relaxed text-stone sm:text-lg">
+              Follow people whose taste you trust, save and react to the homes you are considering,
+              and make the decision together in one private place. Early access starts in Seattle.
             </p>
 
-            <div id="join" className="mt-6 max-w-xl scroll-mt-24 sm:mt-8">
-              <WaitlistForm idPrefix="hero" eyebrow="Be first in line" trackPageView />
-              <p className="mt-4 px-1 text-caption leading-relaxed text-stone">
-                Early access is starting in the Seattle area. Join the list and we&apos;ll email you
-                when it opens.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex justify-center lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:justify-end">
-            <CollectionMockup />
-          </div>
-
-          <div className="lg:col-start-1 lg:row-start-2">
-            <ul className="grid gap-3 border-t border-line pt-6 sm:grid-cols-2 lg:max-w-xl">
-              {promises.map((promise) => (
-                <li key={promise} className="flex items-start gap-3 text-body-sm text-ink/85">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-mist text-ink">
-                    <CheckIcon size={13} />
-                  </span>
-                  {promise}
-                </li>
-              ))}
-            </ul>
-
             {count !== null ? (
-              <p className="mt-6 inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-body-sm text-ink">
-                <span className="h-1.5 w-1.5 rounded-full bg-moss" aria-hidden="true" />
+              <p className="mt-4 inline-flex items-center gap-2 text-caption leading-relaxed text-stone">
+                <span className="h-1.5 w-1.5 rounded-full bg-brass" aria-hidden="true" />
                 {count.toLocaleString("en-US")} people have joined the waitlist
               </p>
             ) : null}
+
+            <div id="join" className="mt-4 max-w-[35rem] scroll-mt-24">
+              <WaitlistForm
+                idPrefix="hero"
+                surface="plain"
+                layout="inline"
+                buttonVariant="moss"
+                trackPageView
+              />
+              <p className="mt-4 text-caption leading-relaxed text-stone">
+                Early access is starting in the Seattle area.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-center lg:justify-end">
+            <HeroHomeCards />
           </div>
         </Container>
       </section>
 
-      <section className="border-b border-line">
-        <Container className="py-16 sm:py-20">
-          <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
-            <div>
-              <p className="text-[11px] font-medium tracking-[0.2em] text-stone uppercase">
-                More than a shortlist
-              </p>
-              <h2 className="mt-4 text-3xl leading-tight font-medium tracking-[-0.035em] text-ink sm:text-4xl">
-                A social network for the home hunt.
-              </h2>
-              <p className="mt-5 max-w-md text-[15px] leading-relaxed text-stone">
-                Home search already happens in group chats, saved tabs, and screenshots. HausCrawl
-                brings the useful social parts together: people you trust, homes worth discussing,
-                and a private place to decide.
-              </p>
-            </div>
+      <NeighborhoodStrip />
 
-            <div className="grid gap-8 sm:grid-cols-2">
-              {socialFeatures.map((feature) => (
-                <div key={feature.title} className="border-t border-line pt-5">
-                  <h3 className="text-base font-medium text-ink">{feature.title}</h3>
-                  <p className="mt-1.5 text-body-sm leading-relaxed text-stone">{feature.body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Container>
-      </section>
-
-      <section className="border-b border-line">
-        <Container className="py-16 sm:py-20">
-          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-            <div>
-              <p className="text-[11px] font-medium tracking-[0.2em] text-stone uppercase">
-                What we&apos;re building
-              </p>
-              <h2 className="mt-4 max-w-xl text-3xl leading-tight font-medium tracking-[-0.035em] text-ink sm:text-4xl">
-                A calmer way to choose a home.
-              </h2>
-            </div>
-            <p className="max-w-sm text-body-sm leading-relaxed text-stone sm:text-right">
-              Not a listings portal. A social place to work through the homes you are actually
-              considering.
+      <section className="bg-mist">
+        <Container className="py-20 sm:py-28">
+          <div className="max-w-2xl">
+            <p className="text-[11px] font-medium tracking-[0.2em] text-stone uppercase">
+              How it works
+            </p>
+            <h2 className="mt-4 font-serif text-4xl leading-[1.02] tracking-[-0.045em] text-ink sm:text-5xl">
+              A calmer way to choose a home.
+            </h2>
+            <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-stone">
+              Home hunting happens in group chats and saved tabs. HausCrawl brings the useful parts
+              into one considered place.
             </p>
           </div>
 
-          <ol className="mt-12 grid gap-10 sm:grid-cols-3 sm:gap-8">
+          <ol className="mt-12 grid gap-4 md:grid-cols-3">
             {steps.map((step) => (
-              <li key={step.number} className="border-t border-line pt-6">
-                <span className="text-xs font-medium text-stone">{step.number}</span>
-                <h3 className="mt-4 text-lg font-medium tracking-[-0.02em] text-ink">
+              <li
+                key={step.number}
+                className="rounded-[1.5rem] border border-line/80 bg-cream p-6 sm:p-7"
+              >
+                <span className="font-serif text-4xl leading-none text-brass/90 italic">
+                  {step.number}
+                </span>
+                <h3 className="mt-7 font-serif text-[1.65rem] leading-tight tracking-[-0.03em] text-ink">
                   {step.title}
                 </h3>
-                <p className="mt-2 text-[15px] leading-relaxed text-stone">{step.body}</p>
+                <p className="mt-3 text-body-sm leading-relaxed text-stone">{step.body}</p>
               </li>
             ))}
           </ol>
         </Container>
       </section>
 
-      <section className="border-b border-line bg-mist/60">
-        <Container className="py-16 sm:py-20">
-          <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-20">
-            <div>
-              <p className="text-[11px] font-medium tracking-[0.2em] text-stone uppercase">
-                Why HausCrawl
-              </p>
-              <h2 className="mt-4 text-3xl leading-tight font-medium tracking-[-0.035em] text-ink sm:text-4xl">
-                Built for a decision you make together.
-              </h2>
-              <p className="mt-5 max-w-md text-[15px] leading-relaxed text-stone">
-                Home hunting is rarely a solo project. HausCrawl is designed around the people who will
-                live with the choice.
-              </p>
-            </div>
+      <section className="border-y border-line/70 bg-sand">
+        <Container className="grid gap-12 py-20 sm:py-28 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-20">
+          <FeedExample />
 
-            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-1">
-              {reasons.map((reason) => {
-                const Icon = reason.icon;
+          <div>
+            <p className="text-[11px] font-medium tracking-[0.2em] text-stone uppercase">
+              More than a shortlist
+            </p>
+            <h2 className="mt-4 max-w-xl font-serif text-4xl leading-[1.02] tracking-[-0.045em] text-ink sm:text-5xl">
+              Home hunting, with the people who matter.
+            </h2>
+            <p className="mt-5 max-w-lg text-[15px] leading-relaxed text-stone">
+              Keep the homes you are considering, the notes you leave, and the people deciding with
+              you in the same place. It is a record of the search, not another feed to scroll past.
+            </p>
+
+            <div className="mt-9 divide-y divide-line border-y border-line">
+              {featureRows.map((feature) => {
+                const Icon = feature.icon;
                 return (
-                  <div key={reason.title} className="flex gap-4 border-t border-line pt-5">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-paper text-ink">
+                  <div key={feature.title} className="flex gap-4 py-5">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-cream text-moss">
                       <Icon size={17} />
                     </span>
                     <div>
-                      <h3 className="text-base font-medium text-ink">{reason.title}</h3>
+                      <h3 className="text-body-sm font-medium text-ink">{feature.title}</h3>
                       <p className="mt-1.5 text-body-sm leading-relaxed text-stone">
-                        {reason.body}
+                        {feature.body}
                       </p>
                     </div>
                   </div>
@@ -310,83 +219,92 @@ export async function WaitlistLanding() {
         </Container>
       </section>
 
-      <section className="border-b border-line">
-        <Container className="py-16 sm:py-20">
-          <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-center lg:gap-16">
-            <div>
-              <p className="inline-flex rounded-full bg-mist px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-ink uppercase">
-                Illustrative example
-              </p>
-              <h2 className="mt-5 text-3xl leading-tight font-medium tracking-[-0.035em] text-ink sm:text-4xl">
-                The shortlist, with everyone&apos;s point of view.
-              </h2>
-              <p className="mt-4 max-w-md text-[15px] leading-relaxed text-stone">
-                A shared card like this keeps the homes, reactions, and notes in one place. It is an
-                example of the interface, not a real listing.
-              </p>
-              <ul className="mt-6 space-y-2 text-body-sm text-stone">
-                <li>Neighborhood-level location only</li>
-                <li>No prices or addresses invented</li>
-                <li>See where you agree and where you don&apos;t</li>
-              </ul>
-            </div>
-
-            <div className="rounded-[1.8rem] border border-line bg-paper p-6 shadow-soft sm:p-8">
-              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line pb-5">
-                <div>
-                  <p className="text-caption tracking-[0.16em] text-stone uppercase">
-                    Example shortlist
-                  </p>
-                  <p className="mt-1 text-lg font-medium text-ink">Saturday, 2 homes</p>
-                </div>
-                <span className="rounded-full border border-line px-3 py-1 text-[10px] font-medium tracking-[0.12em] text-stone uppercase">
-                  Not a real listing
-                </span>
-              </div>
-
-              <div className="mt-6 grid gap-6 sm:grid-cols-2 sm:gap-0">
-                <ExampleHome
-                  name="Home A"
-                  neighborhood="Ballard"
-                  facts="3 bed · 2 bath · Townhouse"
-                  yourRating={4}
-                  partnerRating={3}
-                  note="Loved the light. The kitchen felt small."
-                />
-                <ExampleHome
-                  name="Home B"
-                  neighborhood="West Seattle"
-                  facts="3 bed · 2 bath · House"
-                  yourRating={3}
-                  partnerRating={5}
-                  note="The garden won us over. Longer commute for me."
-                />
-              </div>
-
-              <div className="mt-6 flex items-center gap-2 border-t border-line pt-4 text-caption text-stone">
-                <HomeIcon size={15} />
-                Your notes and ratings stay with your private shortlist.
-              </div>
-            </div>
+      <section className="bg-moss text-cream">
+        <Container className="py-20 sm:py-28">
+          <div className="max-w-2xl">
+            <p className="text-[11px] font-medium tracking-[0.2em] text-cream/60 uppercase">
+              Privacy by default
+            </p>
+            <h2 className="mt-4 font-serif text-4xl leading-[1.02] tracking-[-0.045em] text-cream sm:text-5xl">
+              Private where it matters.
+            </h2>
+            <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-cream/75">
+              The waitlist should ask for very little. The product should make the private parts
+              obvious. These are the commitments we are building around.
+            </p>
           </div>
+
+          <div className="mt-12 grid gap-8 sm:grid-cols-3 sm:gap-10">
+            {privacyPoints.map((point) => {
+              const Icon = point.icon;
+              return (
+                <div key={point.title} className="border-t border-cream/20 pt-5">
+                  <Icon size={19} className="text-cream/70" />
+                  <h3 className="mt-4 font-serif text-xl leading-tight tracking-[-0.02em] text-cream">
+                    {point.title}
+                  </h3>
+                  <p className="mt-2 text-body-sm leading-relaxed text-cream/70">{point.body}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          <a
+            href="/privacy"
+            className="mt-10 inline-flex text-body-sm font-medium text-cream underline decoration-cream/35 underline-offset-4 transition hover:decoration-cream"
+          >
+            Read the privacy policy
+          </a>
         </Container>
       </section>
 
-      <section className="border-b border-line">
-        <Container size="narrow" className="py-16 sm:py-20">
+      <section className="bg-mist">
+        <Container className="grid gap-12 py-20 sm:py-28 lg:grid-cols-[0.72fr_1.28fr] lg:items-center lg:gap-16">
+          <div>
+            <p className="text-[11px] font-medium tracking-[0.2em] text-stone uppercase">
+              A shared shortlist
+            </p>
+            <h2 className="mt-4 font-serif text-4xl leading-[1.02] tracking-[-0.045em] text-ink sm:text-5xl">
+              Everyone&apos;s take, in one place.
+            </h2>
+            <p className="mt-5 max-w-md text-[15px] leading-relaxed text-stone">
+              A shared shortlist keeps the homes, ratings, and notes together. This is an example of
+              the interface, not a real listing.
+            </p>
+
+            <ul className="mt-7 space-y-3 text-body-sm text-stone">
+              {[
+                "Neighborhood-level location only",
+                "No prices or addresses invented",
+                "See where you agree and where you don't",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-3">
+                  <CheckIcon size={15} className="mt-0.5 shrink-0 text-moss" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <CollectionMockup />
+        </Container>
+      </section>
+
+      <section className="border-t border-line/70 bg-cream">
+        <Container size="narrow" className="py-20 sm:py-24">
           <p className="text-[11px] font-medium tracking-[0.2em] text-stone uppercase">FAQ</p>
-          <h2 className="mt-4 text-3xl leading-tight font-medium tracking-[-0.035em] text-ink sm:text-4xl">
+          <h2 className="mt-4 font-serif text-4xl leading-[1.02] tracking-[-0.045em] text-ink sm:text-5xl">
             A few straight answers.
           </h2>
 
-          <div className="mt-8 divide-y divide-line border-y border-line">
+          <div className="mt-9 divide-y divide-line border-y border-line">
             {faqs.map((faq) => (
               <details key={faq.question} className="group py-5">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[15px] font-medium text-ink outline-none focus-visible:ring-2 focus-visible:ring-ink/15">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-lg text-[15px] font-medium text-ink outline-none focus-visible:ring-2 focus-visible:ring-ink/15">
                   {faq.question}
                   <span
                     aria-hidden="true"
-                    className="text-lg font-normal text-stone transition group-open:rotate-45"
+                    className="text-xl font-normal text-stone transition group-open:rotate-45"
                   >
                     +
                   </span>
@@ -400,23 +318,29 @@ export async function WaitlistLanding() {
         </Container>
       </section>
 
-      <section className="bg-ink text-paper">
-        <Container className="grid gap-10 py-16 sm:py-20 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-16">
+      <section className="bg-ink text-cream">
+        <Container className="grid gap-10 py-20 sm:py-24 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-20">
           <div>
-            <p className="text-[11px] font-medium tracking-[0.2em] text-paper/55 uppercase">
+            <p className="text-[11px] font-medium tracking-[0.2em] text-cream/55 uppercase">
               Join the waitlist
             </p>
-            <h2 className="mt-4 max-w-lg text-3xl leading-tight font-medium tracking-[-0.035em] sm:text-4xl">
+            <h2 className="mt-4 max-w-lg font-serif text-4xl leading-[1.02] tracking-[-0.045em] sm:text-5xl">
               Start with a better shortlist.
             </h2>
-            <p className="mt-4 max-w-md text-[15px] leading-relaxed text-paper/65">
+            <p className="mt-5 max-w-md text-[15px] leading-relaxed text-cream/65">
               We are opening early access in Seattle / King County first. Add your email and we will
               tell you when it is ready.
             </p>
           </div>
 
           <div id="join-bottom" className="scroll-mt-24">
-            <WaitlistForm idPrefix="bottom" eyebrow="Early access" />
+            <WaitlistForm
+              idPrefix="bottom"
+              eyebrow="Early access"
+              surface="card"
+              layout="stacked"
+              buttonVariant="moss"
+            />
           </div>
         </Container>
       </section>

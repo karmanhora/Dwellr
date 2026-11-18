@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit } from "next/font/google";
+import { Fraunces, Outfit } from "next/font/google";
 
 import { MobileNav } from "@/components/mobile-nav";
 import { SiteFooter } from "@/components/site-footer";
@@ -17,6 +17,13 @@ const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-outfit",
   display: "swap",
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  display: "swap",
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
@@ -53,7 +60,11 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   );
 
   return (
-    <html lang="en" className={outfit.variable} data-scroll-behavior="smooth">
+    <html
+      lang="en"
+      className={`${outfit.variable} ${fraunces.variable}`}
+      data-scroll-behavior="smooth"
+    >
       <body className="flex min-h-dvh flex-col bg-paper text-ink">
         {waitlistOnly ? shell : <ToastProvider>{shell}</ToastProvider>}
       </body>

@@ -5,17 +5,24 @@ import { Container } from "@/components/ui/container";
 
 export function WaitlistHeader() {
   return (
-    <header className="border-b border-line bg-paper">
-      <Container className="flex h-16 items-center justify-between gap-4 sm:h-20">
+    <header className="bg-mist">
+      <Container className="flex h-20 items-center justify-between gap-3">
         <a href="/" className="rounded-lg" aria-label="HausCrawl — home">
-          <Logo size="sm" />
+          <Logo size="xs" transparent />
         </a>
 
-        <div className="flex items-center gap-4">
-          <p className="hidden text-caption tracking-[0.14em] text-stone uppercase sm:block">
+        <div className="flex items-center gap-3 sm:gap-6">
+          <p className="hidden text-[11px] font-medium tracking-[0.18em] text-stone uppercase md:block">
             Seattle / King County
           </p>
-          <a href="/#join" className={buttonClasses({ variant: "secondary", size: "sm" })}>
+          <a
+            href="/#join"
+            className={buttonClasses({
+              variant: "moss",
+              size: "md",
+              className: "px-4 text-[13px] sm:px-5 sm:text-body-sm",
+            })}
+          >
             Join the waitlist
           </a>
         </div>

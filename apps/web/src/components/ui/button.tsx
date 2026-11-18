@@ -3,7 +3,7 @@ import type { ButtonHTMLAttributes, ComponentProps } from "react";
 
 import { SpinnerIcon } from "./icons";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger";
+type Variant = "primary" | "secondary" | "ghost" | "danger" | "moss" | "cream";
 type Size = "sm" | "md" | "lg";
 
 const base =
@@ -14,6 +14,8 @@ const variants: Record<Variant, string> = {
   secondary: "border border-line-strong bg-paper text-ink hover:border-ink hover:bg-mist",
   ghost: "text-ink hover:bg-mist",
   danger: "bg-danger text-paper hover:bg-danger/90",
+  moss: "bg-moss text-cream hover:bg-moss/90",
+  cream: "bg-cream text-ink hover:bg-paper",
 };
 
 const sizes: Record<Size, string> = {

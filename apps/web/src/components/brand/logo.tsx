@@ -1,9 +1,10 @@
 import Image from "next/image";
 
 /**
- * The supplied HausCrawl logo is one lockup: the house mark and wordmark on an
- * ink field. The square mark here is cropped from that same artwork for
- * decorative surfaces and app icons.
+ * The supplied HausCrawl logo is one lockup: the house mark and wordmark on a
+ * light field. The transparent variant removes only that field for warm waitlist
+ * surfaces. The square mark here is cropped from the same artwork for decorative
+ * surfaces and app icons.
  */
 export function HouseMark({ className }: { className?: string }) {
   return (
@@ -20,6 +21,7 @@ export function HouseMark({ className }: { className?: string }) {
 }
 
 const sizes = {
+  xs: "h-6 sm:h-8",
   sm: "h-8",
   md: "h-10",
   lg: "h-14",
@@ -28,13 +30,18 @@ const sizes = {
 type LogoProps = {
   size?: keyof typeof sizes;
   className?: string;
+  transparent?: boolean;
 };
 
-export function Logo({ size = "md", className = "" }: LogoProps) {
+export function Logo({ size = "md", className = "", transparent = false }: LogoProps) {
   return (
     <span className={`inline-flex shrink-0 self-start ${className}`}>
       <Image
-        src="/brand/hauscrawl-lockup.svg"
+        src={
+          transparent
+            ? "/brand/hauscrawl-lockup-transparent.svg"
+            : "/brand/hauscrawl-lockup.svg"
+        }
         alt="HausCrawl"
         width={1800}
         height={280}

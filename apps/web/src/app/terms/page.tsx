@@ -60,7 +60,7 @@ export default function TermsPage() {
           </h2>
           <p className="mt-3">
             The waitlist does not provide listings, prices, legal advice, financial advice, or a
-            brokerage service. Any illustrative interface on this site is an example, not a real
+            brokerage service. Any example interface on this site is a demonstration, not a real
             property. Always verify property details with the appropriate source before making a
             decision.
           </p>

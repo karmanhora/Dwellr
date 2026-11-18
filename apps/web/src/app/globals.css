@@ -5,6 +5,7 @@
   --color-ink: #1f2422;
   --color-ink-soft: #333936;
   --color-paper: #ffffff;
+  --color-cream: #fbfaf7;
   --color-mist: #f5f4ef;
   --color-sand: #ece8df;
   --color-line: #e5e2da;
@@ -13,6 +14,7 @@
   --color-stone-soft: #737871;
   --color-moss: #2f4f43;
   --color-moss-soft: #eaf0ea;
+  --color-brass: #b8862f;
   --color-danger: #a4291f;
   --color-danger-soft: #fdf1f0;
 
@@ -58,6 +60,7 @@
   --duration-slow: 700ms;
 
   --font-sans: var(--font-outfit), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: var(--font-fraunces), Georgia, "Times New Roman", serif;
 }
 
 @layer base {
@@ -99,6 +102,10 @@
     animation: fade-in var(--duration-base) var(--ease-soft) both;
   }
 
+  .landing-marquee {
+    animation: marquee 52s linear infinite;
+  }
+
   /* Horizontal scrollers that keep snapping without showing a scrollbar. */
   .scrollbar-none {
     scrollbar-width: none;
@@ -129,6 +136,15 @@
   }
 }
 
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 @keyframes shimmer {
   0% {
     opacity: 0.55;
@@ -150,5 +166,11 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .landing-marquee {
+    animation: none !important;
+    flex-wrap: wrap;
+    width: auto;
   }
 }

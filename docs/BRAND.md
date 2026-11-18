@@ -11,37 +11,43 @@ Tagline (product-facing): **Find a home. Together.**
 ## Logo
 
 The supplied logo is the dark house mark and HausCrawl wordmark on a white
-field. The header, footer and auth use the trimmed lockup; the social image
-uses the supplied artwork, and the app icons use a square white-background
-crop of the same house mark.
+field. The trimmed lockup is the canonical artwork. On the warm waitlist
+surfaces, a transparent variant removes only the white background path so the
+mark and wordmark sit directly on mist and cream; the artwork itself is not
+redrawn. The social image uses the supplied artwork, and the app icons use a
+square white-background crop of the same house mark.
 
 ### Files
 
 | File | Use |
 | --- | --- |
 | `apps/web/public/brand/hauscrawl-logo.svg` | Supplied white-background artwork, stored verbatim. |
-| `apps/web/public/brand/hauscrawl-lockup.svg` | The supplied artwork trimmed to its content for header, footer and auth use. |
+| `apps/web/public/brand/hauscrawl-lockup.svg` | The supplied artwork trimmed to its content; default lockup. |
+| `apps/web/public/brand/hauscrawl-lockup-transparent.svg` | The same lockup with the white background path removed, for mist and cream waitlist surfaces. |
 | `apps/web/public/brand/hauscrawl-mark.png` | Square house-mark crop for decorative surfaces and icons. |
 | `apps/web/src/app/icon.png` | 512 px app icon (Next.js metadata). |
 | `apps/web/src/app/apple-icon.png` | 180 px app icon (iOS masks it). |
 | `apps/web/src/app/favicon.ico` | 48 px favicon. |
 
-The in-app logo (`src/components/brand/logo.tsx`) points at the trimmed lockup;
+The in-app logo (`src/components/brand/logo.tsx`) points at the trimmed lockup
+by default and the transparent variant where the background is not white;
 `HouseMark` uses the cropped PNG on quieter surfaces.
 
 ### Provenance
 
 The supplied `HausCrawl Minimal House Logo 2.svg` is stored verbatim at
-`apps/web/public/brand/hauscrawl-logo.svg`. The square mark and app icons are
-crops of that artwork.
+`apps/web/public/brand/hauscrawl-logo.svg`. The transparent waitlist lockup is
+derived mechanically from the trimmed lockup by removing its first, white
+background path; the house mark and wordmark are unchanged. The square mark and
+app icons are crops of the supplied artwork.
 
 ### Usage rules
 
 - **Clear space:** at least half the house-mark height on every side.
 - **Minimum sizes:** mark 16 px; full lockup 90 px wide.
-- **Colour:** use the supplied ink field and grey outline as provided. Do not
-  recolour, invert, stretch, rotate, add effects, or separate the wordmark from
-  the house mark.
+- **Colour:** use the supplied ink artwork as provided. The transparent variant
+  removes only the white background field. Do not recolour, invert, stretch,
+  rotate, add effects, or separate the wordmark from the house mark.
 - **Do:** prefer the full lockup in headers and the cropped mark where space is
   tight or a square icon is required.
 
@@ -50,38 +56,46 @@ crops of that artwork.
 | Token | Hex | Use |
 | --- | --- | --- |
 | `ink` | `#1F2422` | Primary text, logo, primary buttons, dark sections |
-| `paper` | `#FFFFFF` | Page background, text on ink |
-| `mist` | `#F5F4EF` | Quiet surfaces, avatars, informational panels |
+| `paper` | `#FFFFFF` | Product page background, text on ink |
+| `cream` | `#FBFAF7` | Warm waitlist cards and quiet raised surfaces |
+| `mist` | `#F5F4EF` | Waitlist page background, avatars, informational panels |
+| `sand` | `#ECE8DF` | Warm editorial section background |
 | `line` | `#E5E2DA` | Hairline dividers and input borders only |
 | `stone` | `#6E736D` | Secondary text, captions, metadata |
-| `moss` | `#2F4F43` | Reserved accent — verified/positive states only, used sparingly |
+| `moss` | `#2F4F43` | Primary waitlist CTA, privacy surfaces, the italic “together.” |
+| `brass` | `#B8862F` | Ratings, step numbers and small editorial accents |
 
 Ink on paper is roughly 15:1, stone on paper roughly 4.9:1. Body copy uses ink;
 stone is for secondary text at 14 px and above.
 
-Rules: white-dominant layouts, near-black ink as the only "brand" colour,
-hairlines instead of boxes, and no decorative gradients. Glassmorphism,
-coloured shadows and multi-colour accents are out.
+Rules: warm neutral surfaces, near-black ink for most type, moss for decisive
+moments and brass for small marks; hairlines instead of heavy boxes, and no
+decorative gradients. Glassmorphism, coloured shadows and multi-colour accents
+are out.
 
 ## Typeface
 
-**Outfit** (SIL Open Font License), loaded with `next/font/google` as
-`--font-outfit` and used for everything — display, UI and body. It is a
-geometric sans with circular bowls, close to the wordmark's construction.
+**Fraunces** (SIL Open Font License) for editorial headlines and **Outfit**
+(SIL Open Font License) for UI and body, both loaded with `next/font/google`.
+Fraunces is a warm variable serif with optical-size detail; Outfit remains the
+geometric sans close to the wordmark's construction.
 
-- Display: 500 weight, tracking `-0.03em` to `-0.045em`, tight leading
-  (`0.98`–`1.1`) on large headlines.
-- Body: 400 weight, 15–18 px, leading `1.6`.
-- UI labels: 500 weight, 14 px. Eyebrows: 11 px, uppercase, tracking `0.22em`.
+- Display: Fraunces, 400 weight, tracking `-0.045em` to `-0.055em`, tight
+  leading (`0.92` on the hero, `1.02` on section headings).
+- Body: Outfit, 400 weight, 15–18 px, leading `1.6`.
+- UI labels: Outfit, 500 weight, 14 px. Eyebrows: Outfit, 11 px, uppercase,
+  tracking `0.2em`–`0.22em`.
 
-Fallback stack: `ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif`.
+Fallback stacks: serif `ui-serif, Georgia, Cambria, "Times New Roman", serif`;
+sans `ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif`.
 
 ## Design tokens
 
 Declared once in `apps/web/src/app/globals.css` under Tailwind v4's `@theme`.
-Components use the generated utilities (`bg-mist`, `rounded-card`,
-`text-body-sm`); raw hex values and arbitrary one-off sizes are not allowed in
-app code.
+Product components use the generated utilities (`bg-mist`, `rounded-card`,
+`text-body-sm`). The editorial waitlist uses responsive arbitrary display sizes
+where the standard scale would fight the composition; colours and surfaces
+still come from the tokens above, not raw hex values in app code.
 
 ### Colour
 
@@ -89,21 +103,24 @@ app code.
 | --- | --- | --- | --- | --- |
 | `ink` | `text-ink` / `bg-ink` | `#1F2422` | 15.2:1 | Primary text, buttons, dark panels |
 | `ink-soft` | `bg-ink-soft` | `#333936` | 12.1:1 | Hover state for ink surfaces |
-| `paper` | `bg-paper` | `#FFFFFF` | — | Page and card background |
-| `mist` | `bg-mist` | `#F5F4EF` | — | Quiet surfaces, inputs, skeleton base |
+| `paper` | `bg-paper` | `#FFFFFF` | — | Product page and card background |
+| `cream` | `bg-cream` | `#FBFAF7` | — | Warm waitlist cards and raised surfaces |
+| `mist` | `bg-mist` | `#F5F4EF` | — | Waitlist background, quiet surfaces, skeleton base |
 | `sand` | `bg-sand` | `#ECE8DF` | — | Warmer neutral, used sparingly |
 | `line` | `border-line` | `#E5E2DA` | — | Hairline dividers and input borders |
 | `line-strong` | `border-line-strong` | `#D3CFC4` | — | Secondary button border, dashed empty states |
 | `stone` | `text-stone` | `#6E736D` | 4.9:1 | Secondary text, metadata |
 | `stone-soft` | `text-stone-soft` | `#737871` | 4.5:1 | Placeholders and micro-labels only |
-| `moss` | `text-moss` | `#2F4F43` | 9.1:1 | Verified / positive states only |
+| `moss` | `text-moss` | `#2F4F43` | 9.1:1 | Primary waitlist CTA, privacy surfaces, italic hero word |
+| `brass` | `text-brass` | `#B8862F` | — | Ratings, step numbers and small editorial accents |
 | `moss-soft` | `bg-moss-soft` | `#EAF0EA` | — | Verified badge and success surface |
 | `danger` | `text-danger` | `#A4291F` | 6.4:1 | Errors, destructive actions |
 | `danger-soft` | `bg-danger-soft` | `#FDF1F0` | — | Error surface |
 
 Ink on paper is 15.2:1, stone on paper 4.9:1, stone-soft 4.5:1 — every text
-colour clears WCAG AA at its intended size. Moss is a status colour, never a
-decorative accent.
+colour clears WCAG AA at its intended size. On warm waitlist surfaces use ink
+for body copy and reserve moss/brass for decisive or small editorial marks, not
+for long text.
 
 ### Type scale
 
@@ -134,7 +151,6 @@ is 400. Labels are 500.
 | `shadow-lift` | 6 px + 48 px ambient | `shadow-lift` — modals, account menu |
 | `spacing-gutter` | 1.25rem | `p-gutter` etc. |
 | `spacing-section` | 5rem | `py-section` etc. |
-| `spacing-phone-frame` | 43.25rem | `h-phone-frame` — reserved landing mockup height |
 | `ease-soft` | `cubic-bezier(0.22, 1, 0.36, 1)` | `--ease-soft` in custom animations |
 | `duration-fast` / `base` / `slow` | 150 / 240 / 700 ms | Hover / fade / entrance |
 
@@ -184,33 +200,33 @@ what it does not know.
 
 ## Landing collection mockup
 
-The waitlist hero includes one interactive phone mockup, `CollectionMockup`
-in `apps/web/src/components/landing/`. Its fictional homes and ratings live in
-`mockup-fixtures.ts`; the summary is computed with the real collection comparison
-logic, never queried from the database, and updates as the visitor changes their
-ratings.
+The waitlist contains an editorial hero with two overlapping home cards and a
+wider interactive shortlist, both in `apps/web/src/components/landing/`. Their
+fictional homes live in `mockup-fixtures.ts`; the shortlist summary is computed
+with the real collection comparison logic, never queried from the database, and
+updates as the visitor changes their ratings.
 
-- The mockup shows only features that exist: per-member ratings, notes, the
+- The components show only features that exist: per-member ratings, notes, the
   collection comparison labels (`Everyone likes`, `Split opinion`, `Still
   deciding`), and provenance labels.
-- It uses inline, flat SVG house illustrations derived from the brand mark. No
-  raster images, stock homes, invented addresses, or prices.
-- The phone is a generic rounded frame. It is not an Apple or Android product
-  likeness and has no notch or platform logo.
-- The phone container is exposed as a group with a concise label; the rating
-  stars are real buttons with per-home labels and visible focus states. The
-  illustrative caption and reset control are real, visible text beneath it.
-- The frame uses the `spacing-phone-frame` token as a minimum height so space is
-  reserved before fonts load while the interactive cards can grow at narrow
-  widths. If fixture content changes, recheck that the frame still fits.
-- Keep the single entrance animation and its reduced-motion fallback.
+- The cards are composition-only: no addresses, prices, bedroom counts, launch
+  dates, testimonials or invented statistics are attached.
+- Photos are licensed demo interior/exterior photography, not AI-generated and
+  not claims about a real property. See `docs/IMAGE_CREDITS.md`.
+- The hero cards are a static composition. The shortlist is exposed as a group
+  with a concise label; its rating stars are real buttons with per-home labels
+  and visible focus states. The reset control is real, visible text beneath it.
+- Keep the single entrance animation and its reduced-motion fallback; the
+  neighborhood strip pauses under `prefers-reduced-motion`.
 
 ## Imagery
 
-Photography-first, but **only real, licensed or user-submitted photography**.
-Never stock imagery of homes presented as listings, never AI-generated
-property photos, never fabricated addresses. Until licensed photography is
-available, prefer type-led layouts over placeholder photos.
+Photography-first, but **only licensed or user-submitted photography**.
+Never present stock imagery as a real listing, never use AI-generated property
+photos, and never attach fabricated addresses. The waitlist uses licensed
+Unsplash photos as demo imagery, without listing claims. Product surfaces keep
+the stronger rule: a real property photo needs a real source and provenance
+label.
 
 ## Provenance labels
 

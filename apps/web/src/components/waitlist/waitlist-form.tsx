@@ -18,6 +18,9 @@ type WaitlistFormProps = {
   idPrefix: string;
   eyebrow?: string;
   trackPageView?: boolean;
+  surface?: "plain" | "card";
+  layout?: "inline" | "stacked";
+  buttonVariant?: "moss" | "primary" | "cream";
 };
 
 type SuccessState = {
@@ -45,7 +48,14 @@ function readSource(): SourceState {
   };
 }
 
-export function WaitlistForm({ idPrefix, eyebrow, trackPageView = false }: WaitlistFormProps) {
+export function WaitlistForm({
+  idPrefix,
+  eyebrow,
+  trackPageView = false,
+  surface = "card",
+  layout = "stacked",
+  buttonVariant = "moss",
+}: WaitlistFormProps) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("");
   const [searchingWith, setSearchingWith] = useState("");
@@ -131,9 +141,9 @@ export function WaitlistForm({ idPrefix, eyebrow, trackPageView = false }: Waitl
 
   if (success) {
     return (
-      <div className="rounded-[1.6rem] border border-line bg-paper p-6 sm:p-7">
+      <div className="rounded-[1.6rem] border border-line bg-cream p-6 shadow-soft sm:p-7">
         <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-moss-soft text-ink">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-moss-soft text-moss">
             <CheckIcon size={18} />
           </span>
           <p
@@ -164,34 +174,63 @@ export function WaitlistForm({ idPrefix, eyebrow, trackPageView = false }: Waitl
     );
   }
 
+  const formSurface =
+    surface === "plain"
+      ? "relative"
+      : "relative rounded-[1.75rem] border border-line/80 bg-cream p-5 shadow-soft sm:p-7";
+
+  const emailField = (
+    <Field
+      label="Email address"
+      name={`${idPrefix}-email`}
+      type="email"
+      required
+      autoComplete="email"
+      inputMode="email"
+      placeholder="you@example.com"
+      value={email}
+      onChange={(event) => setEmail(event.target.value)}
+      maxLength={254}
+      error={error ?? undefined}
+    />
+  );
+
+  const submitButton = (
+    <Button
+      type="submit"
+      size="lg"
+      variant={buttonVariant}
+      loading={status === "submitting"}
+      className={layout === "inline" ? "w-full sm:w-auto" : "w-full"}
+    >
+      {status === "submitting" ? "Joining…" : "Join the waitlist"}
+    </Button>
+  );
+
   return (
     <form
       onSubmit={handleSubmit}
       onFocusCapture={markStarted}
-      className="relative rounded-[1.6rem] border border-line bg-paper p-6 sm:p-7"
+      className={formSurface}
       noValidate
     >
       {eyebrow ? (
-        <p className="text-[11px] font-medium tracking-[0.18em] text-stone uppercase">{eyebrow}</p>
+        <p className="text-[10px] font-semibold tracking-[0.18em] text-stone uppercase">{eyebrow}</p>
       ) : null}
 
-      <div className={eyebrow ? "mt-4" : ""}>
-        <Field
-          label="Email address"
-          name={`${idPrefix}-email`}
-          type="email"
-          required
-          autoComplete="email"
-          inputMode="email"
-          placeholder="you@example.com"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          maxLength={254}
-          error={error ?? undefined}
-        />
-      </div>
+      {layout === "inline" ? (
+        <div className={eyebrow ? "mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end" : "grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"}>
+          {emailField}
+          {submitButton}
+        </div>
+      ) : (
+        <div className={eyebrow ? "mt-4" : ""}>
+          {emailField}
+          <div className="mt-5">{submitButton}</div>
+        </div>
+      )}
 
-      <details className="group mt-4 border-t border-line pt-4">
+      <details className="group mt-5 border-t border-line pt-4">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg text-body-sm font-medium text-ink outline-none focus-visible:ring-2 focus-visible:ring-ink/15">
           Add a little more
           <span className="text-caption font-normal text-stone">Optional</span>
@@ -256,11 +295,11 @@ export function WaitlistForm({ idPrefix, eyebrow, trackPageView = false }: Waitl
         />
       </div>
 
-      <Button type="submit" size="lg" loading={status === "submitting"} className="mt-5 w-full">
-        {status === "submitting" ? "Joining…" : "Join the waitlist"}
-      </Button>
-
-      <p className="mt-3 text-center text-caption leading-relaxed text-stone">
+      <p
+        className={`mt-4 text-caption leading-relaxed text-stone ${
+          surface === "plain" ? "text-left" : "text-center"
+        }`}
+      >
         Only waitlist updates. No spam, no selling your email.{" "}
         <a href="/privacy" className="underline underline-offset-2 hover:text-ink">
           Privacy

@@ -1,11 +1,10 @@
 import type { CollectionEvaluation, PropertySummary } from "@hauscrawl/core";
 
-export type MockupIllustration = "gable" | "courtyard" | "tower";
-
 export interface MockupHome {
   property: PropertySummary;
   evaluations: CollectionEvaluation[];
-  illustration: MockupIllustration;
+  photo: string;
+  photoAlt: string;
 }
 
 export const MOCKUP_MEMBERS = [
@@ -32,18 +31,19 @@ function evaluation(
 
 export const MOCKUP_HOMES: MockupHome[] = [
   {
-    illustration: "gable",
+    photo: "/landing/maple-hollow.jpg",
+    photoAlt: "Modern home surrounded by trees at dusk",
     property: {
       id: "11111111-1111-4111-8111-111111111111",
       title: "Maple Hollow",
       listingStatus: "for_sale",
       priceCents: null,
       currency: "USD",
-      bedrooms: 3,
-      bathrooms: 2,
-      squareFeet: 1480,
+      bedrooms: null,
+      bathrooms: null,
+      squareFeet: null,
       propertyType: "house",
-      neighborhood: "Maple Hollow",
+      neighborhood: "Ballard",
       city: "Seattle",
       state: "WA",
       createdAt: "2026-11-16T09:00:00.000Z",
@@ -53,23 +53,29 @@ export const MOCKUP_HOMES: MockupHome[] = [
       priceCut: null,
     },
     evaluations: [
-      evaluation("11111111-1111-4111-8111-111111111111", "you", 4),
-      evaluation("11111111-1111-4111-8111-111111111111", "partner", 5),
+      evaluation("11111111-1111-4111-8111-111111111111", "you", 5, "The light was lovely."),
+      evaluation(
+        "11111111-1111-4111-8111-111111111111",
+        "partner",
+        5,
+        "The light was lovely.",
+      ),
     ],
   },
   {
-    illustration: "courtyard",
+    photo: "/landing/alder-bend.jpg",
+    photoAlt: "Warmly lit craftsman home in the evening",
     property: {
       id: "22222222-2222-4222-8222-222222222222",
       title: "Alder Bend",
       listingStatus: "for_sale",
       priceCents: null,
       currency: "USD",
-      bedrooms: 2,
-      bathrooms: 1,
-      squareFeet: 960,
+      bedrooms: null,
+      bathrooms: null,
+      squareFeet: null,
       propertyType: "townhouse",
-      neighborhood: "Alder Bend",
+      neighborhood: "Fremont",
       city: "Seattle",
       state: "WA",
       createdAt: "2026-11-16T09:05:00.000Z",
@@ -79,39 +85,13 @@ export const MOCKUP_HOMES: MockupHome[] = [
       priceCut: null,
     },
     evaluations: [
-      evaluation("22222222-2222-4222-8222-222222222222", "you", 5),
+      evaluation("22222222-2222-4222-8222-222222222222", "you", 4),
       evaluation(
         "22222222-2222-4222-8222-222222222222",
         "partner",
         2,
-        "Loved the light. The street felt busy.",
+        "Loved the garden. The street felt busy.",
       ),
-    ],
-  },
-  {
-    illustration: "tower",
-    property: {
-      id: "33333333-3333-4333-8333-333333333333",
-      title: "Northbank",
-      listingStatus: "for_sale",
-      priceCents: null,
-      currency: "USD",
-      bedrooms: 4,
-      bathrooms: 2.5,
-      squareFeet: 2050,
-      propertyType: "house",
-      neighborhood: "Northbank",
-      city: "Seattle",
-      state: "WA",
-      createdAt: "2026-11-16T09:10:00.000Z",
-      coverPhoto: null,
-      photoCount: 0,
-      verification: "user_submitted",
-      priceCut: null,
-    },
-    evaluations: [
-      evaluation("33333333-3333-4333-8333-333333333333", "you", 4),
-      evaluation("33333333-3333-4333-8333-333333333333", "partner", 4),
     ],
   },
 ];
