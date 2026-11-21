@@ -5,6 +5,7 @@ import {
   formatCollectionCount,
   type Collection,
 } from "@hauscrawl/core";
+import posthog from "posthog-js";
 import { useActionState, useState } from "react";
 
 import { addToCollectionAction, createCollectionAction } from "@/app/saved/actions";
@@ -54,7 +55,10 @@ export function CollectionPicker({
                     {collectionVisibilityLabel(collection.isPublic)}
                   </span>
                 </span>
-                <form action={addToCollectionAction}>
+                <form
+                  action={addToCollectionAction}
+                  onSubmit={() => posthog.capture("property_added_to_collection")}
+                >
                   <input type="hidden" name="collectionId" value={collection.id} />
                   <input type="hidden" name="slug" value={collection.shareSlug} />
                   <input type="hidden" name="propertyId" value={propertyId} />

@@ -11,6 +11,7 @@ import {
   type WatchItem,
 } from "@hauscrawl/core";
 import Link from "next/link";
+import posthog from "posthog-js";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { toggleLikeAction } from "@/app/social/actions";
@@ -128,7 +129,15 @@ function WatchDetails({
 
       <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-line pt-2">
         {viewerId ? (
-          <form action={toggleLikeAction}>
+          <form
+            action={toggleLikeAction}
+            onSubmit={() =>
+              posthog.capture("content_like_toggled", {
+                action: item.likedByMe ? "unlike" : "like",
+                target_type: "post",
+              })
+            }
+          >
             <input type="hidden" name="targetType" value="post" />
             <input type="hidden" name="targetId" value={post.id} />
             <input type="hidden" name="next" value="/watch" />

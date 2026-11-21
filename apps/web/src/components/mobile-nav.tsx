@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import posthog from "posthog-js";
+import { useEffect, useRef, type ReactNode } from "react";
 
 import { CompassIcon, HomeIcon, PlayIcon, PlusIcon, UserIcon } from "@/components/ui/icons";
 
@@ -14,8 +15,34 @@ type NavItem = {
 };
 
 /** Thumb-reachable primary navigation below the md breakpoint. */
-export function MobileNav({ username }: { username: string | null }) {
+export function MobileNav({
+  username,
+  userId,
+  email,
+}: {
+  username: string | null;
+  userId: string | null;
+  email: string | null;
+}) {
   const pathname = usePathname();
+  const previousUserId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!userId) {
+      if (previousUserId.current) {
+        posthog.reset();
+        previousUserId.current = null;
+      }
+      return;
+    }
+
+    if (previousUserId.current && previousUserId.current !== userId) {
+      posthog.reset();
+    }
+
+    posthog.identify(userId, email ? { email } : undefined);
+    previousUserId.current = userId;
+  }, [email, userId]);
 
   const items: NavItem[] = [
     {

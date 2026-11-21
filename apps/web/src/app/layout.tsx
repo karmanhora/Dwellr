@@ -55,7 +55,13 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       {waitlistOnly ? <WaitlistHeader /> : <SiteHeader />}
       <main className={waitlistOnly ? "flex-1" : "flex-1 pb-16 md:pb-0"}>{children}</main>
       {waitlistOnly ? <WaitlistFooter /> : <SiteFooter />}
-      {waitlistOnly ? null : <MobileNav username={profile?.username ?? null} />}
+      {waitlistOnly ? null : (
+        <MobileNav
+          username={profile?.username ?? null}
+          userId={user?.id ?? null}
+          email={user?.email ?? null}
+        />
+      )}
     </>
   );
 

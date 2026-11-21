@@ -17,6 +17,7 @@ import {
 } from "@hauscrawl/core";
 import Image from "next/image";
 import Link from "next/link";
+import posthog from "posthog-js";
 import { useActionState, useRef, useState, type ChangeEvent } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -189,7 +190,13 @@ export function PropertyForm({
   }
 
   return (
-    <form action={formAction} className="space-y-14">
+    <form
+      action={formAction}
+      onSubmit={() => {
+        if (mode === "create") posthog.capture("property_publish_submitted");
+      }}
+      className="space-y-14"
+    >
       {propertyId ? <input type="hidden" name="propertyId" value={propertyId} /> : null}
       {mode === "create" ? <input type="hidden" name="photos" value={photosJson} /> : null}
 

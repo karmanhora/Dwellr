@@ -14,6 +14,7 @@ import {
 } from "@hauscrawl/core";
 import Image from "next/image";
 import Link from "next/link";
+import posthog from "posthog-js";
 import {
   useActionState,
   useEffect,
@@ -453,6 +454,10 @@ export function PostForm({
       event.preventDefault();
       return;
     }
+
+    posthog.capture("post_publish_submitted", {
+      post_kind: isVideo ? "video" : kind,
+    });
   }
 
   return (

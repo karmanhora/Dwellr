@@ -1,6 +1,7 @@
 "use client";
 
 import { REPORT_REASONS, REPORT_REASON_LABELS } from "@hauscrawl/core";
+import posthog from "posthog-js";
 import { useActionState, useState } from "react";
 
 import { createReportAction } from "@/app/social/actions";
@@ -43,7 +44,17 @@ export function ReportButton({ targetType, targetId, label = "Report" }: ReportB
             </Button>
           </div>
         ) : (
-          <form action={formAction} className="space-y-4">
+          <form
+            action={formAction}
+            onSubmit={(event) => {
+              const formData = new FormData(event.currentTarget);
+              posthog.capture("content_report_submitted", {
+                reason: String(formData.get("reason") ?? ""),
+                target_type: targetType,
+              });
+            }}
+            className="space-y-4"
+          >
             <input type="hidden" name="targetType" value={targetType} />
             <input type="hidden" name="targetId" value={targetId} />
 

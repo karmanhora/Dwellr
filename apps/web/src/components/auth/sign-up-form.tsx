@@ -2,6 +2,7 @@
 
 import { DISPLAY_NAME_MAX_LENGTH, PASSWORD_MIN_LENGTH, USERNAME_MAX_LENGTH } from "@hauscrawl/core";
 import Link from "next/link";
+import posthog from "posthog-js";
 import { useActionState } from "react";
 
 import { signUpAction } from "@/app/(auth)/actions";
@@ -14,7 +15,11 @@ export function SignUpForm() {
   const errors = state.fieldErrors ?? {};
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form
+      action={formAction}
+      onSubmit={() => posthog.capture("sign_up_submitted")}
+      className="space-y-5"
+    >
       {state.message ? (
         <p
           role={state.status === "error" ? "alert" : "status"}
