@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -13,7 +15,12 @@ import {
 import { Container } from "@/components/ui/container";
 import { WaitlistShare } from "@/components/waitlist/waitlist-share";
 import { getSiteUrl } from "@/lib/site";
-import { getWaitlistReferralCode, getWaitlistStatus } from "@/lib/waitlist-status";
+import {
+  getWaitlistReferralCode,
+  getWaitlistStatus,
+  getWaitlistSurveySignupId,
+} from "@/lib/waitlist-status";
+import { createWaitlistSurveyToken } from "@/lib/waitlist-survey";
 
 export const dynamic = "force-dynamic";
 
@@ -103,6 +110,20 @@ export default async function WaitlistStatusPage({
   const referralCode = await getWaitlistReferralCode(code);
   const referralUrl = referralCode ? waitlistShareUrl(getSiteUrl(), referralCode) : null;
 
+  // The status code proves ownership, so this page can mint a separate, short-
+  // lived survey capability. The status code itself never enters a survey URL.
+  const surveySignupId = await getWaitlistSurveySignupId(code);
+  const surveyToken = surveySignupId
+    ? createWaitlistSurveyToken({
+        signupId: surveySignupId,
+        sessionId: randomUUID(),
+        audience: "survey-verify",
+      })
+    : null;
+  const surveyHref = surveyToken
+    ? `/waitlist/survey?ref=${encodeURIComponent(surveyToken)}`
+    : null;
+
   return (
     <Container size="narrow" className="py-14 sm:py-20">
       <p className="text-[11px] font-medium tracking-[0.2em] text-stone uppercase">
@@ -187,6 +208,24 @@ export default async function WaitlistStatusPage({
           </p>
         </section>
       )}
+
+      {surveyHref ? (
+        <section className="mt-10 border-t border-line pt-6">
+          <h2 className="text-lg font-medium tracking-[-0.02em] text-ink">
+            Tell us about your search
+          </h2>
+          <p className="mt-2 text-body-sm leading-relaxed text-stone">
+            A few optional questions help us shape early access. Your answers stay private, and
+            you can change them from this page whenever your search moves.
+          </p>
+          <Link
+            href={surveyHref}
+            className="mt-4 inline-flex h-11 items-center rounded-full bg-moss px-5 text-body-sm font-medium text-cream transition hover:bg-moss/90"
+          >
+            Answer a few questions
+          </Link>
+        </section>
+      ) : null}
 
       <section className="mt-10 border-t border-line pt-6">
         <h2 className="text-lg font-medium tracking-[-0.02em] text-ink">

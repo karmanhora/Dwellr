@@ -1,17 +1,11 @@
 "use client";
 
-import {
-  WAITLIST_ROLE_LABELS,
-  WAITLIST_ROLES,
-  WAITLIST_SEARCHING_WITH,
-  WAITLIST_SEARCHING_WITH_LABELS,
-} from "@hauscrawl/core/waitlist";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { CheckIcon } from "@/components/ui/icons";
-import { SelectField } from "@/components/ui/select";
 import { trackWaitlistEvent } from "@/lib/waitlist-analytics";
 
 type WaitlistFormProps = {
@@ -48,6 +42,11 @@ function readSource(): SourceState {
   };
 }
 
+/**
+ * Step one of the waitlist: email only. A successful save navigates straight to
+ * the survey with an opaque, scoped survey reference; the success card below is
+ * only the fallback for honeypot and degraded paths that have no reference.
+ */
 export function WaitlistForm({
   idPrefix,
   eyebrow,
@@ -56,10 +55,8 @@ export function WaitlistForm({
   layout = "stacked",
   buttonVariant = "moss",
 }: WaitlistFormProps) {
+  const router = useRouter();
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("");
-  const [searchingWith, setSearchingWith] = useState("");
-  const [region, setRegion] = useState("");
   const [source] = useState<SourceState>(() => (typeof window === "undefined" ? {} : readSource()));
   const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -102,9 +99,6 @@ export function WaitlistForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: normalizedEmail,
-          role: role || undefined,
-          searchingWith: searchingWith || undefined,
-          region: region.trim() || undefined,
           ref: source.ref,
           utmSource: source.utmSource,
           utmMedium: source.utmMedium,
@@ -117,6 +111,7 @@ export function WaitlistForm({
       const payload = (await response.json().catch(() => null)) as {
         ok?: boolean;
         emailConfigured?: boolean;
+        surveyRef?: string;
         message?: string;
       } | null;
 
@@ -130,9 +125,15 @@ export function WaitlistForm({
         return;
       }
 
+      trackWaitlistEvent("waitlist_success", { form: idPrefix });
+
+      if (payload?.surveyRef) {
+        router.push(`/waitlist/survey?ref=${encodeURIComponent(payload.surveyRef)}`);
+        return;
+      }
+
       setSuccess({ emailConfigured: payload?.emailConfigured === true });
       setStatus("success");
-      trackWaitlistEvent("waitlist_success", { form: idPrefix });
     } catch {
       setError("We couldn't add you just now. Check your connection and try again.");
       setStatus("idle");
@@ -229,55 +230,6 @@ export function WaitlistForm({
           <div className="mt-5">{submitButton}</div>
         </div>
       )}
-
-      <details className="group mt-5 border-t border-line pt-4">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg text-body-sm font-medium text-ink outline-none focus-visible:ring-2 focus-visible:ring-ink/15">
-          Add a little more
-          <span className="text-caption font-normal text-stone">Optional</span>
-        </summary>
-
-        <div className="mt-4 grid gap-4">
-          <SelectField
-            label="What best describes you?"
-            name={`${idPrefix}-role`}
-            value={role}
-            onChange={(event) => setRole(event.target.value)}
-            hint="Optional"
-          >
-            <option value="">Prefer not to say</option>
-            {WAITLIST_ROLES.map((value) => (
-              <option key={value} value={value}>
-                {WAITLIST_ROLE_LABELS[value]}
-              </option>
-            ))}
-          </SelectField>
-
-          <SelectField
-            label="Who are you searching with?"
-            name={`${idPrefix}-searching-with`}
-            value={searchingWith}
-            onChange={(event) => setSearchingWith(event.target.value)}
-            hint="Optional"
-          >
-            <option value="">Prefer not to say</option>
-            {WAITLIST_SEARCHING_WITH.map((value) => (
-              <option key={value} value={value}>
-                {WAITLIST_SEARCHING_WITH_LABELS[value]}
-              </option>
-            ))}
-          </SelectField>
-
-          <Field
-            label="City or region"
-            name={`${idPrefix}-region`}
-            placeholder="Seattle, Bellevue, King County…"
-            value={region}
-            onChange={(event) => setRegion(event.target.value)}
-            maxLength={80}
-            hint="Optional · please keep it general"
-          />
-        </div>
-      </details>
 
       <div
         className="absolute -left-[9999px] top-auto h-px w-px overflow-hidden"

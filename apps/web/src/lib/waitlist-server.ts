@@ -52,24 +52,41 @@ export function hashUnsubscribeToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-/** Creates a short-lived, tamper-evident confirmation link payload. */
-export function createWaitlistConfirmationToken(signupId: string): string | null {
+/**
+ * Creates a short-lived, tamper-evident confirmation link payload. The optional
+ * survey session id is what allows the link, and only that link, to promote the
+ * answers staged in the browser that signed up.
+ */
+export function createWaitlistConfirmationToken(
+  signupId: string,
+  surveySessionId?: string | null,
+): string | null {
   const secret = getConfirmationSecret();
   if (!secret || !isUuid(signupId)) return null;
 
-  const payload = Buffer.from(
-    JSON.stringify({
-      sub: signupId,
-      exp: Math.floor(Date.now() / 1000) + WAITLIST_CONFIRMATION_TTL_SECONDS,
-    }),
-  ).toString("base64url");
+  const claims: { sub: string; exp: number; ses?: string } = {
+    sub: signupId,
+    exp: Math.floor(Date.now() / 1000) + WAITLIST_CONFIRMATION_TTL_SECONDS,
+  };
+  if (surveySessionId && isUuid(surveySessionId)) claims.ses = surveySessionId;
+
+  const payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
   const signature = createHmac("sha256", secret).update(payload).digest("base64url");
 
   return `${payload}.${signature}`;
 }
 
-/** Returns a signup id only when the signature and expiry are valid. */
-export function verifyWaitlistConfirmationToken(token: string): string | null {
+export type WaitlistConfirmationLink = {
+  signupId: string;
+  surveySessionId: string | null;
+};
+
+/**
+ * Returns the confirmation claims only when the signature and expiry are valid.
+ * Legacy links without a survey session still confirm the email; they simply
+ * promote nothing.
+ */
+export function verifyWaitlistConfirmationLink(token: string): WaitlistConfirmationLink | null {
   const secret = getConfirmationSecret();
   if (!secret) return null;
 
@@ -84,6 +101,7 @@ export function verifyWaitlistConfirmationToken(token: string): string | null {
   try {
     const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {
       sub?: unknown;
+      ses?: unknown;
       exp?: unknown;
     };
     if (
@@ -94,7 +112,12 @@ export function verifyWaitlistConfirmationToken(token: string): string | null {
     ) {
       return null;
     }
-    return parsed.sub;
+
+    return {
+      signupId: parsed.sub,
+      surveySessionId:
+        typeof parsed.ses === "string" && isUuid(parsed.ses) ? parsed.ses : null,
+    };
   } catch {
     return null;
   }

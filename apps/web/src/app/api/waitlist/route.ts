@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import {
   isUuid,
   WAITLIST_IP_HASH_PATTERN,
@@ -19,6 +21,7 @@ import {
   sendWaitlistStatusEmail,
   waitlistEmailReady,
 } from "@/lib/waitlist-server";
+import { createWaitlistSurveyToken } from "@/lib/waitlist-survey";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -60,13 +63,17 @@ function jsonError(status: number, message: string) {
   return NextResponse.json({ ok: false, message }, { status, headers: NO_STORE });
 }
 
-function successResponse(emailConfigured: boolean) {
+function successResponse(emailConfigured: boolean, surveyRef: string | null = null) {
   return NextResponse.json(
     {
       ok: true,
       // A capability flag, not a delivery result. It is the same for new and
       // duplicate submissions and never reveals whether the address existed.
       emailConfigured,
+      // An opaque, expiring reference that can only write untrusted staged
+      // survey answers. It is issued for new and duplicate emails alike, is
+      // not the status code or the confirmation token, and never reads data.
+      ...(surveyRef ? { surveyRef } : {}),
     },
     { headers: NO_STORE },
   );
@@ -122,10 +129,12 @@ async function sendDeliveryEmail({
   result,
   email,
   siteUrl,
+  surveySessionId,
 }: {
   result: ValidSignupResult;
   email: string;
   siteUrl: string;
+  surveySessionId: string;
 }): Promise<boolean> {
   const unsubscribeToken = createUnsubscribeToken(email);
   const unsubscribeUrl = unsubscribeToken ? new URL("/unsubscribe", `${siteUrl}/`) : null;
@@ -137,7 +146,10 @@ async function sendDeliveryEmail({
 
   if (result.is_new) {
     if (!result.signup_id) return false;
-    const confirmationToken = createWaitlistConfirmationToken(result.signup_id);
+    const confirmationToken = createWaitlistConfirmationToken(
+      result.signup_id,
+      surveySessionId,
+    );
     if (!confirmationToken) {
       console.warn(
         "[waitlist] confirmation signing is not configured; position and referral UI are disabled.",
@@ -224,6 +236,12 @@ export async function POST(request: Request) {
     p_ip_hash: ipHash,
     p_unsubscribe_token_hash: unsubscribeHash,
   };
+
+  // One session per submission. It travels in the confirmation link and in the
+  // survey reference, so only the browser that signed up can have its staged
+  // answers promoted later.
+  const surveySessionId = randomUUID();
+  let surveyRef: string | null = null;
 
   const admin = createWaitlistAdminClient();
   let adminResult: ValidSignupResult | null = null;
@@ -313,15 +331,22 @@ export async function POST(request: Request) {
 
   let emailConfigured = false;
   if (adminResult) {
+    surveyRef = createWaitlistSurveyToken({
+      signupId: adminResult.signup_id,
+      sessionId: surveySessionId,
+      audience: "survey-stage",
+    });
+
     emailConfigured = await waitlistEmailReady();
     if (emailConfigured) {
       await sendDeliveryEmail({
         result: adminResult,
         email: input.email,
         siteUrl,
+        surveySessionId,
       });
     }
   }
 
-  return successResponse(emailConfigured);
+  return successResponse(emailConfigured, surveyRef);
 }

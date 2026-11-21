@@ -6,7 +6,10 @@ type WaitlistEvent =
   | "waitlist_form_start"
   | "waitlist_form_submit"
   | "waitlist_success"
-  | "waitlist_referral_share_click";
+  | "waitlist_referral_share_click"
+  | "waitlist_survey_view"
+  | "waitlist_survey_submit"
+  | "waitlist_survey_skip";
 
 let clientPromise: Promise<PostHogClient | null> | null = null;
 
@@ -46,7 +49,7 @@ function loadClient(): Promise<PostHogClient | null> {
 }
 
 /**
- * Only the five product events we need. Form contents and identifiers are
+ * Only the product events we need. Form contents and identifiers are
  * deliberately not accepted here.
  */
 export function trackWaitlistEvent(

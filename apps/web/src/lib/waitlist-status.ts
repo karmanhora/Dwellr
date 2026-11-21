@@ -1,4 +1,8 @@
-import { WAITLIST_REFERRAL_CODE_PATTERN, WAITLIST_STATUS_CODE_PATTERN } from "@hauscrawl/core";
+import {
+  isUuid,
+  WAITLIST_REFERRAL_CODE_PATTERN,
+  WAITLIST_STATUS_CODE_PATTERN,
+} from "@hauscrawl/core";
 
 import { createWaitlistAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -21,6 +25,25 @@ export async function getWaitlistStatus(code: string): Promise<WaitlistStatus | 
   } catch {
     return null;
   }
+}
+
+/**
+ * Finds the signup behind an emailed status code so the status page can mint a
+ * separate, short-lived survey capability. The status code itself is never put
+ * in a survey URL. Service role only.
+ */
+export async function getWaitlistSurveySignupId(statusCode: string): Promise<string | null> {
+  if (!WAITLIST_STATUS_CODE_PATTERN.test(statusCode)) return null;
+
+  const admin = createWaitlistAdminClient();
+  if (!admin) return null;
+
+  const { data, error } = await admin.rpc("waitlist_survey_signup_id", {
+    p_status_code: statusCode,
+  });
+  if (error || typeof data !== "string") return null;
+
+  return isUuid(data) ? data : null;
 }
 
 /** Reads the shareable referral code with the service role only. */

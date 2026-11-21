@@ -6,7 +6,7 @@ import { WAITLIST_STATUS_CODE_PATTERN } from "@hauscrawl/core";
 
 import { Container } from "@/components/ui/container";
 import { createWaitlistAdminClient } from "@/lib/supabase/admin";
-import { verifyWaitlistConfirmationToken } from "@/lib/waitlist-server";
+import { verifyWaitlistConfirmationLink } from "@/lib/waitlist-server";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +54,8 @@ export default async function WaitlistConfirmPage({
 }) {
   const params = await searchParams;
   const token = Array.isArray(params.token) ? params.token[0] : params.token;
-  const signupId = token ? verifyWaitlistConfirmationToken(token) : null;
+  const link = token ? verifyWaitlistConfirmationLink(token) : null;
+  const signupId = link?.signupId ?? null;
 
   if (!signupId) {
     return (
@@ -89,6 +90,20 @@ export default async function WaitlistConfirmPage({
     return (
       <ConfirmationError message="This confirmation link is no longer active. Sign up again with the same email to request a fresh link." />
     );
+  }
+
+  // Staged survey answers become trusted here, and only when this confirmation
+  // link was issued to the same survey session that staged them. Answers staged
+  // by someone who merely typed the address use another session and are never
+  // promoted; the owner can still replace them from the status page.
+  if (link?.surveySessionId) {
+    const { error: promoteError } = await admin.rpc("promote_waitlist_survey", {
+      p_signup_id: signupId,
+      p_session_id: link.surveySessionId,
+    });
+    if (promoteError) {
+      console.error("[waitlist] survey promotion failed:", promoteError.code ?? "unknown");
+    }
   }
 
   // Confirming the waitlist by email also proves ownership of the address, so
