@@ -80,6 +80,29 @@ export {
   type WaitlistTier,
 } from "./constants/waitlist";
 export {
+  WAITLIST_SURVEY_BROKERAGE_MAX_LENGTH,
+  WAITLIST_SURVEY_CHANNEL_MAX_LENGTH,
+  WAITLIST_SURVEY_CONTACT_METHODS,
+  WAITLIST_SURVEY_CONTACT_METHOD_LABELS,
+  WAITLIST_SURVEY_CREATOR_FOCUS,
+  WAITLIST_SURVEY_CREATOR_FOCUS_LABELS,
+  WAITLIST_SURVEY_INTERESTS,
+  WAITLIST_SURVEY_INTEREST_LABELS,
+  WAITLIST_SURVEY_NAME_MAX_LENGTH,
+  WAITLIST_SURVEY_NOTES_MAX_LENGTH,
+  WAITLIST_SURVEY_PHONE_MAX_LENGTH,
+  WAITLIST_SURVEY_REGION_MAX_LENGTH,
+  WAITLIST_SURVEY_STAGE_TTL_SECONDS,
+  WAITLIST_SURVEY_TIMELINES,
+  WAITLIST_SURVEY_TIMELINE_LABELS,
+  WAITLIST_SURVEY_TOKEN_AUDIENCES,
+  WAITLIST_SURVEY_TOKEN_MAX_LENGTH,
+  WAITLIST_SURVEY_USE_CASES,
+  WAITLIST_SURVEY_USE_CASE_LABELS,
+  WAITLIST_SURVEY_VERIFY_TTL_SECONDS,
+  type WaitlistSurveyAudience,
+} from "./constants/waitlist-survey";
+export {
   AVATAR_URL_MAX_LENGTH,
   BIO_MAX_LENGTH,
   DISPLAY_NAME_MAX_LENGTH,
@@ -192,6 +215,11 @@ export {
   waitlistSignupSchema,
 } from "./schemas/waitlist";
 export type { WaitlistSignupInput } from "./schemas/waitlist";
+export {
+  waitlistSurveyAnswersSchema,
+  waitlistSurveySubmissionSchema,
+} from "./schemas/waitlist-survey";
+export type { WaitlistSurveyAnswers } from "./schemas/waitlist-survey";
 export {
   avatarUrlSchema,
   bioSchema,
@@ -366,6 +394,10 @@ export {
   toProvenanceMap,
 } from "./services/property";
 export { createReferralCode, waitlistShareUrl } from "./services/waitlist";
+export {
+  toWaitlistSurveyAnswersPayload,
+  waitlistSurveyBranch,
+} from "./services/waitlist-survey";
 export {
   calculateWaitlistPositions,
   canCreditWaitlistReferral,
