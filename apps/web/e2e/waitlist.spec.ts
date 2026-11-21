@@ -34,7 +34,7 @@ const admin =
       })
     : null;
 
-test("submits the waitlist form without exposing a share link before confirmation", async ({
+test("saves the email, then stages survey answers without touching canonical fields", async ({
   page,
 }) => {
   await page.goto("/");
@@ -46,31 +46,74 @@ test("submits the waitlist form without exposing a share link before confirmatio
   const email = `waitlist.e2e.${Date.now()}@gmail.com`;
   const hero = page.locator("#join");
   await hero.getByLabel("Email address").fill(email);
-
-  await hero.getByText("Add a little more").click();
-  await hero.getByLabel("What best describes you?").selectOption("actively_looking");
-  await hero.getByLabel("Who are you searching with?").selectOption("partner");
-  await hero.getByLabel("City or region").fill("Seattle");
-
   await hero.getByRole("button", { name: "Join the waitlist" }).click();
 
-  await expect(page.getByText("You're on the list.")).toBeVisible();
-  await expect(page.getByLabel("Your share link")).toHaveCount(0);
+  // A successful save navigates straight to the survey; there is no role field
+  // left on the landing form.
+  await expect(page).toHaveURL(/\/waitlist\/survey\?ref=/);
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Actively looking" })).toBeVisible();
+
+  await page.getByRole("radio", { name: "Actively looking" }).check();
+  await page.getByLabel("What's your timeline?").selectOption("next_3_months");
+  await page.getByLabel("City or region", { exact: true }).fill("Seattle");
+  await page.getByRole("button", { name: "Save my answers" }).click();
+
+  await expect(page.getByRole("heading", { level: 2 })).toContainText("Thank you");
 
   if (admin) {
-    const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    expect(error).toBeNull();
-    const authUser = data.users.find((user) => user.email === email);
+    const { data: authUsers, error: authError } = await admin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    expect(authError).toBeNull();
+    const authUser = authUsers.users.find((user) => user.email === email);
     expect(authUser).toBeTruthy();
 
     const { data: signup, error: signupError } = await admin
       .from("waitlist_signups")
-      .select("auth_user_id")
+      .select("id, role, searching_with, region, auth_user_id")
       .eq("email", email)
       .maybeSingle();
     expect(signupError).toBeNull();
     expect(signup?.auth_user_id).toBe(authUser?.id);
+
+    // Anonymous survey answers must stay staged: the canonical signup columns
+    // are untouched until the emailed confirmation promotes them.
+    expect(signup?.role).toBeNull();
+    expect(signup?.searching_with).toBeNull();
+    expect(signup?.region).toBeNull();
+
+    const { data: survey, error: surveyError } = await admin
+      .from("waitlist_survey_responses")
+      .select("answers_status, role, region, timeline")
+      .eq("signup_id", signup?.id ?? "")
+      .maybeSingle();
+    expect(surveyError).toBeNull();
+    expect(survey?.answers_status).toBe("staged");
+    expect(survey?.role).toBe("actively_looking");
+    expect(survey?.region).toBe("Seattle");
+    expect(survey?.timeline).toBe("next_3_months");
   }
+});
+
+test("lets the survey be skipped without losing the signup", async ({ page }) => {
+  await page.goto("/");
+
+  const hero = page.locator("#join");
+  await hero.getByLabel("Email address").fill(`waitlist.skip.${Date.now()}@gmail.com`);
+  await hero.getByRole("button", { name: "Join the waitlist" }).click();
+
+  await expect(page).toHaveURL(/\/waitlist\/survey\?ref=/);
+  await page.getByRole("button", { name: "Skip for now" }).click();
+
+  await expect(page.getByRole("heading", { level: 2 })).toContainText("That's alright.");
+});
+
+test("rejects a survey link the app did not issue", async ({ page }) => {
+  await page.goto("/waitlist/survey?ref=not-a-real-token");
+
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("isn't ready");
 });
 
 test("silently accepts a honeypot-filled submission", async ({ page }) => {
@@ -84,7 +127,8 @@ test("silently accepts a honeypot-filled submission", async ({ page }) => {
 
   await hero.getByRole("button", { name: "Join the waitlist" }).click();
 
-  // The bot gets the normal success shape; the route writes nothing.
+  // The bot gets the normal success shape, the route writes nothing, and there
+  // is no survey reference to navigate with.
   await expect(page.getByText("You're on the list.")).toBeVisible();
 });
 
@@ -105,6 +149,9 @@ test("waitlist-only mode keeps the public waitlist pages reachable", async ({ pa
   await expect(
     page.getByRole("heading", { level: 1, name: "How the waitlist works." }),
   ).toBeVisible();
+
+  await page.goto("/waitlist/survey");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("isn't ready");
 });
 
 test("confirmation and a confirmed referral move the first person up five spots", async ({
@@ -140,7 +187,8 @@ test("confirmation and a confirmed referral move the first person up five spots"
   const hero = page.locator("#join");
   await hero.getByLabel("Email address").fill(firstEmail);
   await hero.getByRole("button", { name: "Join the waitlist" }).click();
-  await expect(page.getByText("You're on the list.")).toBeVisible();
+  await expect(page).toHaveURL(/\/waitlist\/survey\?ref=/);
+  await expect(page.getByLabel("Your referral link")).toHaveCount(0);
 
   const firstRow = await admin
     .from("waitlist_signups")
@@ -167,7 +215,7 @@ test("confirmation and a confirmed referral move the first person up five spots"
   const referralForm = page.locator("#join");
   await referralForm.getByLabel("Email address").fill(secondEmail);
   await referralForm.getByRole("button", { name: "Join the waitlist" }).click();
-  await expect(page.getByText("You're on the list.")).toBeVisible();
+  await expect(page).toHaveURL(/\/waitlist\/survey\?ref=/);
 
   await page.goto(`/waitlist/status/${firstRow.data.status_code}`);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("You're #7");
@@ -194,4 +242,20 @@ test("confirmation and a confirmed referral move the first person up five spots"
 
   // The status page is private and carries the required headers.
   expect(await page.locator('meta[name="robots"]').getAttribute("content")).toContain("noindex");
+
+  // The verified owner's survey link comes from the status page and works.
+  await page.getByRole("link", { name: "Answer a few questions" }).click();
+  await expect(page).toHaveURL(/\/waitlist\/survey\?ref=/);
+  await page.getByRole("radio", { name: "Just browsing" }).check();
+  await page.getByRole("button", { name: "Update my answers" }).click();
+  await expect(page.getByRole("heading", { level: 2 })).toContainText("Thank you");
+
+  const verified = await admin
+    .from("waitlist_survey_responses")
+    .select("answers_status, role, verified_via")
+    .eq("signup_id", firstRow.data.id)
+    .maybeSingle();
+  expect(verified.data?.answers_status).toBe("verified");
+  expect(verified.data?.role).toBe("just_browsing");
+  expect(verified.data?.verified_via).toBe("status_page");
 });

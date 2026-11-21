@@ -1,13 +1,15 @@
 # Waitlist
 
 The public waitlist for HausCrawl's Seattle / King County early access. It is a
-single landing page with an email form, optional context fields, email
-confirmation, a private status page, and a referral link.
+single landing page with an email form, an optional survey that follows signup,
+email confirmation, a private status page, and a referral link.
 
 ## How a signup works
 
-1. The browser posts to `POST /api/waitlist` with the email, optional fields,
-   UTM/referrer data, a referral code from `?ref=`, and a hidden honeypot field.
+1. The browser posts to `POST /api/waitlist` with the email, UTM/referrer data,
+   a referral code from `?ref=`, and a hidden honeypot field. Role and region are
+   no longer collected here; they are survey questions. The API keeps accepting
+   those fields during the transition so nothing breaks between releases.
 2. The route validates with `waitlistSignupSchema` from `@hauscrawl/core`, rejects
    obvious bots, hashes the request IP with `WAITLIST_IP_SALT`, and calls
    `join_waitlist_admin` with the **server-only** service role.
@@ -43,6 +45,36 @@ confirmation, a private status page, and a referral link.
    work; Auth mirroring, double opt-in, positions and referrals are off there.
    Without `WAITLIST_CONFIRMATION_SECRET` or Resend, position and referral UI
    stay off. There is no synthetic position or share link.
+
+## Survey
+
+After the email is saved, the form navigates straight to `/waitlist/survey`. The
+survey is optional and skippable, and an abandoned survey never loses the
+signup.
+
+- **Reference.** The join response includes `surveyRef`, a signed token with the
+  `survey-stage` audience. It is issued for new and duplicate emails alike, so
+  the response shape still says nothing about whether the address existed. It is
+  not the status code, the confirmation token or the unsubscribe token.
+- **Staging.** Anonymous answers are written by `stage_waitlist_survey` into
+  `waitlist_survey_responses` with `answers_status = 'staged'`. They are never
+  copied into `waitlist_signups.role/searching_with/region` and never treated as
+  trusted contact details. Staging against a verified row is a no-op.
+- **Verification.** The confirmation email link carries the signup-time survey
+  session id. When it is opened, `promote_waitlist_survey` promotes staged
+  answers only if that session wrote them, then applies role/searching/region to
+  the signup row. Answers staged by someone who merely typed the address use a
+  different session and are never promoted.
+- **No lockout.** The private status page mints a short-lived `survey-verify`
+  token and links to the survey. Submitting it calls
+  `save_verified_waitlist_survey`, which always succeeds and replaces both staged
+  and earlier verified answers. A verified owner can never be locked out.
+- **Privacy.** The status code never appears in a survey URL, answers store only
+  a salted IP hash, the table has RLS with no policies, and every write goes
+  through a security-definer RPC granted to the service role alone.
+- **Unavailable paths.** Without `WAITLIST_SURVEY_SECRET` the survey page reports
+  that the link is not ready and the status page hides the prompt; without the
+  service role the submit route returns a retryable 503.
 
 ## Account recovery and sign-up conflicts
 
@@ -184,6 +216,7 @@ Names only. Never commit values.
 | `WAITLIST_IP_SALT` | Server secret | Salt for the one-way IP hash used for rate limiting |
 | `WAITLIST_UNSUBSCRIBE_SECRET` | Server secret | HMAC key for signed unsubscribe tokens |
 | `WAITLIST_CONFIRMATION_SECRET` | Server secret | HMAC key for signed, expiring confirmation tokens |
+| `WAITLIST_SURVEY_SECRET` | Server secret | HMAC key for signed, expiring survey links |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server secret | Admin RPCs, delivery/confirmation, and Auth user mirroring; server-only |
 | `WAITLIST_EMAIL_ENABLED` | Server | Enables Resend confirmation and status email |
 | `RESEND_API_KEY` | Server secret | Resend API key; only needed when email is enabled |
@@ -191,9 +224,10 @@ Names only. Never commit values.
 | `NEXT_PUBLIC_POSTHOG_KEY` | Public | PostHog project key; blank disables analytics |
 | `NEXT_PUBLIC_POSTHOG_HOST` | Public | PostHog ingestion host |
 
-Generate the three secrets separately, for example:
+Generate the server secrets separately, for example:
 
 ```bash
+openssl rand -hex 32
 openssl rand -hex 32
 openssl rand -hex 32
 openssl rand -hex 32
@@ -216,7 +250,7 @@ delivery or a place in line.
 ### Vercel environments
 
 - **Production:** `WAITLIST_ONLY=true`, production `NEXT_PUBLIC_SITE_URL`, real
-  `NEXT_PUBLIC_CONTACT_EMAIL`, all three server secrets,
+  `NEXT_PUBLIC_CONTACT_EMAIL`, all four server secrets,
   `SUPABASE_SERVICE_ROLE_KEY`, and verified Resend values.
 - **Preview:** `WAITLIST_ONLY=false`, a preview-specific site URL, and
   test/placeholder values. Do not point preview at production email or
@@ -361,9 +395,16 @@ needed.
 
 1. Set the environment variables for the target Vercel environment, including
    the server-only service key (needed to mirror waitlist emails into
-   Authentication → Users) and confirmation secret.
+   Authentication → Users), the confirmation secret, and
+   `WAITLIST_SURVEY_SECRET`. Survey links are signed with that secret: without
+   it the join response carries no `surveyRef`, the survey page reports that its
+   link is not ready, and the status page hides the prompt.
 2. Run the migration dry-run and review it; apply only with explicit approval.
-   This includes `20261118120000_waitlist_auth_users.sql` before Auth mirroring.
+   This includes `20261118120000_waitlist_auth_users.sql` before Auth mirroring
+   and `20261121120000_waitlist_survey.sql` before the survey is reachable. Ship
+   the secret and the migration in the same release: with the secret but no
+   migration the form navigates to a survey that returns 503 on submit, and with
+   the migration but no secret nothing links to the survey.
 3. Run the backfill dry-run, then apply it with the printed project ref if
    existing waitlist rows should appear in Auth → Users.
 4. Confirm `WAITLIST_ONLY=true` in production and `false` in preview.

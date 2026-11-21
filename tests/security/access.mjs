@@ -11,7 +11,7 @@
  * SUPABASE_TEST_URL and SUPABASE_TEST_ANON_KEY explicitly.
  */
 
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 
 const url = process.env.SUPABASE_TEST_URL;
@@ -74,6 +74,7 @@ let postPhotoPath = null;
 let posterPath = null;
 let videoPath = null;
 let strangerPostId = null;
+let surveySignupId = null;
 const uploadedPostPhotos = [];
 const uploadedPostVideos = [];
 
@@ -2176,10 +2177,207 @@ try {
     .select("id");
   check("an owner deletes their own collection", deleteCollection.data?.length === 1);
   collectionId = null;
+
+  // -------------------------------------------------------------------------
+  // Waitlist survey: staged answers are unverified and never become canonical
+  // until the emailed confirmation proves address ownership.
+  // -------------------------------------------------------------------------
+  if (service) {
+    const surveyIpHash = createHash("sha256").update(`survey-${runId}`).digest("hex");
+    const sessionId = randomUUID();
+
+    const fixture = await service
+      .from("waitlist_signups")
+      .insert({
+        email: `waitlist.survey.${runId}@example.com`,
+        referral_code: createHash("sha256")
+          .update(`survey-rc-${runId}`)
+          .digest("hex")
+          .slice(0, 10),
+        status_code: createHash("sha256")
+          .update(`survey-sc-${runId}`)
+          .digest("hex")
+          .slice(0, 24),
+        ip_hash: surveyIpHash,
+      })
+      .select("id")
+      .single();
+    check("a disposable waitlist signup exists for the survey checks", !fixture.error);
+    surveySignupId = fixture.data?.id ?? null;
+
+    if (surveySignupId) {
+      const anonRead = await anon.from("waitlist_survey_responses").select("signup_id");
+      check("anonymous clients cannot read survey answers", Boolean(anonRead.error));
+
+      const anonStage = await anon.rpc("stage_waitlist_survey", {
+        p_signup_id: surveySignupId,
+        p_session_id: sessionId,
+        p_ip_hash: surveyIpHash,
+        p_answers: { role: "agent_or_broker" },
+      });
+      check("anonymous clients cannot stage survey answers", Boolean(anonStage.error));
+
+      const anonSave = await anon.rpc("save_verified_waitlist_survey", {
+        p_signup_id: surveySignupId,
+        p_ip_hash: surveyIpHash,
+        p_answers: { role: "creator" },
+      });
+      check("anonymous clients cannot write verified survey answers", Boolean(anonSave.error));
+
+      const stage = await service.rpc("stage_waitlist_survey", {
+        p_signup_id: surveySignupId,
+        p_session_id: sessionId,
+        p_ip_hash: surveyIpHash,
+        p_answers: {
+          role: "agent_or_broker",
+          brokerage: "Fixture Realty",
+          contact_method: "email",
+          promo_interest: "maybe",
+        },
+      });
+      check(
+        "the signup session can stage survey answers",
+        stage.data?.state === "staged",
+        stage.error?.message,
+      );
+
+      const canonicalAfterStage = await service
+        .from("waitlist_signups")
+        .select("role, searching_with, region")
+        .eq("id", surveySignupId)
+        .single();
+      check(
+        "anonymous staging never writes the canonical role",
+        canonicalAfterStage.data?.role === null &&
+          canonicalAfterStage.data?.searching_with === null &&
+          canonicalAfterStage.data?.region === null,
+      );
+
+      const unconfirmedSave = await service.rpc("save_verified_waitlist_survey", {
+        p_signup_id: surveySignupId,
+        p_ip_hash: surveyIpHash,
+        p_answers: { role: "creator" },
+      });
+      check(
+        "verified survey writes require a confirmed email",
+        unconfirmedSave.data?.state === "unverified",
+        unconfirmedSave.error?.message,
+      );
+
+      const confirmed = await service.rpc("confirm_waitlist_signup", {
+        p_signup_id: surveySignupId,
+      });
+      check("the survey fixture signup is confirmed", confirmed.data?.ok === true);
+
+      const foreignPromotion = await service.rpc("promote_waitlist_survey", {
+        p_signup_id: surveySignupId,
+        p_session_id: randomUUID(),
+      });
+      check(
+        "a session that did not sign up cannot promote staged answers",
+        foreignPromotion.data?.promoted === false,
+      );
+
+      const stagedAfterForeign = await service
+        .from("waitlist_survey_responses")
+        .select("answers_status")
+        .eq("signup_id", surveySignupId)
+        .single();
+      check(
+        "staged answers stay unverified after a foreign promotion attempt",
+        stagedAfterForeign.data?.answers_status === "staged",
+      );
+
+      const promotion = await service.rpc("promote_waitlist_survey", {
+        p_signup_id: surveySignupId,
+        p_session_id: sessionId,
+      });
+      check(
+        "the signup session promotes its own staged answers",
+        promotion.data?.promoted === true,
+        promotion.error?.message,
+      );
+
+      const canonicalAfterPromotion = await service
+        .from("waitlist_signups")
+        .select("role")
+        .eq("id", surveySignupId)
+        .single();
+      check(
+        "promotion applies the canonical role",
+        canonicalAfterPromotion.data?.role === "agent_or_broker",
+      );
+
+      const restage = await service.rpc("stage_waitlist_survey", {
+        p_signup_id: surveySignupId,
+        p_session_id: randomUUID(),
+        p_ip_hash: surveyIpHash,
+        p_answers: { role: "just_browsing", notes: "overwrite attempt" },
+      });
+      check(
+        "staging against a verified row reports the verified state",
+        restage.data?.state === "verified",
+      );
+
+      const afterRestage = await service
+        .from("waitlist_survey_responses")
+        .select("role, notes")
+        .eq("signup_id", surveySignupId)
+        .single();
+      check(
+        "anonymous answers cannot overwrite verified answers",
+        afterRestage.data?.role === "agent_or_broker" && afterRestage.data?.notes === null,
+      );
+
+      const replacement = await service.rpc("save_verified_waitlist_survey", {
+        p_signup_id: surveySignupId,
+        p_ip_hash: surveyIpHash,
+        p_answers: { role: "creator", creator_focus: "listing_videos" },
+      });
+      check(
+        "a verified owner replaces verified answers",
+        replacement.data?.state === "verified",
+        replacement.error?.message,
+      );
+
+      const afterReplacement = await service
+        .from("waitlist_survey_responses")
+        .select("role, creator_focus, verified_via")
+        .eq("signup_id", surveySignupId)
+        .single();
+      check(
+        "verified answers supersede earlier verified answers",
+        afterReplacement.data?.role === "creator" &&
+          afterReplacement.data?.creator_focus === "listing_videos" &&
+          afterReplacement.data?.verified_via === "status_page",
+      );
+
+      const canonicalAfterReplacement = await service
+        .from("waitlist_signups")
+        .select("role")
+        .eq("id", surveySignupId)
+        .single();
+      check(
+        "a verified replacement updates the canonical role",
+        canonicalAfterReplacement.data?.role === "creator",
+      );
+
+      const deleteSurveyFixture = await service
+        .from("waitlist_signups")
+        .delete()
+        .eq("id", surveySignupId)
+        .select("id");
+      check("the survey fixture is deleted", deleteSurveyFixture.data?.length === 1);
+      surveySignupId = null;
+    }
+  }
 } catch (error) {
   failures += 1;
   console.error("ERROR", error instanceof Error ? error.message : error);
 } finally {
+  if (surveySignupId) {
+    await service?.from("waitlist_signups").delete().eq("id", surveySignupId);
+  }
   if (collectionId) await owner.from("collections").delete().eq("id", collectionId);
   if (strangerPropertyId) await stranger.from("properties").delete().eq("id", strangerPropertyId);
   if (editorPropertyId) await owner.from("properties").delete().eq("id", editorPropertyId);
