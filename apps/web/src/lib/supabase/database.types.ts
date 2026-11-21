@@ -972,6 +972,27 @@ export type Database = {
         Args: { p_token_hash: string };
         Returns: boolean;
       };
+      stage_waitlist_survey: {
+        Args: {
+          p_signup_id: string;
+          p_session_id: string;
+          p_ip_hash: string;
+          p_answers: Json;
+        };
+        Returns: Json;
+      };
+      promote_waitlist_survey: {
+        Args: { p_signup_id: string; p_session_id: string };
+        Returns: Json;
+      };
+      save_verified_waitlist_survey: {
+        Args: { p_signup_id: string; p_ip_hash: string; p_answers: Json };
+        Returns: Json;
+      };
+      waitlist_survey_signup_id: {
+        Args: { p_status_code: string };
+        Returns: string | null;
+      };
       accept_collection_invite: {
         Args: { p_token_hash: string };
         Returns: string;
