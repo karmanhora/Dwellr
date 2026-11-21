@@ -1,10 +1,22 @@
 "use client";
 
+import { useEffect } from "react";
+import posthog from "posthog-js";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { ErrorState } from "@/components/ui/error-state";
 
-export default function FeedError({ reset }: { reset: () => void }) {
+export default function FeedError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  useEffect(() => {
+    posthog.captureException(error);
+  }, [error]);
+
   return (
     <Container className="py-16">
       <ErrorState

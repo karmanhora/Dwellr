@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import posthog from "posthog-js";
 import { useActionState } from "react";
 
 import { signInAction } from "@/app/(auth)/actions";
@@ -13,7 +14,11 @@ export function SignInForm({ next }: { next?: string }) {
   const errors = state.fieldErrors ?? {};
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form
+      action={formAction}
+      onSubmit={() => posthog.capture("sign_in_submitted")}
+      className="space-y-5"
+    >
       {next ? <input type="hidden" name="next" value={next} /> : null}
 
       {state.message ? (

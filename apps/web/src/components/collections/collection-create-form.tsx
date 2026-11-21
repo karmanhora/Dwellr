@@ -1,5 +1,6 @@
 "use client";
 
+import posthog from "posthog-js";
 import { useActionState } from "react";
 
 import { createCollectionAction } from "@/app/saved/actions";
@@ -15,7 +16,11 @@ export function CollectionCreateForm() {
   );
 
   return (
-    <form action={formAction} className="rounded-panel border border-line p-5">
+    <form
+      action={formAction}
+      onSubmit={() => posthog.capture("collection_create_submitted")}
+      className="rounded-panel border border-line p-5"
+    >
       <h2 className="text-title font-medium">New collection</h2>
       <p className="mt-1 text-body-sm text-stone">
         Group the homes you&rsquo;re comparing. You can publish a collection when you&rsquo;re ready
